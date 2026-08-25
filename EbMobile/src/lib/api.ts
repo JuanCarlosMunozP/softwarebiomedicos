@@ -115,13 +115,15 @@ api.interceptors.response.use(
 
     // Log de diagnóstico para CUALQUIER error que pase por axios. El "Network
     // Error" típico no trae response → status undefined y error.code = ERR_NETWORK.
+    // No se loguea el body de la respuesta (`error.response?.data`): puede
+    // traer datos sensibles/PII devueltos por el backend en un 400, y esto
+    // queda en Logcat/logs del sistema también en builds de producción.
     console.warn("[API ERROR]", {
       fullUrl: `${original?.baseURL ?? ""}${url}`,
       method: original?.method?.toUpperCase(),
       code: error.code,
       status,
       message: error.message,
-      responseData: error.response?.data,
     });
 
     const isAuthEndpoint =

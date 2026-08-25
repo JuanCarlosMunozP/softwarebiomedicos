@@ -2,6 +2,13 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from api.v1.common.file_validation import (
+    ATTACHMENT_EXTENSIONS,
+    CERTIFICATE_EXTENSIONS,
+    DOCUMENT_EXTENSIONS,
+    EVIDENCE_EXTENSIONS,
+    validate_uploaded_file,
+)
 from apps.branches.models import Branch
 from apps.catalog.models import EquipmentModel
 from apps.equipment.models import (
@@ -179,6 +186,9 @@ class EquipmentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(_("La fecha de compra no puede ser futura."))
         return value
 
+    def validate_life_sheet_pdf(self, value):
+        return validate_uploaded_file(value, allowed_extensions=DOCUMENT_EXTENSIONS)
+
 class EquipmentAttachmentSerializer(serializers.ModelSerializer):
 
     uploaded_by_name = serializers.SerializerMethodField()
@@ -201,6 +211,10 @@ class EquipmentAttachmentSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "uploaded_at",
+            # Se fuerza server-side en EquipmentAttachmentViewSet.perform_create:
+            # si fuera editable, cualquiera podría atribuir el archivo a otro
+            # usuario arbitrario.
+            "uploaded_by",
             "uploaded_by_name",
         ]
 
@@ -211,6 +225,9 @@ class EquipmentAttachmentSerializer(serializers.ModelSerializer):
             return None
 
         return obj.uploaded_by.get_full_name() or obj.uploaded_by.username
+
+    def validate_file(self, value):
+        return validate_uploaded_file(value, allowed_extensions=ATTACHMENT_EXTENSIONS)
 
 class EquipmentCertificateSerializer(serializers.ModelSerializer):
 
@@ -224,6 +241,9 @@ class EquipmentCertificateSerializer(serializers.ModelSerializer):
             "id",
             "created_at",
         ]
+
+    def validate_file(self, value):
+        return validate_uploaded_file(value, allowed_extensions=CERTIFICATE_EXTENSIONS)
 
 
 class EquipmentInstructionSerializer(serializers.ModelSerializer):
@@ -267,11 +287,15 @@ class WorkOrderEvidenceSerializer(serializers.ModelSerializer):
 
         model = WorkOrderEvidence
 
-        fields = '__all__' 
+        fields = '__all__'
 
         read_only_fields = [
             "id",
         ]
+
+    def validate_file(self, value):
+        return validate_uploaded_file(value, allowed_extensions=EVIDENCE_EXTENSIONS)
+
 class WorkOrderSignatureSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -334,3 +358,6 @@ class EquipmentWorkOrderSerializer(serializers.ModelSerializer):
             obj.technician.get_full_name()
             or obj.technician.username
         )
+
+    def validate_report(self, value):
+        return validate_uploaded_file(value, allowed_extensions=DOCUMENT_EXTENSIONS)

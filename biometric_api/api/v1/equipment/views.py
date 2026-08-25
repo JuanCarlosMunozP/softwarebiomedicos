@@ -125,6 +125,11 @@ class EquipmentAttachmentViewSet(viewsets.ModelViewSet):
 
     ordering = ("-uploaded_at",)
 
+    def perform_create(self, serializer):
+        # `uploaded_by` es read-only en el serializer justamente para que no
+        # se pueda setear desde el request; se fija acá al usuario real.
+        serializer.save(uploaded_by=self.request.user)
+
 class EquipmentCertificateViewSet(viewsets.ModelViewSet):
 
     "CRUD de certificados de equipos"

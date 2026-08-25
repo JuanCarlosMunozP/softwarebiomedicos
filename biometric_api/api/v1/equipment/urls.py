@@ -15,7 +15,7 @@ from .views import (
 app_name = "equipment"
 
 router = DefaultRouter()
-router.register(r"attachments", EquipmentViewSet, basename="equipment-attachment")
+router.register(r"attachments", EquipmentAttachmentViewSet, basename="equipment-attachment")
 router.register(r"certificates",EquipmentCertificateViewSet,basename="equipment-certificate")
 router.register(r"instructions",EquipmentInstructionViewSet,basename="equipment-instruction")
 router.register(r"work-orders",EquipmentWorkOrderViewSet,basename="equipment-work-order")

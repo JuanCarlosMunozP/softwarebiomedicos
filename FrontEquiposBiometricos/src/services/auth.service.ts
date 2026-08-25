@@ -10,4 +10,11 @@ export const authService = {
     const res = await api.get<Usuario>("/users/me/");
     return res.data;
   },
+  async logout() {
+    // Invalida el refresh token en el backend (blacklist) y borra las
+    // cookies de sesión. Se ignora cualquier error: el logout local
+    // (limpiar estado en memoria) debe funcionar igual aunque el request
+    // falle (p. ej. sin conexión).
+    await api.post("/auth/token/blacklist/").catch(() => undefined);
+  },
 };

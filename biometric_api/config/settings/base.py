@@ -168,7 +168,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 # ---------------------------------------------------------------------------
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "api.v1.common.authentication.CookieJWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
@@ -204,6 +204,21 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
 }
 
+# ---------------------------------------------------------------------------
+# Cookies de autenticación (frontend web)
+# ---------------------------------------------------------------------------
+# El frontend web recibe el access/refresh token como cookies httpOnly (no
+# localStorage) para que un XSS no pueda robarlos ni suplantar al usuario.
+# Los clientes que usan el header Authorization (app móvil, Postman, etc.)
+# no se ven afectados: CookieJWTAuthentication sigue aceptando ese header y
+# solo cae a la cookie cuando no viene header.
+AUTH_COOKIE_ACCESS_NAME = "access_token"
+AUTH_COOKIE_REFRESH_NAME = "refresh_token"
+AUTH_COOKIE_SAMESITE = env("AUTH_COOKIE_SAMESITE", default="Lax")
+# En prod.py se fuerza a True (HTTPS). En dev queda en False por defecto para
+# no requerir HTTPS local; puede activarse por env si se prueba con HTTPS.
+AUTH_COOKIE_SECURE = env.bool("AUTH_COOKIE_SECURE", default=False)
+
 SPECTACULAR_SETTINGS = {
     "TITLE": "Biometric API",
     "DESCRIPTION": "API para administración de equipos biomédicos",
@@ -222,7 +237,13 @@ SPECTACULAR_SETTINGS = {
 # ---------------------------------------------------------------------------
 AXES_FAILURE_LIMIT = env.int("AXES_FAILURE_LIMIT", default=5)
 AXES_COOLOFF_TIME = env.int("AXES_COOLOFF_TIME_HOURS", default=1)
-AXES_LOCKOUT_PARAMETERS = ["username"]
+# Lockout por la COMBINACIÓN (username + ip_address), no por username solo:
+# con ["username"] cualquier atacante no autenticado que conozca un username
+# válido puede bloquear esa cuenta 1h enviando 5 intentos fallidos desde
+# cualquier IP (DoS dirigido). Con [["username", "ip_address"]] el bloqueo
+# solo aplica a ese par específico, así que un atacante no puede tumbar la
+# cuenta de otra persona sin operar desde su misma IP.
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
 AXES_RESET_ON_SUCCESS = True
 
 # ---------------------------------------------------------------------------
@@ -243,6 +264,11 @@ CONTENT_SECURITY_POLICY = {
 # CORS
 # ---------------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
+# Necesario para que el navegador adjunte/reciba las cookies de auth en
+# requests cross-origin (frontend y backend en distinto puerto en dev). En
+# prod ambos se sirven bajo el mismo origen vía nginx, así que esto no
+# habilita nada adicional ahí.
+CORS_ALLOW_CREDENTIALS = True
 
 # ---------------------------------------------------------------------------
 # AWS S3 (django-storages)

@@ -78,13 +78,61 @@ class TestJwtLogoutBlacklist:
             format="json",
         )
         assert login.status_code == 200
-        refresh_token = login.json()["refresh"]
+        refresh_token = login.cookies[settings.AUTH_COOKIE_REFRESH_NAME].value
+        assert refresh_token
 
-        logout = api_client.post(BLACKLIST_URL, {"refresh": refresh_token}, format="json")
-        assert logout.status_code == 200
+        # El logout lee el refresh token de la cookie (el test client de
+        # Django la reenvía automáticamente, igual que haría un navegador).
+        logout = api_client.post(BLACKLIST_URL)
+        assert logout.status_code == 204
 
-        reuse = api_client.post(REFRESH_URL, {"refresh": refresh_token}, format="json")
+        # Simula un atacante que interceptó el refresh token antes del
+        # logout e intenta reutilizarlo directamente: debe seguir fallando
+        # aunque fuerce la cookie a mano, porque el backend lo blacklisteó.
+        api_client.cookies[settings.AUTH_COOKIE_REFRESH_NAME] = refresh_token
+        reuse = api_client.post(REFRESH_URL)
         assert reuse.status_code == 401
+
+
+@pytest.mark.django_db
+class TestCookieAuth:
+    def test_login_sets_httponly_cookies_and_no_tokens_in_body(self, api_client, settings):
+        settings.AXES_FAILURE_LIMIT = 1000
+        user = UserFactory(username="cookieuser")
+
+        response = api_client.post(
+            TOKEN_URL,
+            {"username": user.username, "password": "testpass123"},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {}
+        access_cookie = response.cookies[settings.AUTH_COOKIE_ACCESS_NAME]
+        refresh_cookie = response.cookies[settings.AUTH_COOKIE_REFRESH_NAME]
+        assert access_cookie["httponly"]
+        assert refresh_cookie["httponly"]
+
+    def test_refresh_without_cookie_is_rejected(self, api_client):
+        response = api_client.post(REFRESH_URL)
+        assert response.status_code == 401
+
+    def test_refresh_uses_cookie_and_rotates_it(self, api_client, settings):
+        settings.AXES_FAILURE_LIMIT = 1000
+        user = UserFactory(username="rotateuser")
+        login = api_client.post(
+            TOKEN_URL,
+            {"username": user.username, "password": "testpass123"},
+            format="json",
+        )
+        old_refresh = login.cookies[settings.AUTH_COOKIE_REFRESH_NAME].value
+
+        refreshed = api_client.post(REFRESH_URL)
+
+        assert refreshed.status_code == 200
+        assert refreshed.json() == {}
+        new_refresh = refreshed.cookies[settings.AUTH_COOKIE_REFRESH_NAME].value
+        assert new_refresh != old_refresh
 
 
 @pytest.mark.django_db

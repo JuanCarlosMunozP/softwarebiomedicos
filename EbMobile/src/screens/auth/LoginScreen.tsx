@@ -38,7 +38,13 @@ export function LoginScreen({ navigation }: AuthStackScreenProps<"Login">) {
     } catch (err) {
       // Diagnóstico explícito desde el call site del login (complementa el
       // interceptor de api.ts y permite identificar el origen en la consola).
-      console.warn("[LOGIN] error:", err);
+      // Solo se loguea el mensaje/status, nunca el error crudo: err.config.data
+      // trae el body del request, que incluye la contraseña en texto plano,
+      // y console.* no se elimina en builds de producción (queda en Logcat).
+      console.warn(
+        "[LOGIN] error:",
+        err instanceof Error ? err.message : "error desconocido",
+      );
       setError(getApiErrorMessage(err, "Credenciales inválidas"));
     } finally {
       setLoading(false);

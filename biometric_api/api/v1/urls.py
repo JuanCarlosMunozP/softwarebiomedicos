@@ -5,22 +5,23 @@ A medida que se creen las apps de dominio, se irán incluyendo aquí, por ejempl
     path("equipment/", include("apps.equipment.api.v1.urls")),
 """
 from django.urls import include, path
-from rest_framework_simplejwt.views import (
-    TokenBlacklistView,
-    TokenRefreshView,
-    TokenVerifyView,
-)
+from rest_framework_simplejwt.views import TokenVerifyView
 
-from api.v1.common.views import ThrottledTokenObtainPairView
+from api.v1.common.views import (
+    CookieTokenLogoutView,
+    CookieTokenRefreshView,
+    ThrottledTokenObtainPairView,
+)
 
 app_name = "v1"
 
 urlpatterns = [
-    # JWT auth endpoints
+    # JWT auth endpoints — access/refresh viajan como cookies httpOnly, no
+    # en el body (ver api/v1/common/views.py).
     path("auth/token/", ThrottledTokenObtainPairView.as_view(), name="token-obtain"),
-    path("auth/token/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
+    path("auth/token/refresh/", CookieTokenRefreshView.as_view(), name="token-refresh"),
     path("auth/token/verify/", TokenVerifyView.as_view(), name="token-verify"),
-    path("auth/token/blacklist/", TokenBlacklistView.as_view(), name="token-blacklist"),
+    path("auth/token/blacklist/", CookieTokenLogoutView.as_view(), name="token-blacklist"),
     # Domain routes
     path("users/", include(("api.v1.users.urls", "users"), namespace="users")),
     path("branches/", include(("api.v1.branches.urls", "branches"), namespace="branches")),

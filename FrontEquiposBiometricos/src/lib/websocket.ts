@@ -4,11 +4,14 @@
  * Decisiones:
  * - Una única conexión por sesión: cada componente que quiera escuchar se
  *   suscribe con `on(handler)` y recibe el mismo stream.
- * - El token JWT viaja por query string (`?token=...`) porque la API de
- *   `new WebSocket()` no permite cabeceras `Authorization`.
+ * - La autenticación viaja por la cookie httpOnly de sesión, NO por query
+ *   string: el navegador la adjunta solo en el handshake porque el backend
+ *   corre en el mismo sitio (same-site). Antes se mandaba el JWT como
+ *   `?token=...`, lo que lo exponía en logs de servidor/proxy e historial
+ *   del navegador — se quitó al migrar la auth a cookies httpOnly.
  * - Reconexión exponencial con jitter, topada a 30 s. No usa librería: el
  *   nativo basta y el bundle queda más liviano.
- * - Si el server cierra con código 4401 (token inválido/expirado), no se
+ * - Si el server cierra con código 4401 (sesión inválida/expirada), no se
  *   reintenta: el usuario tendrá que loguearse de nuevo. Para cualquier
  *   otro cierre sí se reintenta.
  */
@@ -41,16 +44,14 @@ const MAX_BACKOFF_MS = 30_000;
 class NotificationSocket {
   private socket: WebSocket | null = null;
   private handlers = new Set<Handler>();
-  private token: string | null = null;
+  private connected = false;
   private retryAttempt = 0;
   private reconnectTimer: number | null = null;
   private intentionallyClosed = false;
 
-  connect(token: string): void {
-    if (!token) return;
-    // Si ya hay conexión viva con el mismo token, no abrimos otra.
+  connect(): void {
+    // Si ya hay conexión viva, no abrimos otra.
     if (
-      this.token === token &&
       this.socket &&
       (this.socket.readyState === WebSocket.OPEN ||
         this.socket.readyState === WebSocket.CONNECTING)
@@ -58,7 +59,7 @@ class NotificationSocket {
       return;
     }
     this.disconnect();
-    this.token = token;
+    this.connected = true;
     this.intentionallyClosed = false;
     this.open();
   }
@@ -82,7 +83,7 @@ class NotificationSocket {
       }
       this.socket = null;
     }
-    this.token = null;
+    this.connected = false;
     this.retryAttempt = 0;
   }
 
@@ -92,8 +93,8 @@ class NotificationSocket {
   }
 
   private open(): void {
-    if (!this.token) return;
-    const url = `${WS_BASE_URL}/ws/notifications/?token=${encodeURIComponent(this.token)}`;
+    if (!this.connected) return;
+    const url = `${WS_BASE_URL}/ws/notifications/`;
     const socket = new WebSocket(url);
     this.socket = socket;
 
@@ -134,7 +135,7 @@ class NotificationSocket {
   }
 
   private scheduleReconnect(): void {
-    if (!this.token) return;
+    if (!this.connected) return;
     const baseDelay = Math.min(
       1000 * 2 ** this.retryAttempt,
       MAX_BACKOFF_MS,

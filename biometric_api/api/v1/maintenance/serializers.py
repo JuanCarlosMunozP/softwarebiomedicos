@@ -129,7 +129,7 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
             if value and value.size > MAX_PDF_BYTES:
                 raise serializers.ValidationError(_("El archivo no puede superar los 10 MB."))
             header = value.read(5)
-            value.seek()
+            value.seek(0)
             if header != b"%PDF-":
                 raise serializers.ValidationError(_("El archivo no es un PDF válido."))
         return value
