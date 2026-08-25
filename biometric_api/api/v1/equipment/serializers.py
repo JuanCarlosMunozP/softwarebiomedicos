@@ -7,6 +7,7 @@ from api.v1.common.file_validation import (
     CERTIFICATE_EXTENSIONS,
     DOCUMENT_EXTENSIONS,
     EVIDENCE_EXTENSIONS,
+    MAX_IMAGE_BYTES,
     validate_uploaded_file,
 )
 from apps.branches.models import Branch
@@ -188,6 +189,17 @@ class EquipmentSerializer(serializers.ModelSerializer):
 
     def validate_life_sheet_pdf(self, value):
         return validate_uploaded_file(value, allowed_extensions=DOCUMENT_EXTENSIONS)
+
+    def validate_equipment_image(self, value):
+        # ImageField ya valida (vía Pillow) que el contenido sea una imagen
+        # real; acá solo falta el límite de tamaño que sí tienen los demás
+        # campos de archivo del sistema.
+        if value and value.size > MAX_IMAGE_BYTES:
+            raise serializers.ValidationError(
+                _("La imagen no puede superar los %(mb)s MB.")
+                % {"mb": MAX_IMAGE_BYTES // (1024 * 1024)}
+            )
+        return value
 
 class EquipmentAttachmentSerializer(serializers.ModelSerializer):
 

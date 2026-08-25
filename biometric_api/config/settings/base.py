@@ -219,6 +219,15 @@ AUTH_COOKIE_SAMESITE = env("AUTH_COOKIE_SAMESITE", default="Lax")
 # no requerir HTTPS local; puede activarse por env si se prueba con HTTPS.
 AUTH_COOKIE_SECURE = env.bool("AUTH_COOKIE_SECURE", default=False)
 
+# La cookie `csrftoken` (usada por enforce_csrf en api/v1/common/authentication.py)
+# tiene que poder viajar en el mismo tipo de request que access_token/
+# refresh_token — si un despliegue cambia AUTH_COOKIE_SAMESITE a "None" para
+# un escenario realmente cross-site pero esta cookie se queda en "Lax", el
+# navegador manda las cookies de auth pero no la de CSRF, y todo mutating
+# request autenticado por cookie empieza a fallar con "CSRF cookie not set".
+CSRF_COOKIE_SAMESITE = AUTH_COOKIE_SAMESITE
+SESSION_COOKIE_SAMESITE = AUTH_COOKIE_SAMESITE
+
 SPECTACULAR_SETTINGS = {
     "TITLE": "Biometric API",
     "DESCRIPTION": "API para administración de equipos biomédicos",
@@ -264,11 +273,14 @@ CONTENT_SECURITY_POLICY = {
 # CORS
 # ---------------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
-# Necesario para que el navegador adjunte/reciba las cookies de auth en
-# requests cross-origin (frontend y backend en distinto puerto en dev). En
-# prod ambos se sirven bajo el mismo origen vía nginx, así que esto no
-# habilita nada adicional ahí.
-CORS_ALLOW_CREDENTIALS = True
+# OJO: NO poner CORS_ALLOW_CREDENTIALS = True. El frontend web ya no
+# necesita requests cross-origin con cookies — en dev pasa por el proxy de
+# Vite (mismo origen, ver vite.config.ts) y en prod nginx sirve todo bajo un
+# único origen. Combinar ALLOW_CREDENTIALS con el CORS_ALLOW_ALL_ORIGINS de
+# dev.py dejaría a cualquier sitio de terceros leer respuestas autenticadas
+# (con la cookie de sesión) de un desarrollador que tenga el backend
+# corriendo y visite esa página — sin ganar nada a cambio, porque nada del
+# flujo real depende de eso.
 
 # ---------------------------------------------------------------------------
 # AWS S3 (django-storages)

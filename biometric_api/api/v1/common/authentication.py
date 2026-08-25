@@ -3,6 +3,8 @@ from rest_framework import exceptions
 from rest_framework.authentication import CSRFCheck
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
+SAFE_METHODS = ("GET", "HEAD", "OPTIONS", "TRACE")
+
 
 def enforce_csrf(request) -> None:
     """Corre la misma validación CSRF que usa `SessionAuthentication` de DRF.
@@ -39,7 +41,9 @@ class CookieJWTAuthentication(JWTAuthentication):
 
         validated_token = self.get_validated_token(raw_token)
 
-        if header is None:
+        # CSRFCheck ya no-opea para métodos seguros, pero evitamos armar el
+        # objeto y correrlo igual en cada GET/HEAD/OPTIONS autenticado.
+        if header is None and request.method not in SAFE_METHODS:
             enforce_csrf(request)
 
         return self.get_user(validated_token), validated_token

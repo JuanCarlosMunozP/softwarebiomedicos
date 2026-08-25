@@ -23,7 +23,15 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8000',
-        changeOrigin: true,
+        // OJO: NO poner changeOrigin: true. Eso reescribe el header Host de
+        // la request proxied a "127.0.0.1:8000", pero el navegador sigue
+        // mandando Origin: "http://127.0.0.1:5173" — Django compara ambos
+        // en el chequeo de CSRF (ver django/middleware/csrf.py) y con
+        // changeOrigin activo nunca coinciden, así que cualquier POST/PUT/
+        // PATCH/DELETE autenticado por cookie (refresh, logout, crear
+        // equipo, etc.) devuelve 403 "CSRF Failed: Origin checking failed".
+        // Sin changeOrigin, Host llega igual a Origin y además
+        // DJANGO_ALLOWED_HOSTS ya incluye 127.0.0.1 sin importar el puerto.
       },
       '/ws': {
         target: 'ws://127.0.0.1:8000',

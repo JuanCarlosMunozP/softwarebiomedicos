@@ -31,7 +31,3 @@ export interface LoginRequest {
   username: string;
   password: string;
 }
-
-// El login/refresh ya no devuelve los tokens en el body: viajan como
-// cookies httpOnly que el navegador maneja solo. El body queda vacío.
-export type LoginResponse = Record<string, never>;

@@ -18,23 +18,31 @@ from rest_framework import serializers
 class _FileRule:
     max_bytes: int
     # Firmas conocidas del formato. None cuando el formato no tiene un
-    # magic-byte simple y fiable de validar (p. ej. contenedores mp4/m4a).
+    # magic-byte simple y fiable de validar.
     signatures: tuple[bytes, ...] | None
+    # Posición donde empieza la firma. mp4/m4a (contenedores ISO-BMFF) no
+    # tienen su marca al byte 0: los primeros 4 bytes son el tamaño del box,
+    # y recién en el byte 4 aparece literalmente "ftyp".
+    signature_offset: int = 0
 
 
 _MB = 1024 * 1024
+MAX_DOCUMENT_BYTES = 10 * _MB
+MAX_IMAGE_BYTES = 8 * _MB
+MAX_AUDIO_BYTES = 20 * _MB
+MAX_VIDEO_BYTES = 60 * _MB
 
 FILE_EXTENSION_RULES: dict[str, _FileRule] = {
-    "pdf": _FileRule(10 * _MB, (b"%PDF-",)),
-    "doc": _FileRule(10 * _MB, (b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",)),
-    "docx": _FileRule(10 * _MB, (b"PK\x03\x04",)),
-    "jpg": _FileRule(8 * _MB, (b"\xff\xd8\xff",)),
-    "jpeg": _FileRule(8 * _MB, (b"\xff\xd8\xff",)),
-    "png": _FileRule(8 * _MB, (b"\x89PNG\r\n\x1a\n",)),
-    "mp3": _FileRule(20 * _MB, (b"ID3", b"\xff\xfb", b"\xff\xf3", b"\xff\xf2")),
-    "wav": _FileRule(20 * _MB, (b"RIFF",)),
-    "m4a": _FileRule(20 * _MB, None),
-    "mp4": _FileRule(60 * _MB, None),
+    "pdf": _FileRule(MAX_DOCUMENT_BYTES, (b"%PDF-",)),
+    "doc": _FileRule(MAX_DOCUMENT_BYTES, (b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",)),
+    "docx": _FileRule(MAX_DOCUMENT_BYTES, (b"PK\x03\x04",)),
+    "jpg": _FileRule(MAX_IMAGE_BYTES, (b"\xff\xd8\xff",)),
+    "jpeg": _FileRule(MAX_IMAGE_BYTES, (b"\xff\xd8\xff",)),
+    "png": _FileRule(MAX_IMAGE_BYTES, (b"\x89PNG\r\n\x1a\n",)),
+    "mp3": _FileRule(MAX_AUDIO_BYTES, (b"ID3", b"\xff\xfb", b"\xff\xf3", b"\xff\xf2")),
+    "wav": _FileRule(MAX_AUDIO_BYTES, (b"RIFF",)),
+    "m4a": _FileRule(MAX_AUDIO_BYTES, (b"ftyp",), signature_offset=4),
+    "mp4": _FileRule(MAX_VIDEO_BYTES, (b"ftyp",), signature_offset=4),
 }
 
 DOCUMENT_EXTENSIONS = frozenset({"pdf"})
@@ -70,9 +78,11 @@ def validate_uploaded_file(value, *, allowed_extensions: frozenset[str]):
         )
 
     if rule.signatures:
-        header = value.read(max(len(sig) for sig in rule.signatures))
+        read_len = rule.signature_offset + max(len(sig) for sig in rule.signatures)
+        header = value.read(read_len)
         value.seek(0)
-        if not any(header.startswith(sig) for sig in rule.signatures):
+        window = header[rule.signature_offset :]
+        if not any(window.startswith(sig) for sig in rule.signatures):
             raise serializers.ValidationError(
                 _("El contenido del archivo no coincide con la extensión .%(ext)s.")
                 % {"ext": ext}

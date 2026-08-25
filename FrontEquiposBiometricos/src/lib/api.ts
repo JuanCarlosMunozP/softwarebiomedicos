@@ -52,7 +52,9 @@ export const api = axios.create({
   withCredentials: true,
 });
 
-// Cliente "raw" para refresh — sin interceptores para no entrar en bucles.
+// Cliente "raw" para refresh — sin el interceptor de response (que dispara
+// el propio refresh en un 401) para no entrar en bucles. Sí lleva el
+// interceptor de CSRF, porque el refresh es un POST autenticado por cookie.
 const rawClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: REQUEST_TIMEOUT_MS,
@@ -87,7 +89,10 @@ function notifyAll(ok: boolean) {
 
 async function refreshAccessToken(): Promise<boolean> {
   try {
-    await rawClient.post("/auth/token/refresh/");
+    // /auth/token/cookie/refresh/ (no /auth/token/refresh/): esa otra ruta
+    // es la variante "clásica" para la app móvil, que espera el refresh
+    // token en el body — acá viaja en la cookie httpOnly.
+    await rawClient.post("/auth/token/cookie/refresh/");
     return true;
   } catch {
     return false;
@@ -101,8 +106,7 @@ api.interceptors.response.use(
     const status = error.response?.status;
     const url = original?.url ?? "";
 
-    const isAuthEndpoint =
-      url.includes("/auth/token/") || url.includes("/auth/token/refresh/");
+    const isAuthEndpoint = url.includes("/auth/token/");
 
     if (status !== 401 || original?._retry || isAuthEndpoint) {
       return Promise.reject(error);

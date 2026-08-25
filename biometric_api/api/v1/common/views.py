@@ -36,15 +36,29 @@ def _delete_auth_cookies(response: Response) -> None:
 
 
 class ThrottledTokenObtainPairView(TokenObtainPairView):
-    """Login JWT con rate limiting propio (scope "login") además del
-    bloqueo por intentos fallidos que aplica django-axes.
+    """Login JWT estándar (tokens en el body) con rate limiting propio
+    (scope "login") además del bloqueo por intentos fallidos que aplica
+    django-axes.
 
-    Los tokens emitidos se entregan como cookies httpOnly, no en el body de
-    la respuesta, para que un XSS en el frontend no pueda robarlos.
+    Usado por clientes que no manejan cookies del navegador (la app móvil,
+    Postman, scripts). El frontend web usa `CookieTokenObtainPairView` en
+    su lugar — ver esa clase para el porqué de la separación.
     """
 
     throttle_classes = (ScopedRateThrottle,)
     throttle_scope = "login"
+
+
+class CookieTokenObtainPairView(ThrottledTokenObtainPairView):
+    """Como `ThrottledTokenObtainPairView`, pero para el frontend web: los
+    tokens emitidos se entregan como cookies httpOnly en vez de en el body,
+    para que un XSS no pueda robarlos de `localStorage`.
+
+    Vive en una URL propia (`/auth/token/cookie/`) en vez de compartir
+    `/auth/token/` con los clientes que sí esperan el body: mezclar ambos
+    comportamientos en el mismo endpoint rompía silenciosamente el login de
+    la app móvil (recibía `{}` en vez de `{access, refresh}`).
+    """
 
     def finalize_response(self, request, response, *args, **kwargs):
         response = super().finalize_response(request, response, *args, **kwargs)
@@ -62,7 +76,12 @@ class ThrottledTokenObtainPairView(TokenObtainPairView):
 class CookieTokenRefreshView(APIView):
     """Renueva el access token leyendo el refresh token desde la cookie
     httpOnly en vez de exigirlo en el body: el JS del frontend nunca llega
-    a ver ninguno de los dos tokens."""
+    a ver ninguno de los dos tokens.
+
+    Solo para el frontend web (`/auth/token/cookie/refresh/`); la app móvil
+    sigue usando el `TokenRefreshView` estándar en `/auth/token/refresh/`,
+    que lee el refresh token del body como siempre.
+    """
 
     permission_classes = ()
     authentication_classes = ()
@@ -89,7 +108,13 @@ class CookieTokenRefreshView(APIView):
 
 
 class CookieTokenLogoutView(APIView):
-    """Invalida el refresh token (blacklist) y borra las cookies de sesión."""
+    """Invalida el refresh token (blacklist) y borra las cookies de sesión.
+
+    Solo para el frontend web (`/auth/token/cookie/logout/`). La app móvil
+    no tiene cookies que borrar; si en el futuro necesita invalidar su
+    refresh token del lado del servidor, puede seguir usando el
+    `TokenBlacklistView` estándar en `/auth/token/blacklist/`.
+    """
 
     permission_classes = ()
     authentication_classes = ()

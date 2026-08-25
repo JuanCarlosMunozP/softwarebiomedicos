@@ -3,13 +3,12 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from api.v1.common.file_validation import DOCUMENT_EXTENSIONS, validate_uploaded_file
 from apps.maintenance.models import MaintenanceRecord,EquipmentMaintenanceSchedule
 from apps.maintenance.services import calculate_schedule_status
 from apps.scheduling.models import MaintenanceSchedule
 
 from apps.users.models import User
-
-MAX_PDF_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
 class _AssignedUserSerializer(serializers.ModelSerializer):
@@ -125,14 +124,7 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
         return value
 
     def validate_pdf_file(self, value):
-        if value:
-            if value and value.size > MAX_PDF_BYTES:
-                raise serializers.ValidationError(_("El archivo no puede superar los 10 MB."))
-            header = value.read(5)
-            value.seek(0)
-            if header != b"%PDF-":
-                raise serializers.ValidationError(_("El archivo no es un PDF válido."))
-        return value
+        return validate_uploaded_file(value, allowed_extensions=DOCUMENT_EXTENSIONS)
 
     def validate_assigned_engineer(self, value):
         if value is None:
