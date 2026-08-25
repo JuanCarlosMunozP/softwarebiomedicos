@@ -25,12 +25,16 @@ const WS_BASE_URL =
 
 function deriveWsBaseFromApi(): string {
   // Si no se setea VITE_WS_BASE_URL, derivamos del API base
-  // (http://host:port/api/v1  → ws://host:port).
+  // (http://host:port/api/v1 → ws://host:port). VITE_API_BASE_URL puede ser
+  // relativo (p. ej. "/api/v1", tanto en dev vía proxy de Vite como en
+  // producción vía nginx) — por eso resolvemos siempre contra
+  // window.location: sin una base explícita, `new URL()` lanza para
+  // cualquier valor relativo.
   const apiUrl =
     (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
     "http://localhost:8000/api/v1";
   try {
-    const u = new URL(apiUrl);
+    const u = new URL(apiUrl, window.location.origin);
     const scheme = u.protocol === "https:" ? "wss:" : "ws:";
     return `${scheme}//${u.host}`;
   } catch {
