@@ -114,12 +114,15 @@ class Equipment(models.Model):
         help_text=_("Útil si la marca no existe en catálogo."),
     )
 
-    technology_type = models.CharField(
+    # null=True is intentional: "" is not a valid TechnologyType choice, so
+    # null represents "sin clasificar" and is part of the published API
+    # contract (see docs/openapi-schema.yaml, nullable: true).
+    technology_type = models.CharField(  # noqa: DJ001
         _("Tipo tecnología"),
         max_length=30,
         choices=TechnologyType.choices,
         null=True,
-        blank=True
+        blank=True,
     )
 
     biomedical_classification = models.CharField(
@@ -127,13 +130,16 @@ class Equipment(models.Model):
         max_length=50,
         blank=True,
     )
-    risk_class = models.CharField(
+    # null=True is intentional: "" is not a valid RiskClass choice, so null
+    # represents "pendiente de clasificar" and drives the `risk_class__isnull`
+    # filter (see api/v1/equipment/filters.py) and API tests/docs.
+    risk_class = models.CharField(  # noqa: DJ001
         _("Clasificación de riesgo INVIMA"),
         max_length=4,
         choices=RiskClass.choices,
         null=True,
         blank=True,
-        db_index=True
+        db_index=True,
     )
 
     life_use_years = models.PositiveIntegerField(_("Vida útil (años)"),null=True)
