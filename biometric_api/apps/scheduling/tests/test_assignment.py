@@ -11,7 +11,6 @@ from apps.users.models import User
 from apps.users.tests.factories import (
     CoordinadorFactory,
     IngenieroFactory,
-    TecnicoFactory,
 )
 
 from .factories import MaintenanceScheduleFactory

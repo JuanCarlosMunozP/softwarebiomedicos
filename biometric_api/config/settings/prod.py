@@ -4,14 +4,22 @@ Settings de producción.
 Endurece la seguridad y desactiva DEBUG. Las variables sensibles deben venir
 exclusivamente de variables de entorno.
 """
-from .base import *  # noqa: F401,F403
-
 from django.core.exceptions import ImproperlyConfigured
+
+from .base import *  # noqa: F401,F403
 
 DEBUG = False
 
-# Validacion secret 
-if not SECRET_KEY or SECRET_KEY == "insecure-default-change-me":
+# Validacion secret
+# La longitud mínima (50, recomendación de Django: ver check security.W009)
+# importa en la práctica: SIMPLE_JWT usa SECRET_KEY como clave de firma HS256
+# por defecto, y PyJWT emite InsecureKeyLengthWarning con claves debajo de 32
+# bytes. `SECRET_KEY` viene de `from .base import *` de arriba.
+if (  # noqa: F405
+    not SECRET_KEY  # noqa: F405
+    or SECRET_KEY == "insecure-default-change-me"  # noqa: F405
+    or len(SECRET_KEY) < 50  # noqa: F405
+):
     raise ImproperlyConfigured
 
 # Seguridad

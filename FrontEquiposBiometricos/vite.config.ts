@@ -1,4 +1,8 @@
-import { defineConfig } from 'vite'
+// defineConfig de 'vitest/config' (no 'vite'): reexporta el mismo
+// defineConfig de Vite pero tipando también el bloque `test` de abajo. Es
+// el único cambio necesario para que este mismo archivo sirva de config
+// tanto para `vite dev/build` como para `vitest`.
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
@@ -9,6 +13,11 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    css: true,
   },
   server: {
     host: '127.0.0.1',

@@ -94,6 +94,15 @@ class TestPdfUploadCreate:
 
 
 class TestPdfReplaceOnPatch:
+    # El borrado del PDF anterior se agenda con transaction.on_commit (ver
+    # update() en el serializer) para no borrar el archivo físico si la
+    # transacción de la request termina revirtiendo. Con el django_db normal
+    # (module-level, arriba) cada test corre dentro de un rollback y ese
+    # commit real nunca ocurre, así que el callback jamás se dispara y el
+    # archivo "viejo" sigue apareciendo en el storage. transaction=True hace
+    # que el test cometa de verdad, como pasaría en producción.
+    pytestmark = pytest.mark.django_db(transaction=True)
+
     def test_patch_with_new_pdf_replaces_previous_file(self, auth_client, equipment):
         record = MaintenanceRecordFactory(
             equipment=equipment, pdf_file=_pdf_file("old.pdf", b"%PDF-1.4 old")
@@ -116,6 +125,10 @@ class TestPdfReplaceOnPatch:
 
 
 class TestPdfDeleteOnRecordDelete:
+    # Ver comentario en TestPdfReplaceOnPatch: remove_pdf_file (signals.py)
+    # también borra vía transaction.on_commit.
+    pytestmark = pytest.mark.django_db(transaction=True)
+
     def test_delete_record_removes_pdf_from_storage(self, auth_client, equipment):
         record = MaintenanceRecordFactory(equipment=equipment, pdf_file=_pdf_file("to_delete.pdf"))
         storage = record.pdf_file.storage

@@ -4,10 +4,9 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from api.v1.common.file_validation import DOCUMENT_EXTENSIONS, validate_uploaded_file
-from apps.maintenance.models import MaintenanceRecord,EquipmentMaintenanceSchedule
+from apps.maintenance.models import EquipmentMaintenanceSchedule, MaintenanceRecord
 from apps.maintenance.services import calculate_schedule_status
 from apps.scheduling.models import MaintenanceSchedule
-
 from apps.users.models import User
 
 
@@ -53,6 +52,22 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
         validators=[],
+    )
+    # El modelo define assigned_engineer/assigned_technician con
+    # limit_choices_to={"role": ..., "is_active": True} (para filtrar el
+    # dropdown del admin). ModelSerializer usaría ese mismo filtro como
+    # queryset del PrimaryKeyRelatedField autogenerado, así que un PK de rol
+    # incorrecto o inactivo fallaría en el parseo del campo con el genérico
+    # "Clave primaria ... inválida - objeto no existe" antes de llegar a
+    # validate_assigned_engineer/_technician de abajo, y el usuario nunca
+    # vería el mensaje específico. Con queryset=User.objects.all() el campo
+    # solo exige que el PK exista; el rol/estado lo valida el validate_* de
+    # más abajo con su propio mensaje en español.
+    assigned_engineer = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), required=False, allow_null=True
+    )
+    assigned_technician = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), required=False, allow_null=True
     )
     # Representación anidada (read-only) + campo plano para escribir.
     assigned_engineer_detail = _AssignedUserSerializer(
@@ -201,17 +216,27 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        schedule = validated_data.get("scheduled maintenance")
+        schedule = validated_data.get("scheduled_maintenance")
         if schedule is not None:
             # Bloque la fila: si dos request concurrentes apuntan al mismo
-            # agendamiento, la segunda espera a que la primera confirme y 
+            # agendamiento, la segunda espera a que la primera confirme y
             # vuelve a ver is_completed=True antes de insertar.
-            schedule = MaintenanceSchedule.objects.select_for_update().get(pk=schedule.pk)
+            # select_related(None) limpia el select_related que trae el
+            # manager por defecto (ver MaintenanceScheduleManager): incluye
+            # assigned_engineer/assigned_technician, FKs nullable, y Postgres
+            # no permite FOR UPDATE sobre el lado nullable de un LEFT JOIN
+            # ("FOR UPDATE cannot be applied to the nullable side of an outer
+            # join").
+            schedule = (
+                MaintenanceSchedule.objects.select_related(None)
+                .select_for_update()
+                .get(pk=schedule.pk)
+            )
             if schedule.is_completed:
                 raise serializers.ValidationError(
                     {"scheduled_maintenance":_("El agendamiento ya fue cumplido.")}
                 )
-            validated_data["scheduled_maintenance"] = schedule 
+            validated_data["scheduled_maintenance"] = schedule
 
         instance = super().create(validated_data)
         if schedule is not None and not schedule.is_completed:
@@ -239,7 +264,12 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
             new_schedule not in (serializers.empty,None)
             and previous_schedule_id is None
         ):
-            new_schedule = MaintenanceSchedule.objects.select_for_update().get(pk=new_schedule.pk)
+            # select_related(None): ver comentario equivalente en create().
+            new_schedule = (
+                MaintenanceSchedule.objects.select_related(None)
+                .select_for_update()
+                .get(pk=new_schedule.pk)
+            )
             if new_schedule.is_completed:
                 raise serializers.ValidationError(
                     {"scheduled_maintenance":_("El agendamiento ya fue cumplido.")}
@@ -248,7 +278,7 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
 
         instance = super().update(instance, validated_data)
         if old_pdf:
-            # Solo se borra físicamente si la transición termina en commit 
+            # Solo se borra físicamente si la transición termina en commit
             transaction.on_commit(lambda:old_pdf.delete(save=False))
         # Si quedó un vínculo nuevo (no había uno antes), cerrar el agendamiento.
         schedule = instance.scheduled_maintenance

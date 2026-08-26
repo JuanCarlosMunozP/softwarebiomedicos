@@ -4,13 +4,10 @@ from django.urls import reverse
 from apps.users.models import User
 
 from .factories import (
-    AdminFactory,
     IngenieroFactory,
-    SuperadminFactory,
     TecnicoFactory,
     UserFactory,
 )
-
 
 LIST_URL = reverse("v1:users:user-list")
 

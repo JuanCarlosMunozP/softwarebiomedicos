@@ -33,6 +33,23 @@ class _MaintenanceRecordMiniSerializer(serializers.ModelSerializer):
 class MaintenanceScheduleSerializer(serializers.ModelSerializer):
     equipment_asset_tag = serializers.CharField(source="equipment.asset_tag", read_only=True)
     branch_name = serializers.CharField(source="equipment.branch.name", read_only=True)
+    # Sin esto, ModelSerializer generaría el PrimaryKeyRelatedField aplicando
+    # el `limit_choices_to` del modelo (role/is_active) como queryset. Eso
+    # hace que un PK de rol incorrecto o inactivo falle en el parseo del
+    # campo con el genérico "Clave primaria ... inválida - objeto no existe",
+    # antes de que corran validate_assigned_engineer/_technician de abajo —
+    # así que el usuario nunca ve el mensaje específico ("debe tener el rol
+    # de...", "no está activo"). Con queryset=User.objects.all() el campo
+    # solo exige que el PK exista; el rol/estado lo valida el validate_* de
+    # más abajo con su propio mensaje. `limit_choices_to` se conserva en el
+    # modelo porque sigue filtrando el dropdown del admin, que es para lo que
+    # sirve.
+    assigned_engineer = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), required=False, allow_null=True
+    )
+    assigned_technician = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), required=False, allow_null=True
+    )
     assigned_engineer_detail = _AssignedUserSerializer(
         source="assigned_engineer", read_only=True
     )

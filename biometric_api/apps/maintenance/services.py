@@ -7,13 +7,14 @@ from .models import (
     MaintenanceScheduleType,
 )
 
+
 def calculate_next_execution_date(
         execution_date:date,
         frequency_months:int,
 ) -> date:
 
     """
-    Calcula la próxima fecha de mantenimiento 
+    Calcula la próxima fecha de mantenimiento
     según la frecuencia configurada.
     """
 
@@ -24,11 +25,11 @@ def calculate_next_execution_date(
 def create_equipment_schedules(equipment):
 
     """
-    
+
     Crea automáticamente las programaciones
     correspondientes al equipo
 
-    
+
     """
 
     schedules = []
@@ -74,11 +75,11 @@ def update_schedule_after_execution(
 ):
 
     """
-    
+
     Actualiza la programación después de analizar un
     mantenimiento.
 
-    
+
     """
 
     schedule.last_execution_date = execution_date

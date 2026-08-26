@@ -5,8 +5,6 @@ from django.urls import reverse
 from apps.equipment.models import AttachmentType, EvidenceType, WorkOrderType
 from apps.users.tests.factories import UserFactory
 
-from .factories import EquipmentFactory
-
 ATTACHMENTS_URL = reverse("v1:equipment:equipment-attachment-list")
 CERTIFICATES_URL = reverse("v1:equipment:equipment-certificate-list")
 WORK_ORDERS_URL = reverse("v1:equipment:equipment-work-order-list")

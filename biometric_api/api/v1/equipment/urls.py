@@ -9,7 +9,7 @@ from .views import (
     WorkOrderCostViewSet,
     WorkOrderEvidenceViewSet,
     WorkOrderSignatureViewSet,
-    WorkOrderSparePartViewSet
+    WorkOrderSparePartViewSet,
 )
 
 app_name = "equipment"

@@ -247,7 +247,7 @@ class EquipmentInstruction(models.Model):
     equipment = models.ForeignKey(
         Equipment,
         on_delete=models.CASCADE,
-        related_name="instructions",   
+        related_name="instructions",
     )
 
     instruction_type = models.CharField(
@@ -424,6 +424,9 @@ class WorkOrderSparePart(models.Model):
         decimal_places=2,
     )
 
+    def __str__(self):
+        return f"{self.name} x{self.quantity} - {self.work_order.number}"
+
 class WorkOrderMeasurement(models.Model):
 
     work_order = models.ForeignKey(
@@ -440,6 +443,9 @@ class WorkOrderMeasurement(models.Model):
     unit = models.CharField(max_length=20)
 
     passed = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.parameter} - {self.work_order.number}"
 
 
 class WorkOrderEvidence(models.Model):
@@ -462,6 +468,9 @@ class WorkOrderEvidence(models.Model):
         blank=True,
     )
 
+    def __str__(self):
+        return f"{self.get_evidence_type_display()} - {self.work_order.number}"
+
 class WorkOrderSignature(models.Model):
 
     work_order = models.ForeignKey(
@@ -480,6 +489,9 @@ class WorkOrderSignature(models.Model):
     )
 
     signed_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.get_role_display()}: {self.signed_by}"
 
 class WorkOrderCost(models.Model):
 
@@ -513,4 +525,6 @@ class WorkOrderCost(models.Model):
         default=0,
     )
 
+    def __str__(self):
+        return f"Costos de {self.work_order.number}"
 

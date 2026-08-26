@@ -13,16 +13,16 @@ from api.v1.common.file_validation import (
 from apps.branches.models import Branch
 from apps.catalog.models import EquipmentModel
 from apps.equipment.models import (
-Equipment,
-EquipmentAttachment,
-EquipmentCertificate,
-EquipmentInstruction,
-EquipmentWorkOrder,
-WorkOrderCost,
-WorkOrderEvidence,
-WorkOrderMeasurement,
-WorkOrderSignature,
-WorkOrderSparePart
+    Equipment,
+    EquipmentAttachment,
+    EquipmentCertificate,
+    EquipmentInstruction,
+    EquipmentWorkOrder,
+    WorkOrderCost,
+    WorkOrderEvidence,
+    WorkOrderMeasurement,
+    WorkOrderSignature,
+    WorkOrderSparePart,
 )
 
 
@@ -260,7 +260,7 @@ class EquipmentCertificateSerializer(serializers.ModelSerializer):
 
 class EquipmentInstructionSerializer(serializers.ModelSerializer):
 
-    class Meta: 
+    class Meta:
 
         model = EquipmentInstruction
         fields = '__all__'
@@ -279,7 +279,7 @@ class WorkOrderSparePartSerializer(serializers.ModelSerializer):
 
         read_only_fields = [
             "id",
-        ]   
+        ]
 
 class WorkOrderMeasurementSerializer(serializers.ModelSerializer):
 

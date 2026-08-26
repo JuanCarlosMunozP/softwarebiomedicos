@@ -77,7 +77,7 @@ api.interceptors.request.use((config) => {
 });
 
 let isRefreshing = false;
-let pending: Array<(token: string | null) => void> = [];
+let pending: ((token: string | null) => void)[] = [];
 
 function notifyAll(token: string | null) {
   pending.forEach((cb) => cb(token));

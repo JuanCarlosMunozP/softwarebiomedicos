@@ -50,10 +50,23 @@ class FailureRecordSerializer(serializers.ModelSerializer):
         # Distingue "no enviado" de "enviado como null" para validación cruzada.
         resolved_at_in_payload = "resolved_at" in attrs
         resolved_at = attrs.get("resolved_at", getattr(instance, "resolved_at", None))
+
+        # En creación, si el cliente no manda `reported_at`, el campo usa su
+        # default (`timezone.now`) recién al construirse la instancia — DESPUÉS
+        # de este validate(). Si más abajo también autocompletamos
+        # `resolved_at` con un `timezone.now()` propio, quedan dos "ahora"
+        # independientes evaluados en momentos distintos, y por una carrera de
+        # microsegundos `resolved_at` puede terminar *antes* que `reported_at`
+        # y violar la constraint de DB `failure_resolved_at_after_reported_at`
+        # (ver apps/failures/models.py). Fijamos aquí un único `now` y lo
+        # usamos para ambos campos cuando falta alguno, así nunca hay carrera.
+        now = timezone.now()
+        if instance is None and "reported_at" not in attrs:
+            attrs["reported_at"] = now
         reported_at = attrs.get("reported_at", getattr(instance, "reported_at", None))
 
         if resolved and resolved_at is None:
-            attrs["resolved_at"] = timezone.now()
+            attrs["resolved_at"] = now
             resolved_at = attrs["resolved_at"]
 
         if not resolved and resolved_at is not None:

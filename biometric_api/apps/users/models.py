@@ -5,7 +5,6 @@ from django.utils.translation import gettext_lazy as _
 
 from .managers import UserManager
 
-
 phone_validator = RegexValidator(
     regex=r"^\+?[0-9\s\-()]{7,20}$",
     message=_("El teléfono no tiene un formato válido."),

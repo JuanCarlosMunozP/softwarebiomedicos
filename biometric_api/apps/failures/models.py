@@ -53,11 +53,11 @@ class FailureRecord(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=Q(resolved=False) | Q(resolved_at__isnull=False),
+                condition=Q(resolved=False) | Q(resolved_at__isnull=False),
                 name="failure_resolved_consistency",
             ),
             models.CheckConstraint(
-                check=Q(resolved_at__isnull=True) | Q(resolved_at__gte=models.F("reported_at")),
+                condition=Q(resolved_at__isnull=True) | Q(resolved_at__gte=models.F("reported_at")),
                 name="failure_resolved_at_after_reported_at",
             )
         ]

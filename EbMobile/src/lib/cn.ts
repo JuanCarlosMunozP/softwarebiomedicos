@@ -1,6 +1,6 @@
 type Cls = string | number | bigint | boolean | null | undefined;
 
-export function cn(...inputs: Array<Cls | Cls[]>): string {
+export function cn(...inputs: (Cls | Cls[])[]): string {
   const out: string[] = [];
   for (const i of inputs) {
     if (!i || i === true) continue;

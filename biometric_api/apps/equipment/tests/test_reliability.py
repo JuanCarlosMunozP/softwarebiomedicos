@@ -13,16 +13,23 @@ pytestmark = pytest.mark.django_db
 
 
 def _make_failure(equipment, *, reported_at, resolved_at=None):
-    """Crea una falla forzando timestamps específicos (bypassea default=now)."""
-    failure = FailureRecordFactory(
+    """Crea una falla forzando timestamps específicos (bypassea default=now).
+
+    Arma la instancia con `.build()` (sin tocar la DB) y fija reported_at/
+    resolved_at ANTES del único save(). Insertar primero con el default de
+    reported_at (now) y corregirlo después con un save separado —como se
+    hacía antes— deja pasar por la DB una fila intermedia con resolved_at ya
+    fijado pero reported_at todavía en "now", lo que viola la constraint
+    `failure_resolved_at_after_reported_at` cuando resolved_at es anterior.
+    """
+    failure = FailureRecordFactory.build(
         equipment=equipment,
         severity=FailureSeverity.HIGH,
         resolved=resolved_at is not None,
         resolved_at=resolved_at,
+        reported_at=reported_at,
     )
-    # reported_at tiene default=timezone.now; sobrescribir explícitamente.
-    failure.reported_at = reported_at
-    failure.save(update_fields=["reported_at"])
+    failure.save()
     return failure
 
 

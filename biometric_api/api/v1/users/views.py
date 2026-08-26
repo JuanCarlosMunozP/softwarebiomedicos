@@ -52,7 +52,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def _is_superadmin(self, user):
         return getattr(user,"role",None) == User.Role.SUPERADMIN
-    
+
     def check_object_permissions(self, request, obj):
         super().check_object_permissions(request, obj)
         is_admin = IsAdminRole().has_permission(request, self)

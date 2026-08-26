@@ -4,8 +4,8 @@ from django.utils.translation import gettext_lazy as _
 from .models import (
     Equipment,
     EquipmentAttachment,
-    EquipmentInstruction,
     EquipmentCertificate,
+    EquipmentInstruction,
     EquipmentWorkOrder,
     WorkOrderCost,
     WorkOrderEvidence,
@@ -14,9 +14,8 @@ from .models import (
     WorkOrderSparePart,
 )
 
-
 # =====================================
-# INSTRUCIONES DEL EQUIPO 
+# INSTRUCIONES DEL EQUIPO
 # =====================================
 
 class EquipmentInstructionInline(admin.TabularInline):
@@ -39,7 +38,7 @@ class EquipmentCertificateInline(admin.TabularInline):
     ordering = ("-certificate_date",)
 
 # ===============================================
-# INLINE: ARCHIVOS DEL EQUIPO 
+# INLINE: ARCHIVOS DEL EQUIPO
 # ===============================================
 
 class EquipmentAttachmentInline(admin.TabularInline):
@@ -93,7 +92,7 @@ class WorkOrderEvidenceInline(admin.TabularInline):
     fields = ("evidence_type","description","file",)
 
 # ==========================================
-# INLINE: FIRMAS 
+# INLINE: FIRMAS
 # ==========================================
 
 class WorkOrderSignatureInline(admin.TabularInline):
@@ -460,7 +459,7 @@ class WorkOrderSignatureAdmin(admin.ModelAdmin):
 
 # ==================================================================
 # WORK ORDER COST
-# ================================================================== 
+# ==================================================================
 
 @admin.register(WorkOrderCost)
 class WorkOrderCost(admin.ModelAdmin):

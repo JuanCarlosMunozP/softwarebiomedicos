@@ -158,7 +158,7 @@ class EquipmentCertificateViewSet(viewsets.ModelViewSet):
 
 class EquipmentInstructionViewSet(viewsets.ModelViewSet):
 
-    "CRUD de instrucciones de equipos" 
+    "CRUD de instrucciones de equipos"
 
     queryset = EquipmentInstruction.objects.select_related(
         "equipment",
@@ -181,7 +181,7 @@ class EquipmentInstructionViewSet(viewsets.ModelViewSet):
 
     ordering = ("instruction_type","sequence",)
 
-    
+
 class EquipmentWorkOrderViewSet(AuditLogMixin, viewsets.ModelViewSet):
 
     "CRUD de órdenes de trabajo de equipos"
@@ -225,16 +225,16 @@ class WorkOrderSparePartViewSet(viewsets.ModelViewSet):
                 "work_order",
                 "work_order__equipment",
             )
-    
+
     serializer_class = WorkOrderSparePartSerializer
     permission_classes = (IsAuthenticated, RestrictDeleteToManagement)
-    
+
     search_fields = ("name","reference","work_order__number")
-    
+
     ordering_fields = ("name","quantity","unit_cost","total_cost")
 
     ordering = ("name",)
-    
+
 
 class WorkOrderMeasurementViewSet(viewsets.ModelViewSet):
 
@@ -308,10 +308,10 @@ class WorkOrderSignatureViewSet(viewsets.ModelViewSet):
 
 class WorkOrderCostViewSet(viewsets.ModelViewSet):
 
-    """ 
-    
+    """
+
     CRUD de costos asociados a una orden de trabajo.
-    
+
     Cada orden puede tener un único registro de costos.
     """
 
