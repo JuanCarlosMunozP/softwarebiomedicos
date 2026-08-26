@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "jest"
+    "test": "jest",
+    "generate:api-types": "openapi-typescript ../biometric_api/docs/openapi-schema.yaml -o src/types/api-schema.d.ts"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -48,6 +49,7 @@
     "expo-modules-core": "~57.0.13",
     "jest": "^29.7.0",
     "jest-expo": "^57.0.4",
+    "openapi-typescript": "^7.13.0",
     "prettier": "^3.9.6",
     "test-renderer": "^1.2.0",
     "typescript": "~5.9.2"

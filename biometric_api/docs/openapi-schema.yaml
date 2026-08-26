@@ -1,0 +1,6107 @@
+openapi: 3.0.3
+info:
+  title: Biometric API
+  version: 1.0.0
+  description: API para administración de equipos biomédicos
+paths:
+  /api/v1/auth/token/:
+    post:
+      operationId: v1_auth_token_create
+      description: |-
+        Login JWT estándar (tokens en el body) con rate limiting propio
+        (scope "login") además del bloqueo por intentos fallidos que aplica
+        django-axes.
+
+        Usado por clientes que no manejan cookies del navegador (la app móvil,
+        Postman, scripts). El frontend web usa `CookieTokenObtainPairView` en
+        su lugar — ver esa clase para el porqué de la separación.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenObtainPair'
+          description: ''
+  /api/v1/auth/token/blacklist/:
+    post:
+      operationId: v1_auth_token_blacklist_create
+      description: |-
+        Takes a token and blacklists it. Must be used with the
+        `rest_framework_simplejwt.token_blacklist` app installed.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenBlacklistRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenBlacklistRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenBlacklistRequest'
+        required: true
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/token/cookie/:
+    post:
+      operationId: v1_auth_token_cookie_create
+      description: |-
+        Como `ThrottledTokenObtainPairView`, pero para el frontend web: los
+        tokens emitidos se entregan como cookies httpOnly en vez de en el body,
+        para que un XSS no pueda robarlos de `localStorage`.
+
+        Vive en una URL propia (`/auth/token/cookie/`) en vez de compartir
+        `/auth/token/` con los clientes que sí esperan el body: mezclar ambos
+        comportamientos en el mismo endpoint rompía silenciosamente el login de
+        la app móvil (recibía `{}` en vez de `{access, refresh}`).
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenObtainPair'
+          description: ''
+  /api/v1/auth/token/cookie/logout/:
+    post:
+      operationId: v1_auth_token_cookie_logout_create
+      description: |-
+        Invalida el refresh token (blacklist) y borra las cookies de sesión.
+
+        Solo para el frontend web (`/auth/token/cookie/logout/`). La app móvil
+        no tiene cookies que borrar; si en el futuro necesita invalidar su
+        refresh token del lado del servidor, puede seguir usando el
+        `TokenBlacklistView` estándar en `/auth/token/blacklist/`.
+      tags:
+      - v1
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/token/cookie/refresh/:
+    post:
+      operationId: v1_auth_token_cookie_refresh_create
+      description: |-
+        Renueva el access token leyendo el refresh token desde la cookie
+        httpOnly en vez de exigirlo en el body: el JS del frontend nunca llega
+        a ver ninguno de los dos tokens.
+
+        Solo para el frontend web (`/auth/token/cookie/refresh/`); la app móvil
+        sigue usando el `TokenRefreshView` estándar en `/auth/token/refresh/`,
+        que lee el refresh token del body como siempre.
+      tags:
+      - v1
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/token/refresh/:
+    post:
+      operationId: v1_auth_token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/auth/token/verify/:
+    post:
+      operationId: v1_auth_token_verify_create
+      description: |-
+        Takes a token and indicates if it is valid.  This view provides no
+        information about a token's fitness for a particular use.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenVerifyRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenVerifyRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenVerifyRequest'
+        required: true
+      responses:
+        '200':
+          description: No response body
+  /api/v1/branches/:
+    get:
+      operationId: v1_branches_list
+      description: CRUD endpoints for clinic branches.
+      parameters:
+      - in: query
+        name: city
+        schema:
+          type: string
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+      - name: ordering
+        required: false
+        in: query
+        description: Qué campo usar para ordenar los resultados.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Un número de página dentro del conjunto de resultados paginado.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: Un término de búsqueda.
+        schema:
+          type: string
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBranchList'
+          description: ''
+    post:
+      operationId: v1_branches_create
+      description: CRUD endpoints for clinic branches.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BranchRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BranchRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BranchRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Branch'
+          description: ''
+  /api/v1/branches/{id}/:
+    get:
+      operationId: v1_branches_retrieve
+      description: CRUD endpoints for clinic branches.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Sede.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Branch'
+          description: ''
+    put:
+      operationId: v1_branches_update
+      description: CRUD endpoints for clinic branches.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Sede.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BranchRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BranchRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BranchRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Branch'
+          description: ''
+    patch:
+      operationId: v1_branches_partial_update
+      description: CRUD endpoints for clinic branches.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Sede.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBranchRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBranchRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBranchRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Branch'
+          description: ''
+    delete:
+      operationId: v1_branches_destroy
+      description: CRUD endpoints for clinic branches.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Sede.
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
+  /api/v1/catalog/brands/:
+    get:
+      operationId: v1_catalog_brands_list
+      description: CRUD de marcas. DELETE protegido si la marca tiene modelos asociados.
+      parameters:
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+      - name: ordering
+        required: false
+        in: query
+        description: Qué campo usar para ordenar los resultados.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Un número de página dentro del conjunto de resultados paginado.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: Un término de búsqueda.
+        schema:
+          type: string
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBrandList'
+          description: ''
+    post:
+      operationId: v1_catalog_brands_create
+      description: CRUD de marcas. DELETE protegido si la marca tiene modelos asociados.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BrandRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BrandRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BrandRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Brand'
+          description: ''
+  /api/v1/catalog/brands/{id}/:
+    get:
+      operationId: v1_catalog_brands_retrieve
+      description: CRUD de marcas. DELETE protegido si la marca tiene modelos asociados.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Marca.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Brand'
+          description: ''
+    put:
+      operationId: v1_catalog_brands_update
+      description: CRUD de marcas. DELETE protegido si la marca tiene modelos asociados.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Marca.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BrandRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BrandRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BrandRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Brand'
+          description: ''
+    patch:
+      operationId: v1_catalog_brands_partial_update
+      description: CRUD de marcas. DELETE protegido si la marca tiene modelos asociados.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Marca.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBrandRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBrandRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBrandRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Brand'
+          description: ''
+    delete:
+      operationId: v1_catalog_brands_destroy
+      description: CRUD de marcas. DELETE protegido si la marca tiene modelos asociados.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Marca.
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
+  /api/v1/catalog/equipment-models/:
+    get:
+      operationId: v1_catalog_equipment_models_list
+      description: CRUD de modelos de equipo. DELETE protegido si el modelo tiene
+        equipos.
+      parameters:
+      - in: query
+        name: brand
+        schema:
+          type: number
+      - in: query
+        name: brand_is_active
+        schema:
+          type: boolean
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+      - name: ordering
+        required: false
+        in: query
+        description: Qué campo usar para ordenar los resultados.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Un número de página dentro del conjunto de resultados paginado.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: Un término de búsqueda.
+        schema:
+          type: string
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEquipmentModelList'
+          description: ''
+    post:
+      operationId: v1_catalog_equipment_models_create
+      description: CRUD de modelos de equipo. DELETE protegido si el modelo tiene
+        equipos.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentModelRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EquipmentModelRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EquipmentModelRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentModel'
+          description: ''
+  /api/v1/catalog/equipment-models/{id}/:
+    get:
+      operationId: v1_catalog_equipment_models_retrieve
+      description: CRUD de modelos de equipo. DELETE protegido si el modelo tiene
+        equipos.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Modelo de equipo.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentModel'
+          description: ''
+    put:
+      operationId: v1_catalog_equipment_models_update
+      description: CRUD de modelos de equipo. DELETE protegido si el modelo tiene
+        equipos.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Modelo de equipo.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentModelRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EquipmentModelRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EquipmentModelRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentModel'
+          description: ''
+    patch:
+      operationId: v1_catalog_equipment_models_partial_update
+      description: CRUD de modelos de equipo. DELETE protegido si el modelo tiene
+        equipos.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Modelo de equipo.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEquipmentModelRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEquipmentModelRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEquipmentModelRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentModel'
+          description: ''
+    delete:
+      operationId: v1_catalog_equipment_models_destroy
+      description: CRUD de modelos de equipo. DELETE protegido si el modelo tiene
+        equipos.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Modelo de equipo.
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
+  /api/v1/dashboard/summary/:
+    get:
+      operationId: v1_dashboard_summary_retrieve
+      description: Snapshot agregado para el dashboard. Sin cache en v1.
+      tags:
+      - v1
+      responses:
+        '200':
+          description: No response body
+  /api/v1/equipment/:
+    get:
+      operationId: v1_equipment_list
+      description: |-
+        CRUD de equipos biomédicos.
+
+        Incluye:
+
+        - CRUD
+        - búsqueda por asset_tag
+        - filtros
+        - ordenamiento
+        - regeneración de QR
+        - historial de mantenimientos
+      parameters:
+      - in: query
+        name: branch
+        schema:
+          type: number
+      - in: query
+        name: brand
+        schema:
+          type: number
+      - in: query
+        name: equipment_model
+        schema:
+          type: number
+      - name: ordering
+        required: false
+        in: query
+        description: Qué campo usar para ordenar los resultados.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Un número de página dentro del conjunto de resultados paginado.
+        schema:
+          type: integer
+      - in: query
+        name: purchase_date_after
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: purchase_date_before
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: risk_class
+        schema:
+          type: string
+      - in: query
+        name: risk_class__isnull
+        schema:
+          type: boolean
+      - name: search
+        required: false
+        in: query
+        description: Un término de búsqueda.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEquipmentList'
+          description: ''
+    post:
+      operationId: v1_equipment_create
+      description: |-
+        CRUD de equipos biomédicos.
+
+        Incluye:
+
+        - CRUD
+        - búsqueda por asset_tag
+        - filtros
+        - ordenamiento
+        - regeneración de QR
+        - historial de mantenimientos
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EquipmentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EquipmentRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipment'
+          description: ''
+  /api/v1/equipment/{id}/:
+    get:
+      operationId: v1_equipment_retrieve
+      description: |-
+        CRUD de equipos biomédicos.
+
+        Incluye:
+
+        - CRUD
+        - búsqueda por asset_tag
+        - filtros
+        - ordenamiento
+        - regeneración de QR
+        - historial de mantenimientos
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Equipo biomédico.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipment'
+          description: ''
+    put:
+      operationId: v1_equipment_update
+      description: |-
+        CRUD de equipos biomédicos.
+
+        Incluye:
+
+        - CRUD
+        - búsqueda por asset_tag
+        - filtros
+        - ordenamiento
+        - regeneración de QR
+        - historial de mantenimientos
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Equipo biomédico.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EquipmentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EquipmentRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipment'
+          description: ''
+    patch:
+      operationId: v1_equipment_partial_update
+      description: |-
+        CRUD de equipos biomédicos.
+
+        Incluye:
+
+        - CRUD
+        - búsqueda por asset_tag
+        - filtros
+        - ordenamiento
+        - regeneración de QR
+        - historial de mantenimientos
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Equipo biomédico.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEquipmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEquipmentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEquipmentRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipment'
+          description: ''
+    delete:
+      operationId: v1_equipment_destroy
+      description: |-
+        CRUD de equipos biomédicos.
+
+        Incluye:
+
+        - CRUD
+        - búsqueda por asset_tag
+        - filtros
+        - ordenamiento
+        - regeneración de QR
+        - historial de mantenimientos
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Equipo biomédico.
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
+  /api/v1/equipment/{id}/history/:
+    get:
+      operationId: v1_equipment_history_retrieve
+      description: Historial paginado de mantenimientos del equipo.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Equipo biomédico.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipment'
+          description: ''
+  /api/v1/equipment/{id}/regenerate-qr/:
+    post:
+      operationId: v1_equipment_regenerate_qr_create
+      description: Regenera el código QR del equipo.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Equipo biomédico.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EquipmentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EquipmentRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipment'
+          description: ''
+  /api/v1/equipment/attachments/:
+    get:
+      operationId: v1_equipment_attachments_list
+      description: CRUD de archivos adjuntos de equipos.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Qué campo usar para ordenar los resultados.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Un número de página dentro del conjunto de resultados paginado.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: Un término de búsqueda.
+        schema:
+          type: string
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEquipmentAttachmentList'
+          description: ''
+    post:
+      operationId: v1_equipment_attachments_create
+      description: CRUD de archivos adjuntos de equipos.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentAttachmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EquipmentAttachmentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EquipmentAttachmentRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentAttachment'
+          description: ''
+  /api/v1/equipment/attachments/{id}/:
+    get:
+      operationId: v1_equipment_attachments_retrieve
+      description: CRUD de archivos adjuntos de equipos.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este equipment attachment.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentAttachment'
+          description: ''
+    put:
+      operationId: v1_equipment_attachments_update
+      description: CRUD de archivos adjuntos de equipos.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este equipment attachment.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentAttachmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EquipmentAttachmentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EquipmentAttachmentRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentAttachment'
+          description: ''
+    patch:
+      operationId: v1_equipment_attachments_partial_update
+      description: CRUD de archivos adjuntos de equipos.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este equipment attachment.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEquipmentAttachmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEquipmentAttachmentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEquipmentAttachmentRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentAttachment'
+          description: ''
+    delete:
+      operationId: v1_equipment_attachments_destroy
+      description: CRUD de archivos adjuntos de equipos.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este equipment attachment.
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
+  /api/v1/equipment/by-asset-tag/{tag}/:
+    get:
+      operationId: v1_equipment_by_asset_tag_retrieve
+      description: Consulta un equipo utilizando su código de inventario.
+      parameters:
+      - in: path
+        name: tag
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipment'
+          description: ''
+  /api/v1/equipment/certificates/:
+    get:
+      operationId: v1_equipment_certificates_list
+      description: CRUD de certificados de equipos
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Qué campo usar para ordenar los resultados.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Un número de página dentro del conjunto de resultados paginado.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: Un término de búsqueda.
+        schema:
+          type: string
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEquipmentCertificateList'
+          description: ''
+    post:
+      operationId: v1_equipment_certificates_create
+      description: CRUD de certificados de equipos
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentCertificateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EquipmentCertificateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EquipmentCertificateRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentCertificate'
+          description: ''
+  /api/v1/equipment/certificates/{id}/:
+    get:
+      operationId: v1_equipment_certificates_retrieve
+      description: CRUD de certificados de equipos
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este equipment certificate.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentCertificate'
+          description: ''
+    put:
+      operationId: v1_equipment_certificates_update
+      description: CRUD de certificados de equipos
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este equipment certificate.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentCertificateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EquipmentCertificateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EquipmentCertificateRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentCertificate'
+          description: ''
+    patch:
+      operationId: v1_equipment_certificates_partial_update
+      description: CRUD de certificados de equipos
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este equipment certificate.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEquipmentCertificateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEquipmentCertificateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEquipmentCertificateRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentCertificate'
+          description: ''
+    delete:
+      operationId: v1_equipment_certificates_destroy
+      description: CRUD de certificados de equipos
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este equipment certificate.
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
+  /api/v1/equipment/instructions/:
+    get:
+      operationId: v1_equipment_instructions_list
+      description: CRUD de instrucciones de equipos
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Qué campo usar para ordenar los resultados.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Un número de página dentro del conjunto de resultados paginado.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: Un término de búsqueda.
+        schema:
+          type: string
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEquipmentInstructionList'
+          description: ''
+    post:
+      operationId: v1_equipment_instructions_create
+      description: CRUD de instrucciones de equipos
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentInstructionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EquipmentInstructionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EquipmentInstructionRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentInstruction'
+          description: ''
+  /api/v1/equipment/instructions/{id}/:
+    get:
+      operationId: v1_equipment_instructions_retrieve
+      description: CRUD de instrucciones de equipos
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este equipment instruction.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentInstruction'
+          description: ''
+    put:
+      operationId: v1_equipment_instructions_update
+      description: CRUD de instrucciones de equipos
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este equipment instruction.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentInstructionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EquipmentInstructionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EquipmentInstructionRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentInstruction'
+          description: ''
+    patch:
+      operationId: v1_equipment_instructions_partial_update
+      description: CRUD de instrucciones de equipos
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este equipment instruction.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEquipmentInstructionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEquipmentInstructionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEquipmentInstructionRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentInstruction'
+          description: ''
+    delete:
+      operationId: v1_equipment_instructions_destroy
+      description: CRUD de instrucciones de equipos
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este equipment instruction.
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
+  /api/v1/equipment/work-order-costs/:
+    get:
+      operationId: v1_equipment_work_order_costs_list
+      description: |-
+        CRUD de costos asociados a una orden de trabajo.
+
+        Cada orden puede tener un único registro de costos.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Qué campo usar para ordenar los resultados.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Un número de página dentro del conjunto de resultados paginado.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: Un término de búsqueda.
+        schema:
+          type: string
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWorkOrderCostList'
+          description: ''
+    post:
+      operationId: v1_equipment_work_order_costs_create
+      description: |-
+        CRUD de costos asociados a una orden de trabajo.
+
+        Cada orden puede tener un único registro de costos.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkOrderCostRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WorkOrderCostRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WorkOrderCostRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderCost'
+          description: ''
+  /api/v1/equipment/work-order-costs/{id}/:
+    get:
+      operationId: v1_equipment_work_order_costs_retrieve
+      description: |-
+        CRUD de costos asociados a una orden de trabajo.
+
+        Cada orden puede tener un único registro de costos.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order cost.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderCost'
+          description: ''
+    put:
+      operationId: v1_equipment_work_order_costs_update
+      description: |-
+        CRUD de costos asociados a una orden de trabajo.
+
+        Cada orden puede tener un único registro de costos.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order cost.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkOrderCostRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WorkOrderCostRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WorkOrderCostRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderCost'
+          description: ''
+    patch:
+      operationId: v1_equipment_work_order_costs_partial_update
+      description: |-
+        CRUD de costos asociados a una orden de trabajo.
+
+        Cada orden puede tener un único registro de costos.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order cost.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedWorkOrderCostRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedWorkOrderCostRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedWorkOrderCostRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderCost'
+          description: ''
+    delete:
+      operationId: v1_equipment_work_order_costs_destroy
+      description: |-
+        CRUD de costos asociados a una orden de trabajo.
+
+        Cada orden puede tener un único registro de costos.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order cost.
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
+  /api/v1/equipment/work-order-evidences/:
+    get:
+      operationId: v1_equipment_work_order_evidences_list
+      description: CRUD de evidencias de una orden de trabajo.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Qué campo usar para ordenar los resultados.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Un número de página dentro del conjunto de resultados paginado.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: Un término de búsqueda.
+        schema:
+          type: string
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWorkOrderEvidenceList'
+          description: ''
+    post:
+      operationId: v1_equipment_work_order_evidences_create
+      description: CRUD de evidencias de una orden de trabajo.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkOrderEvidenceRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WorkOrderEvidenceRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WorkOrderEvidenceRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderEvidence'
+          description: ''
+  /api/v1/equipment/work-order-evidences/{id}/:
+    get:
+      operationId: v1_equipment_work_order_evidences_retrieve
+      description: CRUD de evidencias de una orden de trabajo.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order evidence.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderEvidence'
+          description: ''
+    put:
+      operationId: v1_equipment_work_order_evidences_update
+      description: CRUD de evidencias de una orden de trabajo.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order evidence.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkOrderEvidenceRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WorkOrderEvidenceRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WorkOrderEvidenceRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderEvidence'
+          description: ''
+    patch:
+      operationId: v1_equipment_work_order_evidences_partial_update
+      description: CRUD de evidencias de una orden de trabajo.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order evidence.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedWorkOrderEvidenceRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedWorkOrderEvidenceRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedWorkOrderEvidenceRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderEvidence'
+          description: ''
+    delete:
+      operationId: v1_equipment_work_order_evidences_destroy
+      description: CRUD de evidencias de una orden de trabajo.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order evidence.
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
+  /api/v1/equipment/work-order-signatures/:
+    get:
+      operationId: v1_equipment_work_order_signatures_list
+      description: CRUD de firmas de una orden de trabajo.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Qué campo usar para ordenar los resultados.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Un número de página dentro del conjunto de resultados paginado.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: Un término de búsqueda.
+        schema:
+          type: string
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWorkOrderSignatureList'
+          description: ''
+    post:
+      operationId: v1_equipment_work_order_signatures_create
+      description: CRUD de firmas de una orden de trabajo.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkOrderSignatureRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WorkOrderSignatureRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WorkOrderSignatureRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderSignature'
+          description: ''
+  /api/v1/equipment/work-order-signatures/{id}/:
+    get:
+      operationId: v1_equipment_work_order_signatures_retrieve
+      description: CRUD de firmas de una orden de trabajo.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order signature.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderSignature'
+          description: ''
+    put:
+      operationId: v1_equipment_work_order_signatures_update
+      description: CRUD de firmas de una orden de trabajo.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order signature.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkOrderSignatureRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WorkOrderSignatureRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WorkOrderSignatureRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderSignature'
+          description: ''
+    patch:
+      operationId: v1_equipment_work_order_signatures_partial_update
+      description: CRUD de firmas de una orden de trabajo.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order signature.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedWorkOrderSignatureRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedWorkOrderSignatureRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedWorkOrderSignatureRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderSignature'
+          description: ''
+    delete:
+      operationId: v1_equipment_work_order_signatures_destroy
+      description: CRUD de firmas de una orden de trabajo.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order signature.
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
+  /api/v1/equipment/work-order-spare-parts/:
+    get:
+      operationId: v1_equipment_work_order_spare_parts_list
+      description: CRUD de repuestos utilizados en una orden de trabajo.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Qué campo usar para ordenar los resultados.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Un número de página dentro del conjunto de resultados paginado.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: Un término de búsqueda.
+        schema:
+          type: string
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWorkOrderSparePartList'
+          description: ''
+    post:
+      operationId: v1_equipment_work_order_spare_parts_create
+      description: CRUD de repuestos utilizados en una orden de trabajo.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkOrderSparePartRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WorkOrderSparePartRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WorkOrderSparePartRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderSparePart'
+          description: ''
+  /api/v1/equipment/work-order-spare-parts/{id}/:
+    get:
+      operationId: v1_equipment_work_order_spare_parts_retrieve
+      description: CRUD de repuestos utilizados en una orden de trabajo.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order spare
+          part.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderSparePart'
+          description: ''
+    put:
+      operationId: v1_equipment_work_order_spare_parts_update
+      description: CRUD de repuestos utilizados en una orden de trabajo.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order spare
+          part.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkOrderSparePartRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WorkOrderSparePartRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WorkOrderSparePartRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderSparePart'
+          description: ''
+    patch:
+      operationId: v1_equipment_work_order_spare_parts_partial_update
+      description: CRUD de repuestos utilizados en una orden de trabajo.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order spare
+          part.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedWorkOrderSparePartRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedWorkOrderSparePartRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedWorkOrderSparePartRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderSparePart'
+          description: ''
+    delete:
+      operationId: v1_equipment_work_order_spare_parts_destroy
+      description: CRUD de repuestos utilizados en una orden de trabajo.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order spare
+          part.
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
+  /api/v1/equipment/work-orders/:
+    get:
+      operationId: v1_equipment_work_orders_list
+      description: CRUD de órdenes de trabajo de equipos
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Qué campo usar para ordenar los resultados.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Un número de página dentro del conjunto de resultados paginado.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: Un término de búsqueda.
+        schema:
+          type: string
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEquipmentWorkOrderList'
+          description: ''
+    post:
+      operationId: v1_equipment_work_orders_create
+      description: CRUD de órdenes de trabajo de equipos
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentWorkOrderRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EquipmentWorkOrderRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EquipmentWorkOrderRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentWorkOrder'
+          description: ''
+  /api/v1/equipment/work-orders/{id}/:
+    get:
+      operationId: v1_equipment_work_orders_retrieve
+      description: CRUD de órdenes de trabajo de equipos
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este equipment work
+          order.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentWorkOrder'
+          description: ''
+    put:
+      operationId: v1_equipment_work_orders_update
+      description: CRUD de órdenes de trabajo de equipos
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este equipment work
+          order.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentWorkOrderRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EquipmentWorkOrderRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EquipmentWorkOrderRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentWorkOrder'
+          description: ''
+    patch:
+      operationId: v1_equipment_work_orders_partial_update
+      description: CRUD de órdenes de trabajo de equipos
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este equipment work
+          order.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEquipmentWorkOrderRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEquipmentWorkOrderRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEquipmentWorkOrderRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentWorkOrder'
+          description: ''
+    delete:
+      operationId: v1_equipment_work_orders_destroy
+      description: CRUD de órdenes de trabajo de equipos
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este equipment work
+          order.
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
+  /api/v1/equipment/work-orders/{id}/details/:
+    get:
+      operationId: v1_equipment_work_orders_details_retrieve
+      description: Devuelve una orden de trabajo junto a sus elementos relacionados
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este equipment work
+          order.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentWorkOrder'
+          description: ''
+  /api/v1/failures/:
+    get:
+      operationId: v1_failures_list
+      description: CRUD de reportes de falla + acción `resolve` para marcarlos como
+        resueltos.
+      parameters:
+      - in: query
+        name: branch
+        schema:
+          type: number
+      - in: query
+        name: equipment
+        schema:
+          type: number
+      - name: ordering
+        required: false
+        in: query
+        description: Qué campo usar para ordenar los resultados.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Un número de página dentro del conjunto de resultados paginado.
+        schema:
+          type: integer
+      - in: query
+        name: reported_at_after
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: reported_at_before
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: resolved
+        schema:
+          type: boolean
+      - name: search
+        required: false
+        in: query
+        description: Un término de búsqueda.
+        schema:
+          type: string
+      - in: query
+        name: severity
+        schema:
+          type: string
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedFailureRecordList'
+          description: ''
+    post:
+      operationId: v1_failures_create
+      description: CRUD de reportes de falla + acción `resolve` para marcarlos como
+        resueltos.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FailureRecordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FailureRecordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FailureRecordRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FailureRecord'
+          description: ''
+  /api/v1/failures/{id}/:
+    get:
+      operationId: v1_failures_retrieve
+      description: CRUD de reportes de falla + acción `resolve` para marcarlos como
+        resueltos.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Reporte de falla.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FailureRecord'
+          description: ''
+    put:
+      operationId: v1_failures_update
+      description: CRUD de reportes de falla + acción `resolve` para marcarlos como
+        resueltos.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Reporte de falla.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FailureRecordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FailureRecordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FailureRecordRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FailureRecord'
+          description: ''
+    patch:
+      operationId: v1_failures_partial_update
+      description: CRUD de reportes de falla + acción `resolve` para marcarlos como
+        resueltos.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Reporte de falla.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedFailureRecordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedFailureRecordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedFailureRecordRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FailureRecord'
+          description: ''
+    delete:
+      operationId: v1_failures_destroy
+      description: CRUD de reportes de falla + acción `resolve` para marcarlos como
+        resueltos.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Reporte de falla.
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
+  /api/v1/failures/{id}/resolve/:
+    post:
+      operationId: v1_failures_resolve_create
+      description: CRUD de reportes de falla + acción `resolve` para marcarlos como
+        resueltos.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Reporte de falla.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FailureRecordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FailureRecordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FailureRecordRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FailureRecord'
+          description: ''
+  /api/v1/maintenance/records/:
+    get:
+      operationId: v1_maintenance_records_list
+      description: CRUD de registros históricos de mantenimiento, con upload de PDF
+        opcional.
+      parameters:
+      - in: query
+        name: assigned_engineer
+        schema:
+          type: number
+      - in: query
+        name: assigned_technician
+        schema:
+          type: number
+      - in: query
+        name: branch
+        schema:
+          type: number
+      - in: query
+        name: date_after
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: date_before
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: equipment
+        schema:
+          type: number
+      - in: query
+        name: kind
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Qué campo usar para ordenar los resultados.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Un número de página dentro del conjunto de resultados paginado.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: Un término de búsqueda.
+        schema:
+          type: string
+      - in: query
+        name: unassigned
+        schema:
+          type: boolean
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMaintenanceRecordList'
+          description: ''
+    post:
+      operationId: v1_maintenance_records_create
+      description: CRUD de registros históricos de mantenimiento, con upload de PDF
+        opcional.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaintenanceRecordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MaintenanceRecordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MaintenanceRecordRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenanceRecord'
+          description: ''
+  /api/v1/maintenance/records/{id}/:
+    get:
+      operationId: v1_maintenance_records_retrieve
+      description: CRUD de registros históricos de mantenimiento, con upload de PDF
+        opcional.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Registro de mantenimiento.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenanceRecord'
+          description: ''
+    put:
+      operationId: v1_maintenance_records_update
+      description: CRUD de registros históricos de mantenimiento, con upload de PDF
+        opcional.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Registro de mantenimiento.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaintenanceRecordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MaintenanceRecordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MaintenanceRecordRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenanceRecord'
+          description: ''
+    patch:
+      operationId: v1_maintenance_records_partial_update
+      description: CRUD de registros históricos de mantenimiento, con upload de PDF
+        opcional.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Registro de mantenimiento.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMaintenanceRecordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMaintenanceRecordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMaintenanceRecordRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenanceRecord'
+          description: ''
+    delete:
+      operationId: v1_maintenance_records_destroy
+      description: CRUD de registros históricos de mantenimiento, con upload de PDF
+        opcional.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Registro de mantenimiento.
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
+  /api/v1/scheduling/maintenances/:
+    get:
+      operationId: v1_scheduling_maintenances_list
+      description: CRUD de agendamientos de mantenimiento + acciones complete/notify.
+      parameters:
+      - in: query
+        name: assigned_engineer
+        schema:
+          type: number
+      - in: query
+        name: assigned_technician
+        schema:
+          type: number
+      - in: query
+        name: branch
+        schema:
+          type: number
+      - in: query
+        name: equipment
+        schema:
+          type: number
+      - in: query
+        name: is_completed
+        schema:
+          type: boolean
+      - in: query
+        name: kind
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Qué campo usar para ordenar los resultados.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Un número de página dentro del conjunto de resultados paginado.
+        schema:
+          type: integer
+      - in: query
+        name: scheduled_date_after
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: scheduled_date_before
+        schema:
+          type: string
+          format: date
+      - name: search
+        required: false
+        in: query
+        description: Un término de búsqueda.
+        schema:
+          type: string
+      - in: query
+        name: unassigned
+        schema:
+          type: boolean
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMaintenanceScheduleList'
+          description: ''
+    post:
+      operationId: v1_scheduling_maintenances_create
+      description: CRUD de agendamientos de mantenimiento + acciones complete/notify.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaintenanceScheduleRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MaintenanceScheduleRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MaintenanceScheduleRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenanceSchedule'
+          description: ''
+  /api/v1/scheduling/maintenances/{id}/:
+    get:
+      operationId: v1_scheduling_maintenances_retrieve
+      description: CRUD de agendamientos de mantenimiento + acciones complete/notify.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Agendamiento de
+          mantenimiento.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenanceSchedule'
+          description: ''
+    put:
+      operationId: v1_scheduling_maintenances_update
+      description: CRUD de agendamientos de mantenimiento + acciones complete/notify.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Agendamiento de
+          mantenimiento.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaintenanceScheduleRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MaintenanceScheduleRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MaintenanceScheduleRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenanceSchedule'
+          description: ''
+    patch:
+      operationId: v1_scheduling_maintenances_partial_update
+      description: CRUD de agendamientos de mantenimiento + acciones complete/notify.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Agendamiento de
+          mantenimiento.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMaintenanceScheduleRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMaintenanceScheduleRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMaintenanceScheduleRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenanceSchedule'
+          description: ''
+    delete:
+      operationId: v1_scheduling_maintenances_destroy
+      description: CRUD de agendamientos de mantenimiento + acciones complete/notify.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Agendamiento de
+          mantenimiento.
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
+  /api/v1/scheduling/maintenances/{id}/complete/:
+    post:
+      operationId: v1_scheduling_maintenances_complete_create
+      description: CRUD de agendamientos de mantenimiento + acciones complete/notify.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Agendamiento de
+          mantenimiento.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaintenanceScheduleRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MaintenanceScheduleRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MaintenanceScheduleRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenanceSchedule'
+          description: ''
+  /api/v1/scheduling/maintenances/{id}/notify/:
+    post:
+      operationId: v1_scheduling_maintenances_notify_create
+      description: CRUD de agendamientos de mantenimiento + acciones complete/notify.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Agendamiento de
+          mantenimiento.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaintenanceScheduleRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MaintenanceScheduleRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MaintenanceScheduleRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenanceSchedule'
+          description: ''
+  /api/v1/users/:
+    get:
+      operationId: v1_users_list
+      description: CRUD de usuarios + perfil propio + cambio de contraseña.
+      parameters:
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+      - name: ordering
+        required: false
+        in: query
+        description: Qué campo usar para ordenar los resultados.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Un número de página dentro del conjunto de resultados paginado.
+        schema:
+          type: integer
+      - in: query
+        name: role
+        schema:
+          type: string
+          title: Rol
+          enum:
+          - admin
+          - coordinador
+          - ingeniero
+          - superadmin
+          - tecnico
+        description: |-
+          * `superadmin` - Superadministrador
+          * `admin` - Administrador
+          * `coordinador` - Coordinador
+          * `ingeniero` - Ingeniero biomédico
+          * `tecnico` - Técnico
+      - name: search
+        required: false
+        in: query
+        description: Un término de búsqueda.
+        schema:
+          type: string
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserList'
+          description: ''
+    post:
+      operationId: v1_users_create
+      description: CRUD de usuarios + perfil propio + cambio de contraseña.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserCreate'
+          description: ''
+  /api/v1/users/{id}/:
+    get:
+      operationId: v1_users_retrieve
+      description: CRUD de usuarios + perfil propio + cambio de contraseña.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Usuario.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: v1_users_update
+      description: CRUD de usuarios + perfil propio + cambio de contraseña.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Usuario.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserUpdate'
+          description: ''
+    patch:
+      operationId: v1_users_partial_update
+      description: CRUD de usuarios + perfil propio + cambio de contraseña.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Usuario.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserUpdateRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserUpdate'
+          description: ''
+    delete:
+      operationId: v1_users_destroy
+      description: CRUD de usuarios + perfil propio + cambio de contraseña.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Usuario.
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
+  /api/v1/users/{id}/set_password/:
+    post:
+      operationId: v1_users_set_password_create
+      description: CRUD de usuarios + perfil propio + cambio de contraseña.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este Usuario.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+        required: true
+      responses:
+        '200':
+          description: No response body
+  /api/v1/users/me/:
+    get:
+      operationId: v1_users_me_retrieve
+      description: CRUD de usuarios + perfil propio + cambio de contraseña.
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+components:
+  schemas:
+    AttachmentTypeEnum:
+      enum:
+      - LIFE_SHEET
+      - MANUAL
+      - PHOTO
+      - CERTIFICATE
+      - WARRANTY
+      - PURCHASE
+      - OTHER
+      type: string
+      description: |-
+        * `LIFE_SHEET` - Hoja de Vida
+        * `MANUAL` - Manual
+        * `PHOTO` - Fotografía
+        * `CERTIFICATE` - Certificado
+        * `WARRANTY` - Garantía
+        * `PURCHASE` - Compra
+        * `OTHER` - Otro
+    BlankEnum:
+      enum:
+      - ''
+    Branch:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Nombre
+          description: Nombre único de la sede.
+          maxLength: 120
+        address:
+          type: string
+          title: Dirección
+          maxLength: 255
+        city:
+          type: string
+          title: Ciudad
+          maxLength: 80
+        phone:
+          type: string
+          title: Teléfono
+          pattern: ^\+?[0-9\s\-()]{7,20}$
+          maxLength: 30
+        email:
+          title: Correo electrónico
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        is_active:
+          type: boolean
+          title: Activa
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Creada
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Actualizada
+      required:
+      - address
+      - city
+      - created_at
+      - id
+      - name
+      - phone
+      - updated_at
+    BranchRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nombre
+          description: Nombre único de la sede.
+          maxLength: 120
+        address:
+          type: string
+          minLength: 1
+          title: Dirección
+          maxLength: 255
+        city:
+          type: string
+          minLength: 1
+          title: Ciudad
+          maxLength: 80
+        phone:
+          type: string
+          minLength: 1
+          title: Teléfono
+          pattern: ^\+?[0-9\s\-()]{7,20}$
+          maxLength: 30
+        email:
+          title: Correo electrónico
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        is_active:
+          type: boolean
+          title: Activa
+      required:
+      - address
+      - city
+      - name
+      - phone
+    Brand:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Nombre
+          description: Nombre comercial único de la marca.
+          maxLength: 120
+        is_active:
+          type: boolean
+          title: Activa
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Creada
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Actualizada
+      required:
+      - created_at
+      - id
+      - name
+      - updated_at
+    BrandRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nombre
+          description: Nombre comercial único de la marca.
+          maxLength: 120
+        is_active:
+          type: boolean
+          title: Activa
+      required:
+      - name
+    Equipment:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Nombre
+          maxLength: 150
+        asset_tag:
+          type: string
+          title: Placa / código de inventario
+          maxLength: 50
+        internal_code:
+          type: string
+          title: Código N.T.
+          maxLength: 50
+        serial:
+          type: string
+          title: Serie
+          maxLength: 80
+        software_identifier:
+          type: string
+          title: Identificador Software (Id)
+          maxLength: 50
+        equipment_model:
+          type: integer
+          title: Modelo
+        equipment_model_name:
+          type: string
+          readOnly: true
+        brand_name:
+          type: string
+          readOnly: true
+        branch:
+          type: integer
+          title: Sede
+        branch_name:
+          type: string
+          readOnly: true
+        location:
+          type: string
+          title: Ubicación
+          maxLength: 120
+        technology_type:
+          nullable: true
+          title: Tipo tecnología
+          oneOf:
+          - $ref: '#/components/schemas/TechnologyTypeEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        biomedical_classification:
+          type: string
+          title: Clasificación biomédica
+          maxLength: 50
+        risk_class:
+          nullable: true
+          title: Clasificación de riesgo INVIMA
+          oneOf:
+          - $ref: '#/components/schemas/RiskClassEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        risk_class_display:
+          type: string
+          readOnly: true
+        manufacturer:
+          type: string
+          title: Fabricante
+          maxLength: 150
+        owner:
+          type: string
+          title: Propietario
+          maxLength: 150
+        client_name:
+          type: string
+          title: Cliente
+          maxLength: 180
+        branch_text:
+          type: string
+          title: Marca (texto)
+          description: Útil si la marca no existe en catálogo.
+          maxLength: 120
+        department:
+          type: string
+          title: Departamento
+          maxLength: 80
+        city:
+          type: string
+          title: Ciudad
+          maxLength: 80
+        area:
+          type: string
+          title: Área
+          maxLength: 120
+        purchase_date:
+          type: string
+          format: date
+          nullable: true
+          title: Fecha de compra
+        supplier_acquisition:
+          type: string
+          title: Proveedor de adquisión
+          maxLength: 150
+        equipment_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          nullable: true
+          title: Costo equipo
+        manufacture_date:
+          type: string
+          format: date
+          nullable: true
+          title: Fecha de fabricación
+        start_use_date:
+          type: string
+          format: date
+          nullable: true
+          title: Fecha inicia funcionamiento
+        warranty_start_date:
+          type: string
+          format: date
+          nullable: true
+          title: Fecha inicia garantía
+        warranty_end_date:
+          type: string
+          format: date
+          nullable: true
+          title: Fecha finaliza garantía
+        maintenance_provider:
+          type: string
+          title: Proveedor de mantenimiento
+          maxLength: 150
+        maintenance_frequency_months:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          title: Frecuencia mantenimiento (meses)
+        last_preventive:
+          type: string
+          title: Último preventivo
+          maxLength: 120
+        next_preventive:
+          type: string
+          title: Próximo preventivo
+          maxLength: 120
+        calibration_date:
+          type: string
+          title: Código de calibración
+          maxLength: 50
+        calibration_frequency_months:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          title: Frecuencia calibración (meses)
+        last_calibration:
+          type: string
+          title: Última calibración
+          maxLength: 120
+        next_calibration:
+          type: string
+          title: Próxima calibración
+          maxLength: 120
+        corrective_count:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Número de correctivos.
+        electrical_safety_class:
+          type: string
+          title: Clase seguridad eléctrica
+          maxLength: 80
+        electrical_safety_type:
+          type: string
+          title: Tipo seguridad eléctrica
+          maxLength: 80
+        invima_registration:
+          type: string
+          title: Registro Invima
+          maxLength: 80
+        ecri:
+          type: string
+          maxLength: 80
+        life_use_years:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          title: Vida útil (años)
+        observations:
+          type: string
+          title: Observaciones
+        equipment_image:
+          type: string
+          format: uri
+          nullable: true
+          title: Imagen del equipo
+        life_sheet_pdf:
+          type: string
+          format: uri
+          nullable: true
+          title: Hoja Vida PDF
+        status:
+          allOf:
+          - $ref: '#/components/schemas/EquipmentStatusEnum'
+          title: Estado
+        status_display:
+          type: string
+          readOnly: true
+        mtbf_hours:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+          title: MTBF (horas)
+          description: Tiempo promedio entre fallas consecutivas. Recalculado automáticamente.
+        mttr_hours:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+          title: MTTR (horas)
+          description: Tiempo promedio para resolver una falla. Recalculado automáticamente.
+        qr_code:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
+          title: Código QR
+        qr_code_url:
+          type: string
+          nullable: true
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Creado
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Actualizado
+      required:
+      - asset_tag
+      - branch
+      - branch_name
+      - brand_name
+      - created_at
+      - equipment_model
+      - equipment_model_name
+      - id
+      - mtbf_hours
+      - mttr_hours
+      - name
+      - qr_code
+      - qr_code_url
+      - risk_class_display
+      - status_display
+      - updated_at
+    EquipmentAttachment:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        equipment:
+          type: integer
+        attachment_type:
+          $ref: '#/components/schemas/AttachmentTypeEnum'
+        title:
+          type: string
+          maxLength: 150
+        file:
+          type: string
+          format: uri
+        uploaded_at:
+          type: string
+          format: date-time
+          readOnly: true
+        uploaded_by:
+          type: integer
+          readOnly: true
+          nullable: true
+        uploaded_by_name:
+          type: string
+          readOnly: true
+      required:
+      - attachment_type
+      - equipment
+      - file
+      - id
+      - title
+      - uploaded_at
+      - uploaded_by
+      - uploaded_by_name
+    EquipmentAttachmentRequest:
+      type: object
+      properties:
+        equipment:
+          type: integer
+        attachment_type:
+          $ref: '#/components/schemas/AttachmentTypeEnum'
+        title:
+          type: string
+          minLength: 1
+          maxLength: 150
+        file:
+          type: string
+          format: binary
+      required:
+      - attachment_type
+      - equipment
+      - file
+      - title
+    EquipmentCertificate:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        certificate_number:
+          type: string
+          maxLength: 80
+        certificate_date:
+          type: string
+          format: date
+        responsible:
+          type: string
+          maxLength: 150
+        observations:
+          type: string
+        file:
+          type: string
+          format: uri
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        equipment:
+          type: integer
+      required:
+      - certificate_date
+      - certificate_number
+      - created_at
+      - equipment
+      - id
+      - responsible
+    EquipmentCertificateRequest:
+      type: object
+      properties:
+        certificate_number:
+          type: string
+          minLength: 1
+          maxLength: 80
+        certificate_date:
+          type: string
+          format: date
+        responsible:
+          type: string
+          minLength: 1
+          maxLength: 150
+        observations:
+          type: string
+        file:
+          type: string
+          format: binary
+        equipment:
+          type: integer
+      required:
+      - certificate_date
+      - certificate_number
+      - equipment
+      - responsible
+    EquipmentInstruction:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        instruction_type:
+          $ref: '#/components/schemas/InstructionTypeEnum'
+        sequence:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        activity:
+          type: string
+        equipment:
+          type: integer
+      required:
+      - activity
+      - equipment
+      - id
+      - sequence
+    EquipmentInstructionRequest:
+      type: object
+      properties:
+        instruction_type:
+          $ref: '#/components/schemas/InstructionTypeEnum'
+        sequence:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        activity:
+          type: string
+          minLength: 1
+        equipment:
+          type: integer
+      required:
+      - activity
+      - equipment
+      - sequence
+    EquipmentModel:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        brand:
+          type: integer
+          title: Marca
+        brand_name:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          title: Modelo
+          maxLength: 120
+        description:
+          type: string
+          title: Descripción
+        is_active:
+          type: boolean
+          title: Activo
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Creado
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Actualizado
+      required:
+      - brand
+      - brand_name
+      - created_at
+      - id
+      - name
+      - updated_at
+    EquipmentModelRequest:
+      type: object
+      properties:
+        brand:
+          type: integer
+          title: Marca
+        name:
+          type: string
+          minLength: 1
+          title: Modelo
+          maxLength: 120
+        description:
+          type: string
+          title: Descripción
+        is_active:
+          type: boolean
+          title: Activo
+      required:
+      - brand
+      - name
+    EquipmentRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nombre
+          maxLength: 150
+        asset_tag:
+          type: string
+          minLength: 1
+          title: Placa / código de inventario
+          maxLength: 50
+        internal_code:
+          type: string
+          title: Código N.T.
+          maxLength: 50
+        serial:
+          type: string
+          title: Serie
+          maxLength: 80
+        software_identifier:
+          type: string
+          title: Identificador Software (Id)
+          maxLength: 50
+        equipment_model:
+          type: integer
+          title: Modelo
+        branch:
+          type: integer
+          title: Sede
+        location:
+          type: string
+          title: Ubicación
+          maxLength: 120
+        technology_type:
+          nullable: true
+          title: Tipo tecnología
+          oneOf:
+          - $ref: '#/components/schemas/TechnologyTypeEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        biomedical_classification:
+          type: string
+          title: Clasificación biomédica
+          maxLength: 50
+        risk_class:
+          nullable: true
+          title: Clasificación de riesgo INVIMA
+          oneOf:
+          - $ref: '#/components/schemas/RiskClassEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        manufacturer:
+          type: string
+          title: Fabricante
+          maxLength: 150
+        owner:
+          type: string
+          title: Propietario
+          maxLength: 150
+        client_name:
+          type: string
+          title: Cliente
+          maxLength: 180
+        branch_text:
+          type: string
+          title: Marca (texto)
+          description: Útil si la marca no existe en catálogo.
+          maxLength: 120
+        department:
+          type: string
+          title: Departamento
+          maxLength: 80
+        city:
+          type: string
+          title: Ciudad
+          maxLength: 80
+        area:
+          type: string
+          title: Área
+          maxLength: 120
+        purchase_date:
+          type: string
+          format: date
+          nullable: true
+          title: Fecha de compra
+        supplier_acquisition:
+          type: string
+          title: Proveedor de adquisión
+          maxLength: 150
+        equipment_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          nullable: true
+          title: Costo equipo
+        manufacture_date:
+          type: string
+          format: date
+          nullable: true
+          title: Fecha de fabricación
+        start_use_date:
+          type: string
+          format: date
+          nullable: true
+          title: Fecha inicia funcionamiento
+        warranty_start_date:
+          type: string
+          format: date
+          nullable: true
+          title: Fecha inicia garantía
+        warranty_end_date:
+          type: string
+          format: date
+          nullable: true
+          title: Fecha finaliza garantía
+        maintenance_provider:
+          type: string
+          title: Proveedor de mantenimiento
+          maxLength: 150
+        maintenance_frequency_months:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          title: Frecuencia mantenimiento (meses)
+        last_preventive:
+          type: string
+          title: Último preventivo
+          maxLength: 120
+        next_preventive:
+          type: string
+          title: Próximo preventivo
+          maxLength: 120
+        calibration_date:
+          type: string
+          title: Código de calibración
+          maxLength: 50
+        calibration_frequency_months:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          title: Frecuencia calibración (meses)
+        last_calibration:
+          type: string
+          title: Última calibración
+          maxLength: 120
+        next_calibration:
+          type: string
+          title: Próxima calibración
+          maxLength: 120
+        corrective_count:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Número de correctivos.
+        electrical_safety_class:
+          type: string
+          title: Clase seguridad eléctrica
+          maxLength: 80
+        electrical_safety_type:
+          type: string
+          title: Tipo seguridad eléctrica
+          maxLength: 80
+        invima_registration:
+          type: string
+          title: Registro Invima
+          maxLength: 80
+        ecri:
+          type: string
+          maxLength: 80
+        life_use_years:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          title: Vida útil (años)
+        observations:
+          type: string
+          title: Observaciones
+        equipment_image:
+          type: string
+          format: binary
+          nullable: true
+          title: Imagen del equipo
+        life_sheet_pdf:
+          type: string
+          format: binary
+          title: Hoja Vida PDF
+        status:
+          allOf:
+          - $ref: '#/components/schemas/EquipmentStatusEnum'
+          title: Estado
+      required:
+      - asset_tag
+      - branch
+      - equipment_model
+      - name
+    EquipmentStatusEnum:
+      enum:
+      - ACTIVE
+      - INACTIVE
+      - IN_MAINTENANCE
+      - IN_REPAIR
+      type: string
+      description: |-
+        * `ACTIVE` - Operativo
+        * `INACTIVE` - Fuera de servicio
+        * `IN_MAINTENANCE` - En mantenimiento
+        * `IN_REPAIR` - En reparación
+    EquipmentWorkOrder:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        equipment:
+          type: integer
+        number:
+          type: string
+          maxLength: 50
+        service_type:
+          $ref: '#/components/schemas/ServiceTypeEnum'
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+        description:
+          type: string
+        technician:
+          type: integer
+          nullable: true
+        technician_name:
+          type: string
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/EquipmentWorkOrderStatusEnum'
+        report:
+          type: string
+          format: uri
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - description
+      - equipment
+      - id
+      - number
+      - service_type
+      - start_date
+      - technician_name
+    EquipmentWorkOrderRequest:
+      type: object
+      properties:
+        equipment:
+          type: integer
+        number:
+          type: string
+          minLength: 1
+          maxLength: 50
+        service_type:
+          $ref: '#/components/schemas/ServiceTypeEnum'
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+        description:
+          type: string
+          minLength: 1
+        technician:
+          type: integer
+          nullable: true
+        status:
+          $ref: '#/components/schemas/EquipmentWorkOrderStatusEnum'
+        report:
+          type: string
+          format: binary
+      required:
+      - description
+      - equipment
+      - number
+      - service_type
+      - start_date
+    EquipmentWorkOrderStatusEnum:
+      enum:
+      - PENDING
+      - IN_PROGRESS
+      - FINISHED
+      - CANCELLED
+      type: string
+      description: |-
+        * `PENDING` - Pendiente
+        * `IN_PROGRESS` - En proceso
+        * `FINISHED` - Terminada
+        * `CANCELLED` - Cancelada
+    EvidenceTypeEnum:
+      enum:
+      - PHOTO
+      - VIDEO
+      - DOCUMENT
+      - AUDIO
+      type: string
+      description: |-
+        * `PHOTO` - Fotografía
+        * `VIDEO` - Video
+        * `DOCUMENT` - Documento
+        * `AUDIO` - Audio
+    FailureRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        equipment:
+          type: integer
+          title: Equipo
+        equipment_asset_tag:
+          type: string
+          readOnly: true
+        branch_name:
+          type: string
+          readOnly: true
+        reported_at:
+          type: string
+          format: date-time
+          title: Reportada el
+        description:
+          type: string
+        severity:
+          allOf:
+          - $ref: '#/components/schemas/SeverityEnum'
+          title: Severidad
+        resolved:
+          type: boolean
+          title: Resuelta
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: Resuelta el
+        resolution_notes:
+          type: string
+          title: Notas de resolución
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Creada
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Actualizada
+      required:
+      - branch_name
+      - created_at
+      - description
+      - equipment
+      - equipment_asset_tag
+      - id
+      - severity
+      - updated_at
+    FailureRecordRequest:
+      type: object
+      properties:
+        equipment:
+          type: integer
+          title: Equipo
+        reported_at:
+          type: string
+          format: date-time
+          title: Reportada el
+        description:
+          type: string
+          minLength: 1
+        severity:
+          allOf:
+          - $ref: '#/components/schemas/SeverityEnum'
+          title: Severidad
+        resolved:
+          type: boolean
+          title: Resuelta
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: Resuelta el
+        resolution_notes:
+          type: string
+          title: Notas de resolución
+      required:
+      - description
+      - equipment
+      - severity
+    InstructionTypeEnum:
+      enum:
+      - PREVENTIVE
+      - CORRECTIVE
+      - CALIBRATION
+      type: string
+      description: |-
+        * `PREVENTIVE` - Preventivo
+        * `CORRECTIVE` - Correctivo
+        * `CALIBRATION` - Calibración
+    Kind4c3Enum:
+      enum:
+      - PREVENTIVE
+      - REPAIR
+      type: string
+      description: |-
+        * `PREVENTIVE` - Mantenimiento preventivo
+        * `REPAIR` - Reparación programada
+    MaintenanceRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        equipment:
+          type: integer
+          title: Equipo
+        equipment_asset_tag:
+          type: string
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/MaintenanceRecordKindEnum'
+          title: Tipo
+        date:
+          type: string
+          format: date
+          title: Fecha
+        description:
+          type: string
+        technician:
+          type: string
+          title: Técnico
+          maxLength: 120
+        assigned_engineer:
+          type: integer
+          nullable: true
+        assigned_engineer_detail:
+          allOf:
+          - $ref: '#/components/schemas/_AssignedUser'
+          readOnly: true
+        assigned_technician:
+          type: integer
+          nullable: true
+        assigned_technician_detail:
+          allOf:
+          - $ref: '#/components/schemas/_AssignedUser'
+          readOnly: true
+        cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        pdf_file:
+          type: string
+          format: uri
+          nullable: true
+          title: Archivo PDF
+          pattern: (?:pdf)$
+        pdf_file_url:
+          type: string
+          nullable: true
+          readOnly: true
+        scheduled_maintenance:
+          type: integer
+          nullable: true
+        scheduled_maintenance_detail:
+          allOf:
+          - $ref: '#/components/schemas/_ScheduledMaintenanceMini'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Creado
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Actualizado
+      required:
+      - assigned_engineer_detail
+      - assigned_technician_detail
+      - created_at
+      - date
+      - description
+      - equipment
+      - equipment_asset_tag
+      - id
+      - kind
+      - pdf_file_url
+      - scheduled_maintenance_detail
+      - updated_at
+    MaintenanceRecordKindEnum:
+      enum:
+      - PREVENTIVE
+      - CORRECTIVE
+      - REPAIR
+      - CALIBRATION
+      - INSPECTION
+      type: string
+      description: |-
+        * `PREVENTIVE` - Mantenimiento preventivo
+        * `CORRECTIVE` - Mantenimiento correctivo
+        * `REPAIR` - Reparación mayor
+        * `CALIBRATION` - Calibración
+        * `INSPECTION` - Inspection
+    MaintenanceRecordRequest:
+      type: object
+      properties:
+        equipment:
+          type: integer
+          title: Equipo
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/MaintenanceRecordKindEnum'
+          title: Tipo
+        date:
+          type: string
+          format: date
+          title: Fecha
+        description:
+          type: string
+          minLength: 1
+        technician:
+          type: string
+          title: Técnico
+          maxLength: 120
+        assigned_engineer:
+          type: integer
+          nullable: true
+        assigned_technician:
+          type: integer
+          nullable: true
+        cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        pdf_file:
+          type: string
+          format: binary
+          title: Archivo PDF
+          pattern: (?:pdf)$
+        scheduled_maintenance:
+          type: integer
+          nullable: true
+      required:
+      - date
+      - description
+      - equipment
+      - kind
+    MaintenanceSchedule:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        equipment:
+          type: integer
+          title: Equipo
+        equipment_asset_tag:
+          type: string
+          readOnly: true
+        branch_name:
+          type: string
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/Kind4c3Enum'
+          title: Tipo
+        scheduled_date:
+          type: string
+          format: date
+          title: Fecha programada
+        notes:
+          type: string
+          title: Notas
+        assigned_engineer:
+          type: integer
+          nullable: true
+        assigned_engineer_detail:
+          allOf:
+          - $ref: '#/components/schemas/_AssignedUser'
+          readOnly: true
+        assigned_technician:
+          type: integer
+          nullable: true
+        assigned_technician_detail:
+          allOf:
+          - $ref: '#/components/schemas/_AssignedUser'
+          readOnly: true
+        notified_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Notificado el
+        is_completed:
+          type: boolean
+          title: Completado
+        maintenance_record:
+          type: string
+          readOnly: true
+        maintenance_record_detail:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Creado
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Actualizado
+      required:
+      - assigned_engineer_detail
+      - assigned_technician_detail
+      - branch_name
+      - created_at
+      - equipment
+      - equipment_asset_tag
+      - id
+      - kind
+      - maintenance_record
+      - maintenance_record_detail
+      - notified_at
+      - scheduled_date
+      - updated_at
+    MaintenanceScheduleRequest:
+      type: object
+      properties:
+        equipment:
+          type: integer
+          title: Equipo
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/Kind4c3Enum'
+          title: Tipo
+        scheduled_date:
+          type: string
+          format: date
+          title: Fecha programada
+        notes:
+          type: string
+          title: Notas
+        assigned_engineer:
+          type: integer
+          nullable: true
+        assigned_technician:
+          type: integer
+          nullable: true
+        is_completed:
+          type: boolean
+          title: Completado
+      required:
+      - equipment
+      - kind
+      - scheduled_date
+    NullEnum:
+      enum:
+      - null
+    PaginatedBranchList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Branch'
+    PaginatedBrandList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Brand'
+    PaginatedEquipmentAttachmentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/EquipmentAttachment'
+    PaginatedEquipmentCertificateList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/EquipmentCertificate'
+    PaginatedEquipmentInstructionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/EquipmentInstruction'
+    PaginatedEquipmentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Equipment'
+    PaginatedEquipmentModelList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/EquipmentModel'
+    PaginatedEquipmentWorkOrderList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/EquipmentWorkOrder'
+    PaginatedFailureRecordList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/FailureRecord'
+    PaginatedMaintenanceRecordList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/MaintenanceRecord'
+    PaginatedMaintenanceScheduleList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/MaintenanceSchedule'
+    PaginatedUserList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+    PaginatedWorkOrderCostList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkOrderCost'
+    PaginatedWorkOrderEvidenceList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkOrderEvidence'
+    PaginatedWorkOrderSignatureList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkOrderSignature'
+    PaginatedWorkOrderSparePartList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkOrderSparePart'
+    PasswordChangeRequest:
+      type: object
+      properties:
+        current_password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        new_password:
+          type: string
+          writeOnly: true
+          minLength: 8
+      required:
+      - new_password
+    PatchedBranchRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nombre
+          description: Nombre único de la sede.
+          maxLength: 120
+        address:
+          type: string
+          minLength: 1
+          title: Dirección
+          maxLength: 255
+        city:
+          type: string
+          minLength: 1
+          title: Ciudad
+          maxLength: 80
+        phone:
+          type: string
+          minLength: 1
+          title: Teléfono
+          pattern: ^\+?[0-9\s\-()]{7,20}$
+          maxLength: 30
+        email:
+          title: Correo electrónico
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        is_active:
+          type: boolean
+          title: Activa
+    PatchedBrandRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nombre
+          description: Nombre comercial único de la marca.
+          maxLength: 120
+        is_active:
+          type: boolean
+          title: Activa
+    PatchedEquipmentAttachmentRequest:
+      type: object
+      properties:
+        equipment:
+          type: integer
+        attachment_type:
+          $ref: '#/components/schemas/AttachmentTypeEnum'
+        title:
+          type: string
+          minLength: 1
+          maxLength: 150
+        file:
+          type: string
+          format: binary
+    PatchedEquipmentCertificateRequest:
+      type: object
+      properties:
+        certificate_number:
+          type: string
+          minLength: 1
+          maxLength: 80
+        certificate_date:
+          type: string
+          format: date
+        responsible:
+          type: string
+          minLength: 1
+          maxLength: 150
+        observations:
+          type: string
+        file:
+          type: string
+          format: binary
+        equipment:
+          type: integer
+    PatchedEquipmentInstructionRequest:
+      type: object
+      properties:
+        instruction_type:
+          $ref: '#/components/schemas/InstructionTypeEnum'
+        sequence:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        activity:
+          type: string
+          minLength: 1
+        equipment:
+          type: integer
+    PatchedEquipmentModelRequest:
+      type: object
+      properties:
+        brand:
+          type: integer
+          title: Marca
+        name:
+          type: string
+          minLength: 1
+          title: Modelo
+          maxLength: 120
+        description:
+          type: string
+          title: Descripción
+        is_active:
+          type: boolean
+          title: Activo
+    PatchedEquipmentRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Nombre
+          maxLength: 150
+        asset_tag:
+          type: string
+          minLength: 1
+          title: Placa / código de inventario
+          maxLength: 50
+        internal_code:
+          type: string
+          title: Código N.T.
+          maxLength: 50
+        serial:
+          type: string
+          title: Serie
+          maxLength: 80
+        software_identifier:
+          type: string
+          title: Identificador Software (Id)
+          maxLength: 50
+        equipment_model:
+          type: integer
+          title: Modelo
+        branch:
+          type: integer
+          title: Sede
+        location:
+          type: string
+          title: Ubicación
+          maxLength: 120
+        technology_type:
+          nullable: true
+          title: Tipo tecnología
+          oneOf:
+          - $ref: '#/components/schemas/TechnologyTypeEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        biomedical_classification:
+          type: string
+          title: Clasificación biomédica
+          maxLength: 50
+        risk_class:
+          nullable: true
+          title: Clasificación de riesgo INVIMA
+          oneOf:
+          - $ref: '#/components/schemas/RiskClassEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        manufacturer:
+          type: string
+          title: Fabricante
+          maxLength: 150
+        owner:
+          type: string
+          title: Propietario
+          maxLength: 150
+        client_name:
+          type: string
+          title: Cliente
+          maxLength: 180
+        branch_text:
+          type: string
+          title: Marca (texto)
+          description: Útil si la marca no existe en catálogo.
+          maxLength: 120
+        department:
+          type: string
+          title: Departamento
+          maxLength: 80
+        city:
+          type: string
+          title: Ciudad
+          maxLength: 80
+        area:
+          type: string
+          title: Área
+          maxLength: 120
+        purchase_date:
+          type: string
+          format: date
+          nullable: true
+          title: Fecha de compra
+        supplier_acquisition:
+          type: string
+          title: Proveedor de adquisión
+          maxLength: 150
+        equipment_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          nullable: true
+          title: Costo equipo
+        manufacture_date:
+          type: string
+          format: date
+          nullable: true
+          title: Fecha de fabricación
+        start_use_date:
+          type: string
+          format: date
+          nullable: true
+          title: Fecha inicia funcionamiento
+        warranty_start_date:
+          type: string
+          format: date
+          nullable: true
+          title: Fecha inicia garantía
+        warranty_end_date:
+          type: string
+          format: date
+          nullable: true
+          title: Fecha finaliza garantía
+        maintenance_provider:
+          type: string
+          title: Proveedor de mantenimiento
+          maxLength: 150
+        maintenance_frequency_months:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          title: Frecuencia mantenimiento (meses)
+        last_preventive:
+          type: string
+          title: Último preventivo
+          maxLength: 120
+        next_preventive:
+          type: string
+          title: Próximo preventivo
+          maxLength: 120
+        calibration_date:
+          type: string
+          title: Código de calibración
+          maxLength: 50
+        calibration_frequency_months:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          title: Frecuencia calibración (meses)
+        last_calibration:
+          type: string
+          title: Última calibración
+          maxLength: 120
+        next_calibration:
+          type: string
+          title: Próxima calibración
+          maxLength: 120
+        corrective_count:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Número de correctivos.
+        electrical_safety_class:
+          type: string
+          title: Clase seguridad eléctrica
+          maxLength: 80
+        electrical_safety_type:
+          type: string
+          title: Tipo seguridad eléctrica
+          maxLength: 80
+        invima_registration:
+          type: string
+          title: Registro Invima
+          maxLength: 80
+        ecri:
+          type: string
+          maxLength: 80
+        life_use_years:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          title: Vida útil (años)
+        observations:
+          type: string
+          title: Observaciones
+        equipment_image:
+          type: string
+          format: binary
+          nullable: true
+          title: Imagen del equipo
+        life_sheet_pdf:
+          type: string
+          format: binary
+          title: Hoja Vida PDF
+        status:
+          allOf:
+          - $ref: '#/components/schemas/EquipmentStatusEnum'
+          title: Estado
+    PatchedEquipmentWorkOrderRequest:
+      type: object
+      properties:
+        equipment:
+          type: integer
+        number:
+          type: string
+          minLength: 1
+          maxLength: 50
+        service_type:
+          $ref: '#/components/schemas/ServiceTypeEnum'
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+        description:
+          type: string
+          minLength: 1
+        technician:
+          type: integer
+          nullable: true
+        status:
+          $ref: '#/components/schemas/EquipmentWorkOrderStatusEnum'
+        report:
+          type: string
+          format: binary
+    PatchedFailureRecordRequest:
+      type: object
+      properties:
+        equipment:
+          type: integer
+          title: Equipo
+        reported_at:
+          type: string
+          format: date-time
+          title: Reportada el
+        description:
+          type: string
+          minLength: 1
+        severity:
+          allOf:
+          - $ref: '#/components/schemas/SeverityEnum'
+          title: Severidad
+        resolved:
+          type: boolean
+          title: Resuelta
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: Resuelta el
+        resolution_notes:
+          type: string
+          title: Notas de resolución
+    PatchedMaintenanceRecordRequest:
+      type: object
+      properties:
+        equipment:
+          type: integer
+          title: Equipo
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/MaintenanceRecordKindEnum'
+          title: Tipo
+        date:
+          type: string
+          format: date
+          title: Fecha
+        description:
+          type: string
+          minLength: 1
+        technician:
+          type: string
+          title: Técnico
+          maxLength: 120
+        assigned_engineer:
+          type: integer
+          nullable: true
+        assigned_technician:
+          type: integer
+          nullable: true
+        cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        pdf_file:
+          type: string
+          format: binary
+          title: Archivo PDF
+          pattern: (?:pdf)$
+        scheduled_maintenance:
+          type: integer
+          nullable: true
+    PatchedMaintenanceScheduleRequest:
+      type: object
+      properties:
+        equipment:
+          type: integer
+          title: Equipo
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/Kind4c3Enum'
+          title: Tipo
+        scheduled_date:
+          type: string
+          format: date
+          title: Fecha programada
+        notes:
+          type: string
+          title: Notas
+        assigned_engineer:
+          type: integer
+          nullable: true
+        assigned_technician:
+          type: integer
+          nullable: true
+        is_completed:
+          type: boolean
+          title: Completado
+    PatchedUserUpdateRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          title: Nombre de usuario
+          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
+            dígitos y @/./+/-/_ '
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: Correo electrónico
+          maxLength: 254
+        first_name:
+          type: string
+          minLength: 1
+          title: Nombres
+          maxLength: 150
+        last_name:
+          type: string
+          minLength: 1
+          title: Apellidos
+          maxLength: 150
+        role:
+          allOf:
+          - $ref: '#/components/schemas/Role71cEnum'
+          title: Rol
+        phone:
+          title: Teléfono
+          oneOf:
+          - type: string
+            pattern: ^\+?[0-9\s\-()]{7,20}$
+            maxLength: 30
+          - type: string
+            maxLength: 0
+        is_active:
+          type: boolean
+          title: Activo
+          description: Indica si el usuario debe ser tratado como activo. Desmarque
+            esta opción en lugar de borrar la cuenta.
+    PatchedWorkOrderCostRequest:
+      type: object
+      properties:
+        labor_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        spare_parts_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        transport_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        other_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        work_order:
+          type: integer
+    PatchedWorkOrderEvidenceRequest:
+      type: object
+      properties:
+        evidence_type:
+          $ref: '#/components/schemas/EvidenceTypeEnum'
+        description:
+          type: string
+          minLength: 1
+          maxLength: 250
+        file:
+          type: string
+          format: binary
+        work_order:
+          type: integer
+    PatchedWorkOrderSignatureRequest:
+      type: object
+      properties:
+        role:
+          $ref: '#/components/schemas/WorkOrderSignatureRoleEnum'
+        signed_by:
+          type: string
+          minLength: 1
+          maxLength: 150
+        work_order:
+          type: integer
+    PatchedWorkOrderSparePartRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        reference:
+          type: string
+          minLength: 1
+          maxLength: 80
+        quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        unit_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        total_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        work_order:
+          type: integer
+    RiskClassEnum:
+      enum:
+      - I
+      - IIA
+      - IIB
+      - III
+      type: string
+      description: |-
+        * `I` - Clase I — riesgo bajo
+        * `IIA` - Clase IIA — riesgo moderado
+        * `IIB` - Clase IIB — riesgo moderado-alto
+        * `III` - Clase III — riesgo alto
+    Role71cEnum:
+      enum:
+      - superadmin
+      - admin
+      - coordinador
+      - ingeniero
+      - tecnico
+      type: string
+      description: |-
+        * `superadmin` - Superadministrador
+        * `admin` - Administrador
+        * `coordinador` - Coordinador
+        * `ingeniero` - Ingeniero biomédico
+        * `tecnico` - Técnico
+    ServiceTypeEnum:
+      enum:
+      - PREVENTIVE
+      - CORRECTIVE
+      - CALIBRATION
+      - INSTALLATION
+      - INSPECTION
+      type: string
+      description: |-
+        * `PREVENTIVE` - Preventivo
+        * `CORRECTIVE` - Correctivo
+        * `CALIBRATION` - Calibración
+        * `INSTALLATION` - Instalación
+        * `INSPECTION` - Inspección
+    SeverityEnum:
+      enum:
+      - LOW
+      - MEDIUM
+      - HIGH
+      - CRITICAL
+      type: string
+      description: |-
+        * `LOW` - Baja
+        * `MEDIUM` - Media
+        * `HIGH` - Alta
+        * `CRITICAL` - Crítica
+    TechnologyTypeEnum:
+      enum:
+      - ELECTRONIC
+      - ELECTROMEDICAL
+      - MECHANICAL
+      - MIXED
+      - OTHER
+      type: string
+      description: |-
+        * `ELECTRONIC` - Electrónico
+        * `ELECTROMEDICAL` - Electromédico
+        * `MECHANICAL` - Mecánico
+        * `MIXED` - Mixto
+        * `OTHER` - Otro
+    TokenBlacklistRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - refresh
+    TokenObtainPair:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - refresh
+    TokenObtainPairRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - password
+      - username
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+      required:
+      - refresh
+    TokenVerifyRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - token
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          title: Nombre de usuario
+          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
+            dígitos y @/./+/-/_ '
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Correo electrónico
+          maxLength: 254
+        first_name:
+          type: string
+          title: Nombres
+          maxLength: 150
+        last_name:
+          type: string
+          title: Apellidos
+          maxLength: 150
+        role:
+          allOf:
+          - $ref: '#/components/schemas/Role71cEnum'
+          title: Rol
+        role_display:
+          type: string
+          readOnly: true
+        phone:
+          title: Teléfono
+          oneOf:
+          - type: string
+            pattern: ^\+?[0-9\s\-()]{7,20}$
+            maxLength: 30
+          - type: string
+            maxLength: 0
+        is_active:
+          type: boolean
+          title: Activo
+          description: Indica si el usuario debe ser tratado como activo. Desmarque
+            esta opción en lugar de borrar la cuenta.
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Fecha de alta
+        last_login:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Último inicio de sesión
+      required:
+      - date_joined
+      - email
+      - first_name
+      - id
+      - last_login
+      - last_name
+      - role_display
+      - username
+    UserCreate:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          title: Nombre de usuario
+          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
+            dígitos y @/./+/-/_ '
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Correo electrónico
+          maxLength: 254
+        first_name:
+          type: string
+          title: Nombres
+          maxLength: 150
+        last_name:
+          type: string
+          title: Apellidos
+          maxLength: 150
+        role:
+          allOf:
+          - $ref: '#/components/schemas/Role71cEnum'
+          title: Rol
+        role_display:
+          type: string
+          readOnly: true
+        phone:
+          title: Teléfono
+          oneOf:
+          - type: string
+            pattern: ^\+?[0-9\s\-()]{7,20}$
+            maxLength: 30
+          - type: string
+            maxLength: 0
+        is_active:
+          type: boolean
+          title: Activo
+          description: Indica si el usuario debe ser tratado como activo. Desmarque
+            esta opción en lugar de borrar la cuenta.
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Fecha de alta
+        last_login:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Último inicio de sesión
+      required:
+      - date_joined
+      - email
+      - first_name
+      - id
+      - last_login
+      - last_name
+      - role_display
+      - username
+    UserCreateRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          title: Nombre de usuario
+          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
+            dígitos y @/./+/-/_ '
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: Correo electrónico
+          maxLength: 254
+        first_name:
+          type: string
+          minLength: 1
+          title: Nombres
+          maxLength: 150
+        last_name:
+          type: string
+          minLength: 1
+          title: Apellidos
+          maxLength: 150
+        role:
+          allOf:
+          - $ref: '#/components/schemas/Role71cEnum'
+          title: Rol
+        phone:
+          title: Teléfono
+          oneOf:
+          - type: string
+            pattern: ^\+?[0-9\s\-()]{7,20}$
+            maxLength: 30
+          - type: string
+            maxLength: 0
+        is_active:
+          type: boolean
+          title: Activo
+          description: Indica si el usuario debe ser tratado como activo. Desmarque
+            esta opción en lugar de borrar la cuenta.
+        password:
+          type: string
+          writeOnly: true
+          minLength: 8
+      required:
+      - email
+      - first_name
+      - last_name
+      - password
+      - username
+    UserUpdate:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          title: Nombre de usuario
+          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
+            dígitos y @/./+/-/_ '
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Correo electrónico
+          maxLength: 254
+        first_name:
+          type: string
+          title: Nombres
+          maxLength: 150
+        last_name:
+          type: string
+          title: Apellidos
+          maxLength: 150
+        role:
+          allOf:
+          - $ref: '#/components/schemas/Role71cEnum'
+          title: Rol
+        role_display:
+          type: string
+          readOnly: true
+        phone:
+          title: Teléfono
+          oneOf:
+          - type: string
+            pattern: ^\+?[0-9\s\-()]{7,20}$
+            maxLength: 30
+          - type: string
+            maxLength: 0
+        is_active:
+          type: boolean
+          title: Activo
+          description: Indica si el usuario debe ser tratado como activo. Desmarque
+            esta opción en lugar de borrar la cuenta.
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Fecha de alta
+        last_login:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Último inicio de sesión
+      required:
+      - date_joined
+      - email
+      - first_name
+      - id
+      - last_login
+      - last_name
+      - role_display
+      - username
+    UserUpdateRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          title: Nombre de usuario
+          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
+            dígitos y @/./+/-/_ '
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: Correo electrónico
+          maxLength: 254
+        first_name:
+          type: string
+          minLength: 1
+          title: Nombres
+          maxLength: 150
+        last_name:
+          type: string
+          minLength: 1
+          title: Apellidos
+          maxLength: 150
+        role:
+          allOf:
+          - $ref: '#/components/schemas/Role71cEnum'
+          title: Rol
+        phone:
+          title: Teléfono
+          oneOf:
+          - type: string
+            pattern: ^\+?[0-9\s\-()]{7,20}$
+            maxLength: 30
+          - type: string
+            maxLength: 0
+        is_active:
+          type: boolean
+          title: Activo
+          description: Indica si el usuario debe ser tratado como activo. Desmarque
+            esta opción en lugar de borrar la cuenta.
+      required:
+      - email
+      - first_name
+      - last_name
+      - username
+    WorkOrderCost:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        labor_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        spare_parts_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        transport_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        other_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        work_order:
+          type: integer
+      required:
+      - id
+      - work_order
+    WorkOrderCostRequest:
+      type: object
+      properties:
+        labor_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        spare_parts_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        transport_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        other_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        work_order:
+          type: integer
+      required:
+      - work_order
+    WorkOrderEvidence:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        evidence_type:
+          $ref: '#/components/schemas/EvidenceTypeEnum'
+        description:
+          type: string
+          maxLength: 250
+        file:
+          type: string
+          format: uri
+          nullable: true
+        work_order:
+          type: integer
+      required:
+      - description
+      - evidence_type
+      - id
+      - work_order
+    WorkOrderEvidenceRequest:
+      type: object
+      properties:
+        evidence_type:
+          $ref: '#/components/schemas/EvidenceTypeEnum'
+        description:
+          type: string
+          minLength: 1
+          maxLength: 250
+        file:
+          type: string
+          format: binary
+        work_order:
+          type: integer
+      required:
+      - description
+      - evidence_type
+      - work_order
+    WorkOrderSignature:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        role:
+          $ref: '#/components/schemas/WorkOrderSignatureRoleEnum'
+        signed_by:
+          type: string
+          maxLength: 150
+        signed_at:
+          type: string
+          format: date-time
+          readOnly: true
+        work_order:
+          type: integer
+      required:
+      - id
+      - role
+      - signed_at
+      - signed_by
+      - work_order
+    WorkOrderSignatureRequest:
+      type: object
+      properties:
+        role:
+          $ref: '#/components/schemas/WorkOrderSignatureRoleEnum'
+        signed_by:
+          type: string
+          minLength: 1
+          maxLength: 150
+        work_order:
+          type: integer
+      required:
+      - role
+      - signed_by
+      - work_order
+    WorkOrderSignatureRoleEnum:
+      enum:
+      - TECHNICIAN
+      - ENGINEER
+      - CLIENT
+      - SUPERVISOR
+      type: string
+      description: |-
+        * `TECHNICIAN` - Technician
+        * `ENGINEER` - Engineer
+        * `CLIENT` - Client
+        * `SUPERVISOR` - Supervisor
+    WorkOrderSparePart:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 150
+        reference:
+          type: string
+          maxLength: 80
+        quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        unit_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        total_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        work_order:
+          type: integer
+      required:
+      - id
+      - name
+      - quantity
+      - reference
+      - total_cost
+      - unit_cost
+      - work_order
+    WorkOrderSparePartRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        reference:
+          type: string
+          minLength: 1
+          maxLength: 80
+        quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        unit_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        total_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        work_order:
+          type: integer
+      required:
+      - name
+      - quantity
+      - reference
+      - total_cost
+      - unit_cost
+      - work_order
+    _AssignedUser:
+      type: object
+      description: Representación mínima del usuario asignado (read-only, anidada).
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          title: Nombre de usuario
+          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
+            dígitos y @/./+/-/_ '
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        full_name:
+          type: string
+          readOnly: true
+        role:
+          allOf:
+          - $ref: '#/components/schemas/Role71cEnum'
+          title: Rol
+        role_display:
+          type: string
+          readOnly: true
+      required:
+      - full_name
+      - id
+      - role_display
+      - username
+    _AssignedUserRequest:
+      type: object
+      description: Representación mínima del usuario asignado (read-only, anidada).
+      properties:
+        username:
+          type: string
+          minLength: 1
+          title: Nombre de usuario
+          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
+            dígitos y @/./+/-/_ '
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        role:
+          allOf:
+          - $ref: '#/components/schemas/Role71cEnum'
+          title: Rol
+      required:
+      - username
+    _ScheduledMaintenanceMini:
+      type: object
+      description: Representación mínima del agendamiento (read-only, anidada en MaintenanceRecord).
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/Kind4c3Enum'
+          title: Tipo
+        scheduled_date:
+          type: string
+          format: date
+          title: Fecha programada
+        notes:
+          type: string
+          title: Notas
+        is_completed:
+          type: boolean
+          title: Completado
+      required:
+      - id
+      - kind
+      - scheduled_date
+    _ScheduledMaintenanceMiniRequest:
+      type: object
+      description: Representación mínima del agendamiento (read-only, anidada en MaintenanceRecord).
+      properties:
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/Kind4c3Enum'
+          title: Tipo
+        scheduled_date:
+          type: string
+          format: date
+          title: Fecha programada
+        notes:
+          type: string
+          title: Notas
+        is_completed:
+          type: boolean
+          title: Completado
+      required:
+      - kind
+      - scheduled_date
