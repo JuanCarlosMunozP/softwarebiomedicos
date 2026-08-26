@@ -69,5 +69,3 @@ docker-compose.override.yml
 .agents/
 .claude/
 skills-lock.json
-
-*.md

@@ -50,42 +50,42 @@ export function AppDrawer() {
         component={DashboardScreen}
         options={{ title: "Dashboard" }}
       />
-      {can(role as any, "equipment", "view") && (
+      {can(role, "equipment", "view") && (
         <Drawer.Screen
           name="Equipos"
           component={EquiposScreen}
           options={{ title: "Equipos" }}
         />
       )}
-      {can(role as any, "maintenance", "view") && (
+      {can(role, "maintenance", "view") && (
         <Drawer.Screen
           name="Mantenimientos"
           component={MantenimientosScreen}
           options={{ title: "Mantenimientos" }}
         />
       )}
-      {can(role as any, "scheduling", "view") && (
+      {can(role, "scheduling", "view") && (
         <Drawer.Screen
           name="Agendamientos"
           component={AgendamientosScreen}
           options={{ title: "Agendamientos" }}
         />
       )}
-      {can(role as any, "failures", "view") && (
+      {can(role, "failures", "view") && (
         <Drawer.Screen
           name="Fallas"
           component={FallasScreen}
           options={{ title: "Fallas" }}
         />
       )}
-      {can(role as any, "branches", "view") && (
+      {can(role, "branches", "view") && (
         <Drawer.Screen
           name="Sedes"
           component={SedesScreen}
           options={{ title: "Sedes" }}
         />
       )}
-      {can(role as any, "users", "view") && (
+      {can(role, "users", "view") && (
         <Drawer.Screen
           name="Usuarios"
           component={UsuariosScreen}

@@ -35,9 +35,9 @@ export function MantenimientosScreen() {
   const { usuario } = useAuth();
   const { colors } = useTheme();
   const role = usuario?.role;
-  const canCreate = can(role as any, "maintenance", "create");
-  const canEdit = can(role as any, "maintenance", "edit");
-  const canDelete = can(role as any, "maintenance", "delete");
+  const canCreate = can(role, "maintenance", "create");
+  const canEdit = can(role, "maintenance", "edit");
+  const canDelete = can(role, "maintenance", "delete");
 
   const [items, setItems] = useState<MaintenanceRecord[]>([]);
   const [equipos, setEquipos] = useState<Equipment[]>([]);

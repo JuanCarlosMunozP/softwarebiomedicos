@@ -20,9 +20,9 @@ export function SedesScreen() {
   const { usuario } = useAuth();
   const { colors } = useTheme();
   const role = usuario?.role;
-  const canCreate = can(role as any, "branches", "create");
-  const canEdit = can(role as any, "branches", "edit");
-  const canDelete = can(role as any, "branches", "delete");
+  const canCreate = can(role, "branches", "create");
+  const canEdit = can(role, "branches", "edit");
+  const canDelete = can(role, "branches", "delete");
 
   const [items, setItems] = useState<Branch[]>([]);
   const [refreshing, setRefreshing] = useState(false);

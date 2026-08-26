@@ -20,13 +20,14 @@ import { useTheme } from "@/context/ThemeContext";
 import { ROLE_LABEL, can } from "@/lib/permissions";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { cn } from "@/lib/cn";
+import type { Rol } from "@/types/auth";
 import type { AppDrawerParamList } from "./types";
 
 interface NavItem {
   key: keyof AppDrawerParamList;
   label: string;
   icon: (color: string) => React.ReactNode;
-  visible: (role: string | undefined) => boolean;
+  visible: (role: Rol | undefined) => boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -40,37 +41,37 @@ const NAV_ITEMS: NavItem[] = [
     key: "Equipos",
     label: "Equipos",
     icon: (c) => <Stethoscope size={18} color={c} />,
-    visible: (r) => can(r as any, "equipment", "view"),
+    visible: (r) => can(r, "equipment", "view"),
   },
   {
     key: "Mantenimientos",
     label: "Mantenimientos",
     icon: (c) => <Wrench size={18} color={c} />,
-    visible: (r) => can(r as any, "maintenance", "view"),
+    visible: (r) => can(r, "maintenance", "view"),
   },
   {
     key: "Agendamientos",
     label: "Agendamientos",
     icon: (c) => <ClipboardCheck size={18} color={c} />,
-    visible: (r) => can(r as any, "scheduling", "view"),
+    visible: (r) => can(r, "scheduling", "view"),
   },
   {
     key: "Fallas",
     label: "Fallas",
     icon: (c) => <TriangleAlert size={18} color={c} />,
-    visible: (r) => can(r as any, "failures", "view"),
+    visible: (r) => can(r, "failures", "view"),
   },
   {
     key: "Sedes",
     label: "Sedes",
     icon: (c) => <Building2 size={18} color={c} />,
-    visible: (r) => can(r as any, "branches", "view"),
+    visible: (r) => can(r, "branches", "view"),
   },
   {
     key: "Usuarios",
     label: "Usuarios",
     icon: (c) => <Users size={18} color={c} />,
-    visible: (r) => can(r as any, "users", "view"),
+    visible: (r) => can(r, "users", "view"),
   },
   {
     key: "Perfil",

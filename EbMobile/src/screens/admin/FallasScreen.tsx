@@ -34,9 +34,9 @@ export function FallasScreen() {
   const { usuario } = useAuth();
   const { colors } = useTheme();
   const role = usuario?.role;
-  const canCreate = can(role as any, "failures", "create");
-  const canEdit = can(role as any, "failures", "edit");
-  const canDelete = can(role as any, "failures", "delete");
+  const canCreate = can(role, "failures", "create");
+  const canEdit = can(role, "failures", "edit");
+  const canDelete = can(role, "failures", "delete");
 
   const [items, setItems] = useState<FailureReport[]>([]);
   const [equipos, setEquipos] = useState<Equipment[]>([]);

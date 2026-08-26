@@ -39,9 +39,9 @@ export function EquiposScreen() {
   const { usuario } = useAuth();
   const { colors } = useTheme();
   const role = usuario?.role;
-  const canCreate = can(role as any, "equipment", "create");
-  const canEdit = can(role as any, "equipment", "edit");
-  const canDelete = can(role as any, "equipment", "delete");
+  const canCreate = can(role, "equipment", "create");
+  const canEdit = can(role, "equipment", "edit");
+  const canDelete = can(role, "equipment", "delete");
 
   const [items, setItems] = useState<Equipment[]>([]);
   const [refreshing, setRefreshing] = useState(false);

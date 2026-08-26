@@ -41,9 +41,9 @@ export function AgendamientosScreen() {
   const { usuario } = useAuth();
   const { colors } = useTheme();
   const role = usuario?.role;
-  const canCreate = can(role as any, "scheduling", "create");
-  const canEdit = can(role as any, "scheduling", "edit");
-  const canDelete = can(role as any, "scheduling", "delete");
+  const canCreate = can(role, "scheduling", "create");
+  const canEdit = can(role, "scheduling", "edit");
+  const canDelete = can(role, "scheduling", "delete");
 
   const [items, setItems] = useState<ScheduledMaintenance[]>([]);
   const [equipos, setEquipos] = useState<Equipment[]>([]);

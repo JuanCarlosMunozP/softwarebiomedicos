@@ -13,9 +13,14 @@
 #
 # Lo que NO cambia (limitación de Compose, no un olvido): las listas
 # `ports`/`volumes` se combinan entre archivos, no se reemplazan, así que
-# este override no puede "quitar" el bind mount `.:/app` ni los puertos de
-# Postgres/Redis publicados en docker-compose.yml — eso requeriría editar el
-# compose base directamente.
+# este override no puede "quitar" nada que el compose base publique. Por eso
+# docker-compose.yml (el base) ya NO publica los puertos de Postgres/Redis al
+# host — si los necesitas en local, se agregan vía
+# docker-compose.override.yml (ver el .example), que este comando de
+# producción nunca incluye. El bind mount `.:/app` del base tampoco se puede
+# quitar desde acá; en producción se sirve el código que quedó COPY'eado en
+# la imagen durante el build, así que el bind mount es inofensivo pero
+# redundante.
 #
 # Este archivo NO incluye terminación TLS/reverse proxy (nginx, certificados,
 # etc.): eso se asume manejado fuera del compose, como ya indica el
