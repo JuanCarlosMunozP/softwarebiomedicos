@@ -133,8 +133,19 @@ api.interceptors.response.use(
 
     if (!refreshed) {
       userCache.clear();
-      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
-        window.location.assign("/login");
+      // Sólo mandamos al login si el usuario está en una zona privada. En las
+      // páginas públicas (landing, login, registro, recuperar contraseña) un
+      // 401 es lo normal —no hay sesión— y AuthContext ya lo maneja: no hay
+      // que sacar al visitante de la pantalla que estaba viendo.
+      const path =
+        typeof window !== "undefined" ? window.location.pathname : "";
+      const inPrivateArea =
+        path.startsWith("/admin") || path.startsWith("/tecnico");
+      if (inPrivateArea) {
+        // Guardamos a dónde quería ir (p. ej. la hoja de vida al escanear un
+        // QR) para volver ahí después de iniciar sesión.
+        const next = `${window.location.pathname}${window.location.search}`;
+        window.location.assign(`/login?next=${encodeURIComponent(next)}`);
       }
       return Promise.reject(error);
     }

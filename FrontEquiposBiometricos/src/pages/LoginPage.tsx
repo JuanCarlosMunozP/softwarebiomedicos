@@ -32,11 +32,16 @@ export function LoginPage() {
   const location = useLocation();
   const { login } = useAuth();
 
-  // ProtectedRoute pasa la URL pretendida en `state.from` (ej. al escanear un
-  // QR sin sesión activa). Sólo respetamos rutas internas que arranquen en /.
+  // La URL pretendida (ej. la hoja de vida al escanear un QR sin sesión)
+  // llega por `state.from` (ProtectedRoute) o por `?next=` (el interceptor
+  // de api.ts cuando expira la sesión). Sólo respetamos rutas internas.
   const fromState = (location.state as { from?: string } | null)?.from;
+  const fromQuery = new URLSearchParams(location.search).get("next");
+  const target = fromState ?? fromQuery ?? "";
   const redirectTo =
-    typeof fromState === "string" && fromState.startsWith("/") ? fromState : "/admin";
+    typeof target === "string" && target.startsWith("/") && !target.startsWith("//")
+      ? target
+      : "/admin";
 
   const [formData, setFormData] = useState({ username: "", password: "" });
   const [error, setError] = useState<string | null>(null);
