@@ -232,9 +232,23 @@ class TestBranchDelete:
         response = admin_client.delete(detail_url(9999))
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_delete_by_non_management_role_returns_403(self, auth_client, branch):
-        """`auth_client` es un usuario técnico (rol por defecto): no puede borrar."""
-        response = auth_client.delete(detail_url(branch.id))
+    def test_delete_by_non_management_role_returns_403(self, tecnico_client, branch):
+        response = tecnico_client.delete(detail_url(branch.id))
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert Branch.objects.filter(id=branch.id).exists()
+
+    def test_create_by_tecnico_returns_403(self, tecnico_client):
+        response = tecnico_client.post(
+            LIST_URL,
+            {"name": "Sede X", "city": "Pasto", "address": "Calle 1",
+             "phone": "+57 300 000 0000", "email": "x@x.test"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_edit_by_tecnico_returns_403(self, tecnico_client, branch):
+        response = tecnico_client.patch(
+            detail_url(branch.id), {"city": "Cali"}, format="json"
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN

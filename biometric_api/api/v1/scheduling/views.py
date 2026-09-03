@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from api.v1.common.permissions import RestrictDeleteToManagement
+from api.v1.common.permissions import HasRolePermission
 from apps.scheduling.models import MaintenanceSchedule
 from apps.scheduling.tasks import send_schedule_notification
 
@@ -12,11 +12,12 @@ from .serializers import MaintenanceScheduleSerializer
 
 
 class MaintenanceScheduleViewSet(viewsets.ModelViewSet):
-    """CRUD de agendamientos de mantenimiento + acciones complete/notify."""
+    """CRUD de solicitudes de mantenimiento + acciones complete/notify."""
 
     queryset = MaintenanceSchedule.objects.all()
     serializer_class = MaintenanceScheduleSerializer
-    permission_classes = (IsAuthenticated, RestrictDeleteToManagement)
+    permission_classes = (IsAuthenticated, HasRolePermission)
+    permission_resource = "scheduling"
     filterset_class = MaintenanceScheduleFilter
     search_fields = (
         "notes",
