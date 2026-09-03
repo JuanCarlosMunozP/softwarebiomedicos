@@ -218,6 +218,39 @@ class TestScheduleList:
         assert response.json()["count"] == 1
 
 
+class TestScheduleListScopedByRole:
+    """El técnico solo ve las solicitudes que tiene asignadas."""
+
+    def test_tecnico_only_sees_own_assignments(
+        self, api_client, tecnico, equipment
+    ):
+        from apps.users.tests.factories import TecnicoFactory
+
+        otro = TecnicoFactory()
+        MaintenanceScheduleFactory.create_batch(
+            2, equipment=equipment, assigned_technician=tecnico
+        )
+        MaintenanceScheduleFactory(equipment=equipment, assigned_technician=otro)
+        MaintenanceScheduleFactory(equipment=equipment, assigned_technician=None)
+
+        api_client.force_authenticate(user=tecnico)
+        response = api_client.get(LIST_URL)
+
+        assert response.status_code == 200
+        assert response.json()["count"] == 2
+
+    def test_management_sees_all(self, auth_client, tecnico, equipment):
+        MaintenanceScheduleFactory.create_batch(
+            2, equipment=equipment, assigned_technician=tecnico
+        )
+        MaintenanceScheduleFactory(equipment=equipment, assigned_technician=None)
+
+        response = auth_client.get(LIST_URL)
+
+        assert response.status_code == 200
+        assert response.json()["count"] == 3
+
+
 class TestScheduleRetrieve:
     def test_retrieve(self, auth_client, schedule):
         response = auth_client.get(detail_url(schedule.id))
