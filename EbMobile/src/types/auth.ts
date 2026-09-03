@@ -36,4 +36,6 @@ export interface LoginResponse {
 
 export interface RefreshResponse {
   access: string;
+  /** Presente cuando el backend rota el refresh token (ROTATE_REFRESH_TOKENS). */
+  refresh?: string;
 }

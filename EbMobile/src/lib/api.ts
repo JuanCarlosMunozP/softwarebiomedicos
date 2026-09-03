@@ -88,11 +88,15 @@ async function refreshAccessToken(): Promise<string | null> {
   const refresh = tokenStorage.getRefresh();
   if (!refresh) return null;
   try {
-    const { data } = await rawClient.post<{ access: string }>(
+    const { data } = await rawClient.post<{ access: string; refresh?: string }>(
       "/auth/token/refresh/",
       { refresh },
     );
-    await tokenStorage.setTokens(data.access);
+    // El backend tiene ROTATE_REFRESH_TOKENS + BLACKLIST_AFTER_ROTATION: cada
+    // refresh devuelve un refresh token nuevo y anula el anterior. Hay que
+    // persistir el nuevo o el siguiente refresh fallará con el token en la
+    // blacklist (y forzaría un logout ~1h después de entrar).
+    await tokenStorage.setTokens(data.access, data.refresh);
     return data.access;
   } catch {
     return null;
