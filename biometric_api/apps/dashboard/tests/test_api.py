@@ -257,6 +257,46 @@ class TestMyTasks:
         assert body["my_tasks"]["failures"] == []
 
 
+class TestTecnicoScopedKpis:
+    """Para el técnico, las métricas de trabajo se acotan a sus asignaciones;
+    los agregados de la clínica (equipos, fallas) siguen siendo globales."""
+
+    def test_work_kpis_are_scoped_but_clinic_kpis_are_global(
+        self, api_client, tecnico, equipment
+    ):
+        today = timezone.localdate()
+        past = today - timedelta(days=5)
+
+        # Mantenimiento y solicitud vencida del técnico + ajenos.
+        MaintenanceRecordFactory(
+            equipment=equipment, date=today, assigned_technician=tecnico
+        )
+        MaintenanceRecordFactory(equipment=equipment, date=today)  # de nadie
+        MaintenanceScheduleFactory(
+            equipment=equipment, scheduled_date=past, assigned_technician=tecnico
+        )
+        MaintenanceScheduleFactory(equipment=equipment, scheduled_date=past)
+
+        api_client.force_authenticate(user=tecnico)
+        body = api_client.get(SUMMARY_URL).json()
+
+        assert body["kpis"]["maintenance"]["this_month_count"] == 1
+        assert body["kpis"]["scheduling"]["overdue"] == 1
+        assert len(body["lists"]["overdue_schedules"]) == 1
+        # Los KPIs de equipos son globales (no dependen de asignación).
+        assert body["kpis"]["equipment"]["total"] >= 1
+
+    def test_management_sees_global_kpis(self, auth_client, tecnico, equipment):
+        today = timezone.localdate()
+        MaintenanceRecordFactory(
+            equipment=equipment, date=today, assigned_technician=tecnico
+        )
+        MaintenanceRecordFactory(equipment=equipment, date=today)
+
+        body = auth_client.get(SUMMARY_URL).json()
+        assert body["kpis"]["maintenance"]["this_month_count"] == 2
+
+
 @pytest.fixture
 def branch(db):
     return BranchFactory()
