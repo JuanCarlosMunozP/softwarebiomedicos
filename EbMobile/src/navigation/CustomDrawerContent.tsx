@@ -54,7 +54,8 @@ const NAV_ITEMS: NavItem[] = [
     key: "OrdenesTrabajo",
     label: "Órdenes de trabajo",
     icon: (c) => <FileText size={18} color={c} />,
-    visible: (r) => can(r, "work_orders", "view"),
+    // Solo quien ejecuta el trabajo asignado.
+    visible: (r) => r === "ingeniero" || r === "tecnico",
   },
   {
     key: "Agendamientos",

@@ -29,6 +29,8 @@ interface LinkDef {
   icon: ComponentType<{ size?: number }>;
   end?: boolean;
   resource?: Resource;
+  /** Si se define, el enlace solo aparece para estos roles. */
+  roles?: Rol[];
 }
 
 const allLinks: LinkDef[] = [
@@ -37,7 +39,15 @@ const allLinks: LinkDef[] = [
   { to: "/admin/equipos", label: "Equipos", icon: ClipboardList, resource: "equipment", end: true },
   { to: "/admin/equipos/etiquetas", label: "Etiquetas QR", icon: QrCode, resource: "equipment" },
   { to: "/admin/mantenimientos", label: "Mantenimientos", icon: Wrench, resource: "maintenance" },
-  { to: "/admin/ordenes-trabajo", label: "Órdenes de trabajo", icon: FileText, resource: "work_orders" },
+  // Las órdenes de trabajo las ejecuta quien tiene el trabajo asignado. La
+  // gestión hace el seguimiento desde Solicitudes.
+  {
+    to: "/admin/ordenes-trabajo",
+    label: "Órdenes de trabajo",
+    icon: FileText,
+    resource: "work_orders",
+    roles: ["ingeniero", "tecnico"],
+  },
   { to: "/admin/agendamientos", label: "Solicitudes", icon: CalendarClock, resource: "scheduling" },
   { to: "/admin/fallas", label: "Reportes de falla", icon: AlertTriangle, resource: "failures" },
   { to: "/admin/usuarios", label: "Usuarios", icon: Users, resource: "users" },
@@ -45,7 +55,11 @@ const allLinks: LinkDef[] = [
 ];
 
 function visibleLinks(role: Rol | undefined): LinkDef[] {
-  return allLinks.filter((l) => !l.resource || can(role, l.resource, "view"));
+  return allLinks.filter(
+    (l) =>
+      (!l.resource || can(role, l.resource, "view")) &&
+      (!l.roles || (role !== undefined && l.roles.includes(role))),
+  );
 }
 
 export function Sidebar({ open, onClose }: SidebarProps) {
