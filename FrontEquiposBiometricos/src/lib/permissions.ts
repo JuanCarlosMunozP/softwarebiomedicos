@@ -50,7 +50,9 @@ const matrix: Matrix = {
   },
   tecnico: {
     equipment: ["view"],
-    maintenance: ["view", "create"],
+    // "edit" para realizar un mantenimiento asignado (el backend limita el
+    // alcance a sus propias asignaciones y bloquea reasignar/mover equipo).
+    maintenance: ["view", "create", "edit"],
     scheduling: ["view"],
     failures: ["view", "create"],
     work_orders: ["view", "create", "edit"],

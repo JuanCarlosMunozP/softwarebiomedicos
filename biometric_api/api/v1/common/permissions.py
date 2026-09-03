@@ -53,7 +53,10 @@ ROLE_MATRIX: dict[str, dict[str, frozenset[str]]] = {
     },
     Role.TECNICO: {
         "equipment": frozenset({VIEW}),
-        "maintenance": frozenset({VIEW, CREATE}),
+        # EDIT para poder "realizar" un mantenimiento que le fue asignado
+        # (registrar hallazgos, costo, PDF). El queryset lo limita a sus
+        # propias asignaciones y el serializer bloquea reasignar/mover.
+        "maintenance": frozenset({VIEW, CREATE, EDIT}),
         "scheduling": frozenset({VIEW}),
         "failures": frozenset({VIEW, CREATE}),
         # El técnico ejecuta la orden: la crea, la edita y le agrega
