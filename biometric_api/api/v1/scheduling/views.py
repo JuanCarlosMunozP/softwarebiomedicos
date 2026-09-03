@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from api.v1.common.permissions import HasRolePermission
 from apps.scheduling.models import MaintenanceSchedule
 from apps.scheduling.tasks import send_schedule_notification
+from apps.users.models import User
 
 from .filters import MaintenanceScheduleFilter
 from .serializers import MaintenanceScheduleSerializer
@@ -32,6 +33,15 @@ class MaintenanceScheduleViewSet(viewsets.ModelViewSet):
     )
     ordering_fields = ("scheduled_date", "requested_date", "created_at")
     ordering = ("scheduled_date",)
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        # El técnico solo ve las solicitudes que tiene asignadas; el resto de
+        # roles (gestión e ingeniería) ven todas.
+        user = self.request.user
+        if user.is_authenticated and user.role == User.Role.TECNICO:
+            qs = qs.filter(assigned_technician=user)
+        return qs
 
     @action(detail=True, methods=["post"], url_path="complete")
     def complete(self, request, pk=None):

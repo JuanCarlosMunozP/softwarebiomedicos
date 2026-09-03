@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from api.v1.common.mixins import AuditLogMixin
 from api.v1.common.permissions import HasRolePermission
 from apps.maintenance.models import MaintenanceRecord
+from apps.users.models import User
 
 from .filters import MaintenanceRecordFilter
 from .serializers import MaintenanceRecordSerializer
@@ -33,3 +34,12 @@ class MaintenanceRecordViewSet(AuditLogMixin, viewsets.ModelViewSet):
     )
     ordering_fields = ("date", "created_at", "cost")
     ordering = ("-date",)
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        # El técnico solo ve los mantenimientos que tiene asignados; el resto
+        # de roles (gestión e ingeniería) ven todos.
+        user = self.request.user
+        if user.is_authenticated and user.role == User.Role.TECNICO:
+            qs = qs.filter(assigned_technician=user)
+        return qs

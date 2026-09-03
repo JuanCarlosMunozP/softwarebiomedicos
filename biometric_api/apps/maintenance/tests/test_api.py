@@ -113,6 +113,56 @@ class TestMaintenanceCreate:
             assert required in body
 
 
+class TestMaintenanceListScopedByRole:
+    """El técnico solo ve los mantenimientos que tiene asignados."""
+
+    def test_tecnico_only_sees_own_assignments(
+        self, api_client, tecnico, equipment
+    ):
+        from apps.users.tests.factories import TecnicoFactory
+
+        otro = TecnicoFactory()
+        MaintenanceRecordFactory.create_batch(
+            2, equipment=equipment, assigned_technician=tecnico
+        )
+        MaintenanceRecordFactory(equipment=equipment, assigned_technician=otro)
+        MaintenanceRecordFactory(equipment=equipment, assigned_technician=None)
+
+        api_client.force_authenticate(user=tecnico)
+        response = api_client.get(LIST_URL)
+
+        assert response.status_code == 200
+        assert response.json()["count"] == 2
+
+    def test_management_sees_all(self, auth_client, tecnico, equipment):
+        MaintenanceRecordFactory.create_batch(
+            2, equipment=equipment, assigned_technician=tecnico
+        )
+        MaintenanceRecordFactory(equipment=equipment, assigned_technician=None)
+
+        response = auth_client.get(LIST_URL)
+
+        assert response.status_code == 200
+        assert response.json()["count"] == 3
+
+    def test_tecnico_created_record_is_self_assigned_and_visible(
+        self, api_client, tecnico, equipment
+    ):
+        api_client.force_authenticate(user=tecnico)
+        payload = {
+            "equipment": equipment.id,
+            "kind": MaintenanceKind.PREVENTIVE,
+            "date": "2026-01-15",
+            "description": "Registro hecho por el técnico.",
+        }
+        created = api_client.post(LIST_URL, payload, format="json")
+        assert created.status_code == 201
+        assert created.json()["assigned_technician"] == tecnico.id
+
+        listed = api_client.get(LIST_URL)
+        assert listed.json()["count"] == 1
+
+
 class TestMaintenanceList:
     def test_list_paginated(self, auth_client, equipment):
         MaintenanceRecordFactory.create_batch(3, equipment=equipment)
