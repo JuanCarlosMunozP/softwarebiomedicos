@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Printer, RefreshCw, RotateCw } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Printer,
+  RefreshCw,
+  RotateCw,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -18,6 +24,10 @@ const COLUMN_OPTIONS = [
   { value: "3", label: "3 por fila" },
   { value: "4", label: "4 por fila (pequeñas)" },
 ];
+
+// Cuántas etiquetas se muestran en pantalla por página (la selección y la
+// impresión siguen abarcando todos los equipos, no solo la página visible).
+const PAGE_SIZE = 20;
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (c) => {
@@ -121,6 +131,7 @@ export function EtiquetasQrPage() {
   const [search, setSearch] = useState("");
   const [branchFilter, setBranchFilter] = useState("");
   const [columns, setColumns] = useState("3");
+  const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [regenerating, setRegenerating] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -188,6 +199,17 @@ export function EtiquetasQrPage() {
       );
     });
   }, [items, search, branchFilter]);
+
+  // Volver a la página 1 cuando cambian los filtros.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPage(1);
+  }, [search, branchFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const paged = filtered.slice(pageStart, pageStart + PAGE_SIZE);
 
   const toPrint = useMemo(
     () => filtered.filter((eq) => selected.has(eq.id)),
@@ -335,8 +357,9 @@ export function EtiquetasQrPage() {
           </p>
         </Card>
       ) : (
+        <>
         <div className={`grid grid-cols-1 gap-3 ${gridCols}`}>
-          {filtered.map((eq) => {
+          {paged.map((eq) => {
             const isSelected = selected.has(eq.id);
             return (
               <label
@@ -388,6 +411,37 @@ export function EtiquetasQrPage() {
             );
           })}
         </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-app-muted">
+          <p>
+            Mostrando {pageStart + 1}–{pageStart + paged.length} de{" "}
+            {filtered.length}
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="secondary"
+              leftIcon={<ChevronLeft size={14} />}
+              disabled={currentPage <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Anterior
+            </Button>
+            <span className="px-2 text-app">
+              {currentPage} / {totalPages}
+            </span>
+            <Button
+              size="sm"
+              variant="secondary"
+              rightIcon={<ChevronRight size={14} />}
+              disabled={currentPage >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Siguiente
+            </Button>
+          </div>
+        </div>
+        </>
       )}
     </div>
   );
