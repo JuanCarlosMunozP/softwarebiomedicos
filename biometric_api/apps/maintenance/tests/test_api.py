@@ -61,6 +61,23 @@ class TestMaintenanceCreate:
         assert body["pdf_file_url"] is None
         assert MaintenanceRecord.objects.count() == 1
 
+    def test_create_with_observations_roundtrips(self, auth_client, equipment):
+        response = auth_client.post(
+            LIST_URL,
+            self._payload(
+                equipment,
+                observations="  Se cambió el fusible F2; tablero OK.  ",
+            ),
+            format="json",
+        )
+        assert response.status_code == 201
+        assert response.json()["observations"] == "Se cambió el fusible F2; tablero OK."
+
+    def test_observations_optional_defaults_blank(self, auth_client, equipment):
+        response = auth_client.post(LIST_URL, self._payload(equipment), format="json")
+        assert response.status_code == 201
+        assert response.json()["observations"] == ""
+
     def test_create_strips_description(self, auth_client, equipment):
         response = auth_client.post(
             LIST_URL,

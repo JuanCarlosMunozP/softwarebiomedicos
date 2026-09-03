@@ -45,6 +45,7 @@ const empty: MaintenanceInput = {
   kind: "PREVENTIVE",
   date: "",
   description: "",
+  observations: "",
   assigned_technician: null,
   assigned_engineer: null,
   cost: "",
@@ -173,6 +174,7 @@ export function MantenimientosPage() {
           kind: s.kind,
           date: new Date().toISOString().slice(0, 10),
           description: s.notes ?? "",
+          observations: "",
           assigned_technician: s.assigned_technician ?? null,
           assigned_engineer: s.assigned_engineer ?? null,
           cost: "",
@@ -241,6 +243,7 @@ export function MantenimientosPage() {
       kind: m.kind,
       date: m.date,
       description: m.description,
+      observations: m.observations ?? "",
       assigned_technician: m.assigned_technician ?? null,
       assigned_engineer: m.assigned_engineer ?? null,
       cost: m.cost ?? "",
@@ -573,6 +576,20 @@ export function MantenimientosPage() {
               rows={3}
               required
               className="w-full rounded-lg border border-app bg-surface px-3 py-2.5 text-sm text-app outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <label className="text-sm font-medium text-app">
+              Observaciones del técnico (opcional)
+            </label>
+            <textarea
+              value={form.observations ?? ""}
+              onChange={(e) =>
+                setForm({ ...form, observations: e.target.value })
+              }
+              rows={3}
+              placeholder="Hallazgos, trabajo realizado, recomendaciones..."
+              className="w-full rounded-lg border border-app bg-surface px-3 py-2.5 text-sm text-app outline-none placeholder:text-app-muted focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
             />
           </div>
           {!editing && (

@@ -40,6 +40,9 @@ class MaintenanceRecord(models.Model):
     )
     date = models.DateField(_("Fecha"), db_index=True)
     description = models.TextField(_("Descripción"))
+    # Comentario libre de quien ejecutó el mantenimiento: hallazgos, trabajo
+    # realizado, recomendaciones. Distinto de `description` (la tarea a hacer).
+    observations = models.TextField(_("Observaciones del técnico"), blank=True)
     technician = models.CharField(_("Técnico"), max_length=120, blank=True)
     assigned_engineer = models.ForeignKey(
         settings.AUTH_USER_MODEL,

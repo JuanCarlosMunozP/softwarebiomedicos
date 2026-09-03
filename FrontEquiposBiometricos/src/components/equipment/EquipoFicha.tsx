@@ -379,6 +379,16 @@ export function EquipoFichaContent({
                       )}
                     </div>
                     <p className="mt-1 text-sm text-app">{m.description}</p>
+                    {m.observations && (
+                      <div className="mt-1.5 rounded-md border-l-2 border-[var(--color-primary)]/40 bg-surface px-2.5 py-1.5">
+                        <p className="text-xs font-medium text-app-muted">
+                          Observaciones del técnico
+                        </p>
+                        <p className="mt-0.5 whitespace-pre-line text-sm text-app">
+                          {m.observations}
+                        </p>
+                      </div>
+                    )}
                   </div>
                   {m.pdf_file_url && (
                     <a

@@ -21,6 +21,7 @@ class MaintenanceRecordViewSet(AuditLogMixin, viewsets.ModelViewSet):
     filterset_class = MaintenanceRecordFilter
     search_fields = (
         "description",
+        "observations",
         "technician",
         "equipment__asset_tag",
         "assigned_engineer__username",

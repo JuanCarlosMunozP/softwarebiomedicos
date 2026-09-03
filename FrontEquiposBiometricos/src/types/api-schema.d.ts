@@ -895,10 +895,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de agendamientos de mantenimiento + acciones complete/notify. */
+        /** @description CRUD de solicitudes de mantenimiento + acciones complete/notify. */
         get: operations["v1_scheduling_maintenances_list"];
         put?: never;
-        /** @description CRUD de agendamientos de mantenimiento + acciones complete/notify. */
+        /** @description CRUD de solicitudes de mantenimiento + acciones complete/notify. */
         post: operations["v1_scheduling_maintenances_create"];
         delete?: never;
         options?: never;
@@ -913,16 +913,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description CRUD de agendamientos de mantenimiento + acciones complete/notify. */
+        /** @description CRUD de solicitudes de mantenimiento + acciones complete/notify. */
         get: operations["v1_scheduling_maintenances_retrieve"];
-        /** @description CRUD de agendamientos de mantenimiento + acciones complete/notify. */
+        /** @description CRUD de solicitudes de mantenimiento + acciones complete/notify. */
         put: operations["v1_scheduling_maintenances_update"];
         post?: never;
-        /** @description CRUD de agendamientos de mantenimiento + acciones complete/notify. */
+        /** @description CRUD de solicitudes de mantenimiento + acciones complete/notify. */
         delete: operations["v1_scheduling_maintenances_destroy"];
         options?: never;
         head?: never;
-        /** @description CRUD de agendamientos de mantenimiento + acciones complete/notify. */
+        /** @description CRUD de solicitudes de mantenimiento + acciones complete/notify. */
         patch: operations["v1_scheduling_maintenances_partial_update"];
         trace?: never;
     };
@@ -935,7 +935,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description CRUD de agendamientos de mantenimiento + acciones complete/notify. */
+        /** @description CRUD de solicitudes de mantenimiento + acciones complete/notify. */
         post: operations["v1_scheduling_maintenances_complete_create"];
         delete?: never;
         options?: never;
@@ -952,7 +952,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description CRUD de agendamientos de mantenimiento + acciones complete/notify. */
+        /** @description CRUD de solicitudes de mantenimiento + acciones complete/notify. */
         post: operations["v1_scheduling_maintenances_notify_create"];
         delete?: never;
         options?: never;
@@ -1609,6 +1609,7 @@ export interface components {
              */
             date: string;
             description: string;
+            observations?: string;
             /** Técnico */
             technician?: string;
             assigned_engineer?: number | null;
@@ -1656,6 +1657,7 @@ export interface components {
              */
             date: string;
             description: string;
+            observations?: string;
             /** Técnico */
             technician?: string;
             assigned_engineer?: number | null;
@@ -1678,10 +1680,15 @@ export interface components {
             /** Tipo */
             kind: components["schemas"]["Kind4c3Enum"];
             /**
-             * Fecha programada
+             * Fecha de solicitud
              * Format: date
              */
-            scheduled_date: string;
+            readonly requested_date: string;
+            /** Solicitado por */
+            readonly requested_by: number | null;
+            readonly requested_by_detail: components["schemas"]["_RequestedBy"];
+            /** Format: date */
+            scheduled_date?: string | null;
             /** Notas */
             notes?: string;
             assigned_engineer?: number | null;
@@ -1713,11 +1720,8 @@ export interface components {
             equipment: number;
             /** Tipo */
             kind: components["schemas"]["Kind4c3Enum"];
-            /**
-             * Fecha programada
-             * Format: date
-             */
-            scheduled_date: string;
+            /** Format: date */
+            scheduled_date?: string | null;
             /** Notas */
             notes?: string;
             assigned_engineer?: number | null;
@@ -2190,6 +2194,7 @@ export interface components {
              */
             date?: string;
             description?: string;
+            observations?: string;
             /** Técnico */
             technician?: string;
             assigned_engineer?: number | null;
@@ -2208,11 +2213,8 @@ export interface components {
             equipment?: number;
             /** Tipo */
             kind?: components["schemas"]["Kind4c3Enum"];
-            /**
-             * Fecha programada
-             * Format: date
-             */
-            scheduled_date?: string;
+            /** Format: date */
+            scheduled_date?: string | null;
             /** Notas */
             notes?: string;
             assigned_engineer?: number | null;
@@ -2607,6 +2609,24 @@ export interface components {
             /** Rol */
             role?: components["schemas"]["Role71cEnum"];
         };
+        /** @description Quién creó la solicitud (read-only, anidado). */
+        _RequestedBy: {
+            readonly id: number;
+            /**
+             * Nombre de usuario
+             * @description Requerido. 150 carácteres como máximo. Únicamente letras, dígitos y @/./+/-/_
+             */
+            username: string;
+            readonly full_name: string;
+        };
+        /** @description Quién creó la solicitud (read-only, anidado). */
+        _RequestedByRequest: {
+            /**
+             * Nombre de usuario
+             * @description Requerido. 150 carácteres como máximo. Únicamente letras, dígitos y @/./+/-/_
+             */
+            username: string;
+        };
         /** @description Representación mínima del agendamiento (read-only, anidada en MaintenanceRecord). */
         _ScheduledMaintenanceMini: {
             readonly id: number;
@@ -2616,7 +2636,7 @@ export interface components {
              * Fecha programada
              * Format: date
              */
-            scheduled_date: string;
+            scheduled_date?: string | null;
             /** Notas */
             notes?: string;
             /** Completado */
@@ -2630,7 +2650,7 @@ export interface components {
              * Fecha programada
              * Format: date
              */
-            scheduled_date: string;
+            scheduled_date?: string | null;
             /** Notas */
             notes?: string;
             /** Completado */
@@ -5084,11 +5104,15 @@ export interface operations {
                 ordering?: string;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
+                requested_by?: number;
+                requested_date_after?: string;
+                requested_date_before?: string;
                 scheduled_date_after?: string;
                 scheduled_date_before?: string;
                 /** @description Un término de búsqueda. */
                 search?: string;
                 unassigned?: boolean;
+                unscheduled?: boolean;
             };
             header?: never;
             path?: never;
@@ -5136,7 +5160,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este Agendamiento de mantenimiento. */
+                /** @description Un valor de entero único que identifique este Solicitud de mantenimiento. */
                 id: number;
             };
             cookie?: never;
@@ -5158,7 +5182,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este Agendamiento de mantenimiento. */
+                /** @description Un valor de entero único que identifique este Solicitud de mantenimiento. */
                 id: number;
             };
             cookie?: never;
@@ -5186,7 +5210,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este Agendamiento de mantenimiento. */
+                /** @description Un valor de entero único que identifique este Solicitud de mantenimiento. */
                 id: number;
             };
             cookie?: never;
@@ -5207,7 +5231,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este Agendamiento de mantenimiento. */
+                /** @description Un valor de entero único que identifique este Solicitud de mantenimiento. */
                 id: number;
             };
             cookie?: never;
@@ -5235,7 +5259,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este Agendamiento de mantenimiento. */
+                /** @description Un valor de entero único que identifique este Solicitud de mantenimiento. */
                 id: number;
             };
             cookie?: never;
@@ -5263,7 +5287,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Un valor de entero único que identifique este Agendamiento de mantenimiento. */
+                /** @description Un valor de entero único que identifique este Solicitud de mantenimiento. */
                 id: number;
             };
             cookie?: never;

@@ -25,6 +25,7 @@ class MaintenanceRecordAdmin(admin.ModelAdmin):
     )
     search_fields = (
         "description",
+        "observations",
         "technician",
         "equipment__asset_tag",
         "equipment__name",
@@ -41,7 +42,17 @@ class MaintenanceRecordAdmin(admin.ModelAdmin):
     fieldsets = (
         (
             _("Información general"),
-            {"fields": ("equipment", "kind", "date", "description", "technician", "cost")},
+            {
+                "fields": (
+                    "equipment",
+                    "kind",
+                    "date",
+                    "description",
+                    "observations",
+                    "technician",
+                    "cost",
+                )
+            },
         ),
         (
             _("Asignación"),
