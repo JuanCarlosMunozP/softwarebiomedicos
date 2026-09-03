@@ -6,6 +6,8 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from apps.realtime.events import broadcast_notification
+
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def send_schedule_notification(self, schedule_id: int) -> str:
@@ -59,6 +61,31 @@ def send_schedule_notification(self, schedule_id: int) -> str:
     except Exception as exc:
         raise self.retry(exc=exc) from exc
 
-    schedule.notified_at = timezone.now()
+    sent_at = timezone.now()
+    schedule.notified_at = sent_at
     schedule.save(update_fields=["notified_at", "updated_at"])
+
+    _broadcast_email_sent(schedule, equipment, branch, subject, sent_at)
     return "sent"
+
+
+def _broadcast_email_sent(schedule, equipment, branch, subject, sent_at) -> None:
+    """Empuja el evento al canal WS. No debe tumbar la tarea si Redis falla."""
+    try:
+        broadcast_notification(
+            {
+                "type": "schedule_email_sent",
+                "schedule_id": schedule.pk,
+                "equipment_asset_tag": equipment.asset_tag,
+                "scheduled_date": (
+                    schedule.scheduled_date.isoformat()
+                    if schedule.scheduled_date
+                    else ""
+                ),
+                "branch_name": branch.name,
+                "subject": subject,
+                "sent_at": sent_at.isoformat(),
+            }
+        )
+    except Exception:  # pragma: no cover - best-effort
+        pass
