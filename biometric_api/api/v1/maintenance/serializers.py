@@ -38,6 +38,9 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
     # Sin trim_whitespace: queremos que un valor como "   " llegue a validate_description
     # y dispare nuestro mensaje en español, en lugar del genérico de DRF.
     description = serializers.CharField(trim_whitespace=False)
+    observations = serializers.CharField(
+        required=False, allow_blank=True, trim_whitespace=False
+    )
     # Definimos el campo cost explícitamente para que el mensaje de "no negativo"
     # provenga de validate_cost (en español) y no del MinValueValidator del modelo.
     cost = serializers.DecimalField(
@@ -89,6 +92,7 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
             "kind",
             "date",
             "description",
+            "observations",
             "technician",
             "assigned_engineer",
             "assigned_engineer_detail",
@@ -129,6 +133,9 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
         if not normalized:
             raise serializers.ValidationError(_("La descripción es obligatoria."))
         return normalized
+
+    def validate_observations(self, value: str) -> str:
+        return value.strip() if value else ""
 
     def validate_technician(self, value: str) -> str:
         return value.strip() if value else ""

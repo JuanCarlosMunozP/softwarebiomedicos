@@ -8,6 +8,8 @@ export interface MaintenanceRecord {
   kind: MaintenanceKind;
   date: string;
   description: string;
+  /** Comentario libre de quien ejecutó el mantenimiento (hallazgos, trabajo realizado). */
+  observations?: string;
   technician: number;
   technician_name?: string;
   technician_username?: string;
@@ -22,6 +24,7 @@ export interface MaintenanceInput {
   kind: MaintenanceKind;
   date: string;
   description: string;
+  observations?: string;
   technician: number;
   cost?: string;
 }

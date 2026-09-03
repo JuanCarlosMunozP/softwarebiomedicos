@@ -11,6 +11,8 @@ export interface MaintenanceRecord {
   kind: MaintenanceKind;
   date: string;
   description: string;
+  /** Comentario libre de quien ejecutó el mantenimiento (hallazgos, trabajo realizado). */
+  observations?: string;
   /** Campo legacy de texto libre del backend (nombre escrito a mano). */
   technician?: string;
   assigned_engineer?: number | null;
@@ -30,6 +32,7 @@ export interface MaintenanceInput {
   kind: MaintenanceKind;
   date: string;
   description: string;
+  observations?: string;
   assigned_technician?: number | null;
   assigned_engineer?: number | null;
   cost?: string;

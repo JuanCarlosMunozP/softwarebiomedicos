@@ -53,17 +53,21 @@ export function MantenimientosScreen() {
 
   const load = useCallback(async () => {
     try {
-      const [m, eq, us] = await Promise.all([
+      const [m, eq] = await Promise.all([
         maintenanceService.list({
           kind: filterKind ?? undefined,
           ordering: "-date",
         }),
         equipmentService.list({ ordering: "name" }),
-        usersService.list({ is_active: true }),
       ]);
       setItems(m);
       setEquipos(eq);
-      setTecnicos(us);
+      // El listado de usuarios solo lo permite el rol admin; si falla (403),
+      // el selector de técnicos queda vacío pero la pantalla sigue viva.
+      usersService
+        .list({ is_active: true })
+        .then(setTecnicos)
+        .catch(() => setTecnicos([]));
     } catch (err) {
       Alert.alert("Error", getApiErrorMessage(err));
     }
@@ -113,6 +117,7 @@ export function MantenimientosScreen() {
       kind: m.kind,
       date: m.date,
       description: m.description,
+      observations: m.observations ?? "",
       technician: m.technician,
       cost: m.cost ?? undefined,
     });
@@ -207,7 +212,11 @@ export function MantenimientosScreen() {
             <ListItem
               title={`${item.equipment_asset_tag ?? ""} · ${item.equipment_name ?? ""}`.trim() ||
                 "Equipo"}
-              subtitle={item.description}
+              subtitle={
+                item.observations
+                  ? `${item.description}\nObservaciones: ${item.observations}`
+                  : item.description
+              }
               meta={`${item.date} · ${item.technician_name ?? item.technician_username ?? "—"}`}
               trailing={<Badge tone={kindTone(item.kind)}>{kindLabel(item.kind)}</Badge>}
               actions={
@@ -283,6 +292,15 @@ export function MantenimientosScreen() {
             label="Descripción *"
             value={form.description}
             onChangeText={(v) => setForm({ ...form, description: v })}
+            multiline
+            numberOfLines={3}
+            className="h-24 py-2"
+          />
+          <Input
+            label="Observaciones del técnico (opcional)"
+            value={form.observations ?? ""}
+            onChangeText={(v) => setForm({ ...form, observations: v })}
+            placeholder="Hallazgos, trabajo realizado, recomendaciones..."
             multiline
             numberOfLines={3}
             className="h-24 py-2"

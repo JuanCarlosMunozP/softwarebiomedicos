@@ -2660,7 +2660,7 @@ paths:
   /api/v1/scheduling/maintenances/:
     get:
       operationId: v1_scheduling_maintenances_list
-      description: CRUD de agendamientos de mantenimiento + acciones complete/notify.
+      description: CRUD de solicitudes de mantenimiento + acciones complete/notify.
       parameters:
       - in: query
         name: assigned_engineer
@@ -2699,6 +2699,20 @@ paths:
         schema:
           type: integer
       - in: query
+        name: requested_by
+        schema:
+          type: number
+      - in: query
+        name: requested_date_after
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: requested_date_before
+        schema:
+          type: string
+          format: date
+      - in: query
         name: scheduled_date_after
         schema:
           type: string
@@ -2718,6 +2732,10 @@ paths:
         name: unassigned
         schema:
           type: boolean
+      - in: query
+        name: unscheduled
+        schema:
+          type: boolean
       tags:
       - v1
       responses:
@@ -2729,7 +2747,7 @@ paths:
           description: ''
     post:
       operationId: v1_scheduling_maintenances_create
-      description: CRUD de agendamientos de mantenimiento + acciones complete/notify.
+      description: CRUD de solicitudes de mantenimiento + acciones complete/notify.
       tags:
       - v1
       requestBody:
@@ -2754,14 +2772,13 @@ paths:
   /api/v1/scheduling/maintenances/{id}/:
     get:
       operationId: v1_scheduling_maintenances_retrieve
-      description: CRUD de agendamientos de mantenimiento + acciones complete/notify.
+      description: CRUD de solicitudes de mantenimiento + acciones complete/notify.
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: Un valor de entero único que identifique este Agendamiento de
-          mantenimiento.
+        description: Un valor de entero único que identifique este Solicitud de mantenimiento.
         required: true
       tags:
       - v1
@@ -2774,14 +2791,13 @@ paths:
           description: ''
     put:
       operationId: v1_scheduling_maintenances_update
-      description: CRUD de agendamientos de mantenimiento + acciones complete/notify.
+      description: CRUD de solicitudes de mantenimiento + acciones complete/notify.
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: Un valor de entero único que identifique este Agendamiento de
-          mantenimiento.
+        description: Un valor de entero único que identifique este Solicitud de mantenimiento.
         required: true
       tags:
       - v1
@@ -2806,14 +2822,13 @@ paths:
           description: ''
     patch:
       operationId: v1_scheduling_maintenances_partial_update
-      description: CRUD de agendamientos de mantenimiento + acciones complete/notify.
+      description: CRUD de solicitudes de mantenimiento + acciones complete/notify.
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: Un valor de entero único que identifique este Agendamiento de
-          mantenimiento.
+        description: Un valor de entero único que identifique este Solicitud de mantenimiento.
         required: true
       tags:
       - v1
@@ -2837,14 +2852,13 @@ paths:
           description: ''
     delete:
       operationId: v1_scheduling_maintenances_destroy
-      description: CRUD de agendamientos de mantenimiento + acciones complete/notify.
+      description: CRUD de solicitudes de mantenimiento + acciones complete/notify.
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: Un valor de entero único que identifique este Agendamiento de
-          mantenimiento.
+        description: Un valor de entero único que identifique este Solicitud de mantenimiento.
         required: true
       tags:
       - v1
@@ -2854,14 +2868,13 @@ paths:
   /api/v1/scheduling/maintenances/{id}/complete/:
     post:
       operationId: v1_scheduling_maintenances_complete_create
-      description: CRUD de agendamientos de mantenimiento + acciones complete/notify.
+      description: CRUD de solicitudes de mantenimiento + acciones complete/notify.
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: Un valor de entero único que identifique este Agendamiento de
-          mantenimiento.
+        description: Un valor de entero único que identifique este Solicitud de mantenimiento.
         required: true
       tags:
       - v1
@@ -2887,14 +2900,13 @@ paths:
   /api/v1/scheduling/maintenances/{id}/notify/:
     post:
       operationId: v1_scheduling_maintenances_notify_create
-      description: CRUD de agendamientos de mantenimiento + acciones complete/notify.
+      description: CRUD de solicitudes de mantenimiento + acciones complete/notify.
       parameters:
       - in: path
         name: id
         schema:
           type: integer
-        description: Un valor de entero único que identifique este Agendamiento de
-          mantenimiento.
+        description: Un valor de entero único que identifique este Solicitud de mantenimiento.
         required: true
       tags:
       - v1
@@ -4214,6 +4226,8 @@ components:
           title: Fecha
         description:
           type: string
+        observations:
+          type: string
         technician:
           type: string
           title: Técnico
@@ -4308,6 +4322,8 @@ components:
         description:
           type: string
           minLength: 1
+        observations:
+          type: string
         technician:
           type: string
           title: Técnico
@@ -4355,10 +4371,24 @@ components:
           allOf:
           - $ref: '#/components/schemas/Kind4c3Enum'
           title: Tipo
+        requested_date:
+          type: string
+          format: date
+          readOnly: true
+          title: Fecha de solicitud
+        requested_by:
+          type: integer
+          readOnly: true
+          nullable: true
+          title: Solicitado por
+        requested_by_detail:
+          allOf:
+          - $ref: '#/components/schemas/_RequestedBy'
+          readOnly: true
         scheduled_date:
           type: string
           format: date
-          title: Fecha programada
+          nullable: true
         notes:
           type: string
           title: Notas
@@ -4413,7 +4443,9 @@ components:
       - maintenance_record
       - maintenance_record_detail
       - notified_at
-      - scheduled_date
+      - requested_by
+      - requested_by_detail
+      - requested_date
       - updated_at
     MaintenanceScheduleRequest:
       type: object
@@ -4428,7 +4460,7 @@ components:
         scheduled_date:
           type: string
           format: date
-          title: Fecha programada
+          nullable: true
         notes:
           type: string
           title: Notas
@@ -4444,7 +4476,6 @@ components:
       required:
       - equipment
       - kind
-      - scheduled_date
     NullEnum:
       enum:
       - null
@@ -5212,6 +5243,8 @@ components:
         description:
           type: string
           minLength: 1
+        observations:
+          type: string
         technician:
           type: string
           title: Técnico
@@ -5248,7 +5281,7 @@ components:
         scheduled_date:
           type: string
           format: date
-          title: Fecha programada
+          nullable: true
         notes:
           type: string
           title: Notas
@@ -6059,6 +6092,41 @@ components:
           title: Rol
       required:
       - username
+    _RequestedBy:
+      type: object
+      description: Quién creó la solicitud (read-only, anidado).
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          title: Nombre de usuario
+          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
+            dígitos y @/./+/-/_ '
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        full_name:
+          type: string
+          readOnly: true
+      required:
+      - full_name
+      - id
+      - username
+    _RequestedByRequest:
+      type: object
+      description: Quién creó la solicitud (read-only, anidado).
+      properties:
+        username:
+          type: string
+          minLength: 1
+          title: Nombre de usuario
+          description: 'Requerido. 150 carácteres como máximo. Únicamente letras,
+            dígitos y @/./+/-/_ '
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+      required:
+      - username
     _ScheduledMaintenanceMini:
       type: object
       description: Representación mínima del agendamiento (read-only, anidada en MaintenanceRecord).
@@ -6073,6 +6141,7 @@ components:
         scheduled_date:
           type: string
           format: date
+          nullable: true
           title: Fecha programada
         notes:
           type: string
@@ -6083,7 +6152,6 @@ components:
       required:
       - id
       - kind
-      - scheduled_date
     _ScheduledMaintenanceMiniRequest:
       type: object
       description: Representación mínima del agendamiento (read-only, anidada en MaintenanceRecord).
@@ -6095,6 +6163,7 @@ components:
         scheduled_date:
           type: string
           format: date
+          nullable: true
           title: Fecha programada
         notes:
           type: string
@@ -6104,4 +6173,3 @@ components:
           title: Completado
       required:
       - kind
-      - scheduled_date
