@@ -35,6 +35,34 @@ body,
   min-height: 100vh;
 }
 
+/* Los formularios marcan los campos inválidos con el prop `error` de <Input>.
+   Desactivamos el estilo nativo del navegador para que no compita: */
+@layer base {
+  /* Flechas (spinner) de los <input type="number"> — se quitan en todos los navegadores. */
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Borde/resplandor rojo nativo de validación (sobre todo Firefox: `:-moz-ui-invalid`). */
+  input:invalid,
+  textarea:invalid,
+  select:invalid {
+    box-shadow: none;
+  }
+  input:-moz-ui-invalid,
+  textarea:-moz-ui-invalid,
+  select:-moz-ui-invalid {
+    box-shadow: none;
+    border-color: var(--border);
+  }
+}
+
 body {
   background: var(--bg);
   color: var(--text);
