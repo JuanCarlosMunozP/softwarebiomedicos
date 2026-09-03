@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import viewsets
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
@@ -37,9 +38,16 @@ class MaintenanceRecordViewSet(AuditLogMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        # El técnico solo ve los mantenimientos que tiene asignados; el resto
-        # de roles (gestión e ingeniería) ven todos.
+        # Técnico e ingeniero solo ven los mantenimientos que tienen asignados
+        # (cada uno en su FK correspondiente). Gestión (superadmin/admin/
+        # coordinador) ve todos.
         user = self.request.user
-        if user.is_authenticated and user.role == User.Role.TECNICO:
+        if not user.is_authenticated:
+            return qs
+        if user.role == User.Role.TECNICO:
             qs = qs.filter(assigned_technician=user)
+        elif user.role == User.Role.INGENIERO:
+            qs = qs.filter(
+                Q(assigned_engineer=user) | Q(assigned_technician=user)
+            )
         return qs

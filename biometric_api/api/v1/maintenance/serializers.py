@@ -230,17 +230,20 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        # Si un técnico registra el mantenimiento y no se indicó responsable,
-        # queda asignado a él mismo — así lo sigue viendo en su lista (que está
-        # filtrada a sus propias asignaciones).
+        # Si un técnico o un ingeniero registra el mantenimiento y no indicó
+        # responsable, queda asignado a él mismo — así lo sigue viendo en su
+        # lista (que está filtrada a sus propias asignaciones).
         request = self.context.get("request")
-        if (
-            request is not None
-            and request.user.is_authenticated
-            and request.user.role == User.Role.TECNICO
-            and not validated_data.get("assigned_technician")
-        ):
-            validated_data["assigned_technician"] = request.user
+        if request is not None and request.user.is_authenticated:
+            role = request.user.role
+            if role == User.Role.TECNICO and not validated_data.get(
+                "assigned_technician"
+            ):
+                validated_data["assigned_technician"] = request.user
+            elif role == User.Role.INGENIERO and not validated_data.get(
+                "assigned_engineer"
+            ) and not validated_data.get("assigned_technician"):
+                validated_data["assigned_engineer"] = request.user
 
         schedule = validated_data.get("scheduled_maintenance")
         if schedule is not None:
