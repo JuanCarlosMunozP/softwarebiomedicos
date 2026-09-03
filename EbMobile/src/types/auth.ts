@@ -15,6 +15,15 @@ export interface Usuario {
   last_login?: string | null;
 }
 
+/** Representación mínima del usuario asignado que anida el backend (`*_detail`). */
+export interface AssignedUser {
+  id: number;
+  username: string;
+  full_name: string;
+  role: Rol;
+  role_display: string;
+}
+
 export interface LoginRequest {
   username: string;
   password: string;

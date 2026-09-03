@@ -24,6 +24,11 @@ import { getApiErrorMessage } from "@/lib/api";
 import { schedulingService } from "@/services/scheduling.service";
 import { equipmentService } from "@/services/equipment.service";
 import { usersService } from "@/services/users.service";
+import {
+  assignableUserOptions,
+  assignedUserName,
+  assignmentPayload,
+} from "@/lib/users";
 import type { ScheduleKind, ScheduledMaintenance } from "@/types/scheduling";
 import type { Equipment } from "@/types/equipment";
 import type { Usuario } from "@/types/auth";
@@ -40,7 +45,8 @@ interface FormState {
   kind: ScheduleKind;
   scheduled_date: string;
   notes: string;
-  technician: number | null;
+  assigned_technician: number | null;
+  assigned_engineer: number | null;
 }
 
 function emptyForm(): FormState {
@@ -49,7 +55,8 @@ function emptyForm(): FormState {
     kind: "PREVENTIVE",
     scheduled_date: "",
     notes: "",
-    technician: null,
+    assigned_technician: null,
+    assigned_engineer: null,
   };
 }
 
@@ -115,15 +122,12 @@ export function AgendamientosScreen() {
     [equipos],
   );
   const tecOpts: SelectOption<number>[] = useMemo(
-    () =>
-      tecnicos
-        .filter((u) => ["tecnico", "ingeniero", "coordinador"].includes(u.role))
-        .map((u) => ({
-          label: `${u.first_name} ${u.last_name} (${u.username})`.trim(),
-          value: u.id,
-        })),
+    () => assignableUserOptions(tecnicos),
     [tecnicos],
   );
+
+  const responsableId =
+    form.assigned_technician ?? form.assigned_engineer ?? null;
 
   const openCreate = () => {
     setForm(emptyForm());
@@ -137,7 +141,8 @@ export function AgendamientosScreen() {
       kind: s.kind,
       scheduled_date: s.scheduled_date ?? "",
       notes: s.notes ?? "",
-      technician: s.technician ?? null,
+      assigned_technician: s.assigned_technician ?? null,
+      assigned_engineer: s.assigned_engineer ?? null,
     });
     setFormError(null);
     setEditing(s);
@@ -163,7 +168,8 @@ export function AgendamientosScreen() {
           kind: form.kind,
           scheduled_date: form.scheduled_date || null,
           notes: form.notes,
-          technician: form.technician,
+          assigned_technician: form.assigned_technician,
+          assigned_engineer: form.assigned_engineer,
         });
       }
       setEditing(null);
@@ -257,6 +263,9 @@ export function AgendamientosScreen() {
           const solicitadaPor =
             item.requested_by_detail?.full_name ||
             item.requested_by_detail?.username;
+          const responsable =
+            assignedUserName(item.assigned_technician_detail) ??
+            assignedUserName(item.assigned_engineer_detail);
           return (
             <ListItem
               title={`${item.equipment_asset_tag ?? ""} · ${item.equipment_name ?? ""}`.trim() ||
@@ -267,6 +276,7 @@ export function AgendamientosScreen() {
                 item.scheduled_date
                   ? `Programada ${item.scheduled_date}`
                   : "Por programar",
+                responsable ? `Resp.: ${responsable}` : null,
                 solicitadaPor ? `por ${solicitadaPor}` : null,
               ]
                 .filter(Boolean)
@@ -375,13 +385,20 @@ export function AgendamientosScreen() {
                 onChangeText={(v) => setForm({ ...form, scheduled_date: v })}
               />
               <Select
-                label="Técnico"
-                value={form.technician ?? null}
+                label="Responsable"
+                value={responsableId}
                 options={[{ label: "Sin asignar", value: 0 }, ...tecOpts]}
-                onChange={(v) =>
-                  setForm({ ...form, technician: v ? Number(v) : null })
-                }
+                onChange={(v) => {
+                  const user = tecnicos.find((u) => u.id === v);
+                  setForm({ ...form, ...assignmentPayload(v ? user : null) });
+                }}
               />
+              {tecOpts.length === 0 && (
+                <Text className="-mt-1 text-xs text-app-text-muted dark:text-app-dark-text-muted">
+                  Tu rol no puede listar usuarios; asigna desde el panel web o
+                  pide a un administrador.
+                </Text>
+              )}
             </>
           )}
           <Input

@@ -17,6 +17,11 @@ import { getApiErrorMessage } from "@/lib/api";
 import { maintenanceService } from "@/services/maintenance.service";
 import { equipmentService } from "@/services/equipment.service";
 import { usersService } from "@/services/users.service";
+import {
+  assignableUserOptions,
+  assignedUserName,
+  assignmentPayload,
+} from "@/lib/users";
 import type {
   MaintenanceInput,
   MaintenanceKind,
@@ -93,17 +98,12 @@ export function MantenimientosScreen() {
   );
 
   const tecOpts: SelectOption<number>[] = useMemo(
-    () =>
-      tecnicos
-        .filter((u) =>
-          ["tecnico", "ingeniero", "coordinador"].includes(u.role),
-        )
-        .map((u) => ({
-          label: `${u.first_name} ${u.last_name} (${u.username})`.trim(),
-          value: u.id,
-        })),
+    () => assignableUserOptions(tecnicos),
     [tecnicos],
   );
+
+  const responsableId =
+    form.assigned_technician ?? form.assigned_engineer ?? null;
 
   const openCreate = () => {
     setForm(emptyForm());
@@ -118,7 +118,8 @@ export function MantenimientosScreen() {
       date: m.date,
       description: m.description,
       observations: m.observations ?? "",
-      technician: m.technician,
+      assigned_technician: m.assigned_technician ?? null,
+      assigned_engineer: m.assigned_engineer ?? null,
       cost: m.cost ?? undefined,
     });
     setFormError(null);
@@ -126,14 +127,8 @@ export function MantenimientosScreen() {
   };
 
   const submit = async () => {
-    if (
-      !form.equipment ||
-      !form.kind ||
-      !form.date ||
-      !form.description ||
-      !form.technician
-    ) {
-      setFormError("Completa todos los campos requeridos.");
+    if (!form.equipment || !form.kind || !form.date || !form.description) {
+      setFormError("Completa los campos requeridos.");
       return;
     }
     setSaving(true);
@@ -217,7 +212,12 @@ export function MantenimientosScreen() {
                   ? `${item.description}\nObservaciones: ${item.observations}`
                   : item.description
               }
-              meta={`${item.date} · ${item.technician_name ?? item.technician_username ?? "—"}`}
+              meta={`${item.date} · ${
+                assignedUserName(item.assigned_technician_detail) ??
+                assignedUserName(item.assigned_engineer_detail) ??
+                item.technician?.trim() ??
+                "Sin asignar"
+              }`}
               trailing={<Badge tone={kindTone(item.kind)}>{kindLabel(item.kind)}</Badge>}
               actions={
                 hasActions ? (
@@ -306,11 +306,20 @@ export function MantenimientosScreen() {
             className="h-24 py-2"
           />
           <Select
-            label="Técnico responsable *"
-            value={form.technician || null}
-            options={tecOpts}
-            onChange={(v) => setForm({ ...form, technician: v })}
+            label="Responsable (opcional)"
+            value={responsableId}
+            options={[{ label: "Sin asignar", value: 0 }, ...tecOpts]}
+            onChange={(v) => {
+              const user = tecnicos.find((u) => u.id === v);
+              setForm({ ...form, ...assignmentPayload(v ? user : null) });
+            }}
           />
+          {tecOpts.length === 0 && (
+            <Text className="-mt-1 text-xs text-app-text-muted dark:text-app-dark-text-muted">
+              Tu rol no puede listar usuarios; la asignación se hace desde el
+              panel web o por un administrador.
+            </Text>
+          )}
           <Input
             label="Costo (opcional)"
             value={form.cost ?? ""}
@@ -340,7 +349,9 @@ function emptyForm(): MaintenanceInput {
     kind: "PREVENTIVE",
     date: new Date().toISOString().slice(0, 10),
     description: "",
-    technician: 0,
+    observations: "",
+    assigned_technician: null,
+    assigned_engineer: null,
   };
 }
 
