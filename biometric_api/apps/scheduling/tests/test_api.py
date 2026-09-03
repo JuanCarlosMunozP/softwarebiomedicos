@@ -94,8 +94,26 @@ class TestScheduleCreate:
         response = auth_client.post(LIST_URL, {}, format="json")
         assert response.status_code == 400
         body = response.json()
-        for required in ("equipment", "kind", "scheduled_date"):
+        for required in ("equipment", "kind"):
             assert required in body
+
+    def test_create_without_scheduled_date_returns_201(
+        self, auth_client, admin_user, equipment
+    ):
+        """Una solicitud nace sin fecha programada."""
+        payload = {
+            "equipment": equipment.id,
+            "kind": ScheduledMaintenanceKind.PREVENTIVE,
+            "notes": "Reporta ruido anómalo en el compresor.",
+        }
+        response = auth_client.post(LIST_URL, payload, format="json")
+
+        assert response.status_code == 201, response.json()
+        body = response.json()
+        assert body["scheduled_date"] is None
+        assert body["requested_date"] == date.today().isoformat()
+        assert body["requested_by"] == admin_user.id
+        assert body["requested_by_detail"]["id"] == admin_user.id
 
 
 class TestScheduleList:

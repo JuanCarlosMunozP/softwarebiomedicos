@@ -9,6 +9,7 @@ class MaintenanceScheduleAdmin(admin.ModelAdmin):
     list_display = (
         "equipment",
         "kind",
+        "requested_date",
         "scheduled_date",
         "assigned_engineer",
         "assigned_technician",
@@ -19,6 +20,7 @@ class MaintenanceScheduleAdmin(admin.ModelAdmin):
     list_filter = (
         "kind",
         "is_completed",
+        "requested_date",
         "scheduled_date",
         "equipment__branch",
         "assigned_engineer",
@@ -36,12 +38,21 @@ class MaintenanceScheduleAdmin(admin.ModelAdmin):
         "assigned_technician__last_name",
     )
     ordering = ("scheduled_date",)
-    autocomplete_fields = ("equipment", "assigned_engineer", "assigned_technician")
+    autocomplete_fields = (
+        "equipment",
+        "assigned_engineer",
+        "assigned_technician",
+        "requested_by",
+    )
     readonly_fields = ("notified_at", "created_at", "updated_at")
     fieldsets = (
         (
-            _("Información general"),
-            {"fields": ("equipment", "kind", "scheduled_date", "notes", "is_completed")},
+            _("Solicitud"),
+            {"fields": ("equipment", "kind", "requested_date", "requested_by", "notes")},
+        ),
+        (
+            _("Programación"),
+            {"fields": ("scheduled_date", "is_completed")},
         ),
         (
             _("Asignación"),

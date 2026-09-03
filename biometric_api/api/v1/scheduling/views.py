@@ -30,7 +30,7 @@ class MaintenanceScheduleViewSet(viewsets.ModelViewSet):
         "assigned_technician__first_name",
         "assigned_technician__last_name",
     )
-    ordering_fields = ("scheduled_date", "created_at")
+    ordering_fields = ("scheduled_date", "requested_date", "created_at")
     ordering = ("scheduled_date",)
 
     @action(detail=True, methods=["post"], url_path="complete")

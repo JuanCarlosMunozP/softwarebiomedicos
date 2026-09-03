@@ -24,11 +24,7 @@ import { getApiErrorMessage } from "@/lib/api";
 import { schedulingService } from "@/services/scheduling.service";
 import { equipmentService } from "@/services/equipment.service";
 import { usersService } from "@/services/users.service";
-import type {
-  ScheduleInput,
-  ScheduleKind,
-  ScheduledMaintenance,
-} from "@/types/scheduling";
+import type { ScheduleKind, ScheduledMaintenance } from "@/types/scheduling";
 import type { Equipment } from "@/types/equipment";
 import type { Usuario } from "@/types/auth";
 
@@ -36,6 +32,26 @@ const KIND_OPTS: SelectOption<ScheduleKind>[] = [
   { label: "Preventivo", value: "PREVENTIVE" },
   { label: "Reparación", value: "REPAIR" },
 ];
+
+const today = () => new Date().toISOString().slice(0, 10);
+
+interface FormState {
+  equipment: number;
+  kind: ScheduleKind;
+  scheduled_date: string;
+  notes: string;
+  technician: number | null;
+}
+
+function emptyForm(): FormState {
+  return {
+    equipment: 0,
+    kind: "PREVENTIVE",
+    scheduled_date: "",
+    notes: "",
+    technician: null,
+  };
+}
 
 export function AgendamientosScreen() {
   const { usuario } = useAuth();
@@ -57,24 +73,28 @@ export function AgendamientosScreen() {
   );
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [form, setForm] = useState<ScheduleInput>(emptyForm());
+  const [form, setForm] = useState<FormState>(emptyForm());
   const [toDelete, setToDelete] = useState<ScheduledMaintenance | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [list, eq, us] = await Promise.all([
+      const [list, eq] = await Promise.all([
         schedulingService.list({
           is_completed:
             filter === "all" ? undefined : filter === "completed",
-          ordering: "scheduled_date",
+          ordering: "-requested_date",
         }),
         equipmentService.list({ ordering: "name" }),
-        usersService.list({ is_active: true }),
       ]);
       setItems(list);
       setEquipos(eq);
-      setTecnicos(us);
+      // El listado de usuarios solo lo permite el rol admin; si falla (403),
+      // el selector de técnicos queda vacío pero la pantalla sigue viva.
+      usersService
+        .list({ is_active: true })
+        .then(setTecnicos)
+        .catch(() => setTecnicos([]));
     } catch (err) {
       Alert.alert("Error", getApiErrorMessage(err));
     }
@@ -115,7 +135,7 @@ export function AgendamientosScreen() {
     setForm({
       equipment: s.equipment,
       kind: s.kind,
-      scheduled_date: s.scheduled_date,
+      scheduled_date: s.scheduled_date ?? "",
       notes: s.notes ?? "",
       technician: s.technician ?? null,
     });
@@ -124,17 +144,27 @@ export function AgendamientosScreen() {
   };
 
   const submit = async () => {
-    if (!form.equipment || !form.scheduled_date) {
-      setFormError("Equipo y fecha son requeridos.");
+    if (!form.equipment) {
+      setFormError("El equipo es requerido.");
       return;
     }
     setSaving(true);
     setFormError(null);
     try {
       if (editing === "new") {
-        await schedulingService.create(form);
+        await schedulingService.create({
+          equipment: form.equipment,
+          kind: form.kind,
+          notes: form.notes,
+        });
       } else if (editing) {
-        await schedulingService.update(editing.id, form);
+        await schedulingService.update(editing.id, {
+          equipment: form.equipment,
+          kind: form.kind,
+          scheduled_date: form.scheduled_date || null,
+          notes: form.notes,
+          technician: form.technician,
+        });
       }
       setEditing(null);
       await load();
@@ -184,8 +214,8 @@ export function AgendamientosScreen() {
           value={filter}
           options={[
             { label: "Pendientes", value: "pending" },
-            { label: "Completados", value: "completed" },
-            { label: "Todos", value: "all" },
+            { label: "Completadas", value: "completed" },
+            { label: "Todas", value: "all" },
           ]}
           onChange={(v) => setFilter(v as any)}
         />
@@ -195,7 +225,7 @@ export function AgendamientosScreen() {
             leftIcon={<Plus size={16} color="#fff" />}
             fullWidth
           >
-            Programar
+            Nueva solicitud
           </Button>
         )}
       </View>
@@ -215,8 +245,8 @@ export function AgendamientosScreen() {
         ListEmptyComponent={
           <EmptyState
             icon={<ClipboardCheck size={28} color={colors.textMuted} />}
-            title="Sin agendamientos"
-            description="No hay mantenimientos programados con este filtro."
+            title="Sin solicitudes"
+            description="No hay solicitudes de mantenimiento con este filtro."
           />
         }
         renderItem={({ item }) => {
@@ -224,15 +254,26 @@ export function AgendamientosScreen() {
           const showEdit = !item.is_completed && canEdit;
           const showDelete = canDelete;
           const hasActions = showActive || showEdit || showDelete;
+          const solicitadaPor =
+            item.requested_by_detail?.full_name ||
+            item.requested_by_detail?.username;
           return (
             <ListItem
               title={`${item.equipment_asset_tag ?? ""} · ${item.equipment_name ?? ""}`.trim() ||
                 "Equipo"}
               subtitle={item.notes ?? "Sin notas"}
-              meta={`${item.scheduled_date} · ${item.technician_name ?? "Sin asignar"}`}
+              meta={[
+                `Solicitada ${item.requested_date}`,
+                item.scheduled_date
+                  ? `Programada ${item.scheduled_date}`
+                  : "Por programar",
+                solicitadaPor ? `por ${solicitadaPor}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
               trailing={
                 <Badge tone={item.is_completed ? "success" : "warning"}>
-                  {item.is_completed ? "Completado" : "Pendiente"}
+                  {item.is_completed ? "Completada" : "Pendiente"}
                 </Badge>
               }
               actions={
@@ -267,7 +308,7 @@ export function AgendamientosScreen() {
                         leftIcon={<Pencil size={14} color={colors.text} />}
                         className="flex-1"
                       >
-                        Editar
+                        {item.scheduled_date ? "Editar" : "Programar"}
                       </Button>
                     )}
                     {showDelete && (
@@ -292,7 +333,7 @@ export function AgendamientosScreen() {
       <Modal
         visible={!!editing}
         onClose={() => setEditing(null)}
-        title={editing === "new" ? "Programar mantenimiento" : "Editar agendamiento"}
+        title={editing === "new" ? "Nueva solicitud" : "Programar solicitud"}
         footer={
           <>
             <Button variant="secondary" onPress={() => setEditing(null)}>
@@ -320,19 +361,29 @@ export function AgendamientosScreen() {
             options={KIND_OPTS}
             onChange={(v) => setForm({ ...form, kind: v })}
           />
-          <Input
-            label="Fecha programada * (YYYY-MM-DD)"
-            value={form.scheduled_date}
-            onChangeText={(v) => setForm({ ...form, scheduled_date: v })}
-          />
-          <Select
-            label="Técnico"
-            value={form.technician ?? null}
-            options={[{ label: "Sin asignar", value: 0 }, ...tecOpts]}
-            onChange={(v) =>
-              setForm({ ...form, technician: v ? Number(v) : null })
-            }
-          />
+          {editing === "new" ? (
+            <Input
+              label="Fecha de solicitud"
+              value={today()}
+              editable={false}
+            />
+          ) : (
+            <>
+              <Input
+                label="Fecha programada (YYYY-MM-DD)"
+                value={form.scheduled_date}
+                onChangeText={(v) => setForm({ ...form, scheduled_date: v })}
+              />
+              <Select
+                label="Técnico"
+                value={form.technician ?? null}
+                options={[{ label: "Sin asignar", value: 0 }, ...tecOpts]}
+                onChange={(v) =>
+                  setForm({ ...form, technician: v ? Number(v) : null })
+                }
+              />
+            </>
+          )}
           <Input
             label="Notas"
             value={form.notes ?? ""}
@@ -346,8 +397,8 @@ export function AgendamientosScreen() {
 
       <ConfirmDialog
         visible={!!toDelete}
-        title="Eliminar agendamiento"
-        message="¿Eliminar definitivamente este agendamiento? Esta acción no se puede deshacer."
+        title="Eliminar solicitud"
+        message="¿Eliminar definitivamente esta solicitud? Esta acción no se puede deshacer."
         confirmLabel="Eliminar"
         destructive
         loading={deleting}
@@ -356,14 +407,4 @@ export function AgendamientosScreen() {
       />
     </ScreenContainer>
   );
-}
-
-function emptyForm(): ScheduleInput {
-  return {
-    equipment: 0,
-    kind: "PREVENTIVE",
-    scheduled_date: new Date().toISOString().slice(0, 10),
-    notes: "",
-    technician: null,
-  };
 }

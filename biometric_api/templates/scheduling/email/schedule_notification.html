@@ -8,7 +8,8 @@
     <tr><th align="left">Código</th><td>{{ equipment.asset_tag }}</td></tr>
     <tr><th align="left">Marca / Modelo</th><td>{{ equipment.brand }} {{ equipment.model }}</td></tr>
     <tr><th align="left">Tipo</th><td>{{ schedule.get_kind_display }}</td></tr>
-    <tr><th align="left">Fecha</th><td>{{ schedule.scheduled_date|date:"d/m/Y" }}</td></tr>
+    <tr><th align="left">Fecha de solicitud</th><td>{{ schedule.requested_date|date:"d/m/Y" }}</td></tr>
+    <tr><th align="left">Fecha programada</th><td>{{ schedule.scheduled_date|date:"d/m/Y"|default:"Por programar" }}</td></tr>
     {% if schedule.assigned_engineer %}
     <tr>
       <th align="left">Ingeniero</th>

@@ -292,7 +292,7 @@ export function EquipoFichaContent({
               <strong className="text-app">
                 {scheduled.filter((s) => !s.is_completed).length}
               </strong>{" "}
-              agendamientos pendientes.
+              solicitudes pendientes.
             </p>
 
             <div>
@@ -432,7 +432,9 @@ export function EquipoFichaContent({
                       <Badge tone={kindToneScheduled(s.kind)}>
                         {kindLabelScheduled(s.kind)}
                       </Badge>
-                      <span className="text-xs text-app-muted">{s.scheduled_date}</span>
+                      <span className="text-xs text-app-muted">
+                        {s.scheduled_date ?? "Por programar"}
+                      </span>
                       <Badge tone={s.is_completed ? "success" : "warning"}>
                         {s.is_completed ? "Cumplido" : "Pendiente"}
                       </Badge>

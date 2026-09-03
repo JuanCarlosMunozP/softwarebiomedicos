@@ -35,9 +35,13 @@ def send_schedule_notification(self, schedule_id: int) -> str:
         "equipment": equipment,
         "branch": branch,
     }
+    fecha = (
+        schedule.scheduled_date.isoformat()
+        if schedule.scheduled_date
+        else "sin programar"
+    )
     subject = (
-        f"[Biometric] Mantenimiento programado: {equipment.asset_tag} "
-        f"({schedule.scheduled_date.isoformat()})"
+        f"[Biometric] Mantenimiento programado: {equipment.asset_tag} ({fecha})"
     )
     body_text = render_to_string("scheduling/email/schedule_notification.txt", context)
     body_html = render_to_string("scheduling/email/schedule_notification.html", context)
