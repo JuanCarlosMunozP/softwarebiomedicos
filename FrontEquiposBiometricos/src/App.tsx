@@ -70,11 +70,16 @@ function App() {
                   <Route path="fallas" element={<FallasPage />} />
                   <Route path="perfil" element={<PerfilPage />} />
 
-                  {/* Historial de mantenimientos: solo gestión. */}
+                  {/* Historial de mantenimientos: todos menos el técnico. */}
                   <Route
                     element={
                       <ProtectedRoute
-                        roles={["superadmin", "admin", "coordinador"]}
+                        roles={[
+                          "superadmin",
+                          "admin",
+                          "coordinador",
+                          "ingeniero",
+                        ]}
                       />
                     }
                   >

@@ -38,14 +38,14 @@ const allLinks: LinkDef[] = [
   { to: "/admin/sedes", label: "Sedes", icon: Building2, resource: "branches" },
   { to: "/admin/equipos", label: "Equipos", icon: ClipboardList, resource: "equipment", end: true },
   { to: "/admin/equipos/etiquetas", label: "Etiquetas QR", icon: QrCode, resource: "equipment" },
-  // El historial de mantenimientos es de gestión. El técnico/ingeniero
-  // ejecuta su trabajo desde "Órdenes de trabajo".
+  // El historial de mantenimientos no lo ve el técnico (trabaja desde
+  // "Órdenes de trabajo"). El resto sí.
   {
     to: "/admin/mantenimientos",
     label: "Mantenimientos",
     icon: Wrench,
     resource: "maintenance",
-    roles: ["superadmin", "admin", "coordinador"],
+    roles: ["superadmin", "admin", "coordinador", "ingeniero"],
   },
   // Las órdenes de trabajo las ejecuta quien tiene el trabajo asignado. La
   // gestión hace el seguimiento desde Solicitudes.

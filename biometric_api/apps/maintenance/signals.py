@@ -65,6 +65,33 @@ def sync_work_order_from_record(sender, instance: MaintenanceRecord, **kwargs):
     )
 
 
+@receiver(post_save, sender=EquipmentWorkOrder)
+def close_record_when_work_order_finished(
+    sender, instance: EquipmentWorkOrder, **kwargs
+):
+    """Al terminar la orden, su registro entra al historial con la fecha real
+    de ejecución y el costo del trabajo.
+    """
+    if not instance.maintenance_record_id or instance.status != "FINISHED":
+        return
+
+    record = instance.maintenance_record
+    fields = ["date", "updated_at"]
+    record.date = timezone.localdate()
+
+    cost = getattr(instance, "cost", None)
+    if cost is not None:
+        record.cost = (
+            cost.labor_cost
+            + cost.spare_parts_cost
+            + cost.transport_cost
+            + cost.other_cost
+        )
+        fields.append("cost")
+
+    record.save(update_fields=fields)
+
+
 @receiver(pre_delete, sender=MaintenanceRecord)
 def remove_pdf_file(sender, instance: MaintenanceRecord, **kwargs) -> None:
     """Borra el PDF asociado del storage al eliminar el registro."""
