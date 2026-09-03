@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Building,
   ChevronLeft,
@@ -206,6 +206,8 @@ export function EquiposPage() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<FormState>(empty);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const formErrorRef = useRef<HTMLDivElement | null>(null);
 
   const [toDelete, setToDelete] = useState<Equipment | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -313,13 +315,27 @@ export function EquiposPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, statusFilter, branchFilter, brandFilter, riskFilter, page, tab]);
 
+  // Al aparecer un error en el formulario, lo traemos a la vista: si no,
+  // queda arriba mientras el usuario mira la parte de abajo del modal.
+  useEffect(() => {
+    if (formError) {
+      formErrorRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+  }, [formError]);
+
   // ---- CRUD equipo ----
   const openCreate = () => {
+    const brand = brands.find((b) => b.is_active)?.id ?? brands[0]?.id ?? 0;
+    const brandModels = models.filter((m) => m.brand === brand && m.is_active);
     setForm({
       ...empty,
       branch: branches[0]?.id ?? 0,
-      brand: brands.find((b) => b.is_active)?.id ?? brands[0]?.id ?? 0,
+      brand,
+      // Si la marca por defecto tiene un solo modelo, lo dejamos elegido para
+      // que no sea un campo obligatorio "invisible" que bloquea el guardado.
+      equipment_model: brandModels.length === 1 ? brandModels[0].id : 0,
     });
+    setFormError(null);
     setCreating(true);
   };
 
@@ -396,6 +412,7 @@ export function EquiposPage() {
 
       observations: e.observations ?? "",
     });
+    setFormError(null);
     setEditing(e);
   };
 
@@ -403,12 +420,35 @@ export function EquiposPage() {
     setCreating(false);
     setEditing(null);
     setForm(empty);
+    setFormError(null);
   };
 
   const submit = async (ev: React.FormEvent) => {
     ev.preventDefault();
-    if (!form.brand) return alert("Selecciona una marca.");
-    if (!form.equipment_model) return alert("Selecciona un modelo.");
+
+    // Validación explícita: los campos obligatorios que están arriba en el
+    // formulario quedaban ocultos al hacer scroll y el navegador bloqueaba
+    // el envío sin que se viera por qué. Ahora lo decimos claramente.
+    if (models.length > 0 && form.brand && modelOptionsForm.length === 0) {
+      setFormError(
+        'La marca seleccionada no tiene modelos. Créalos en la pestaña "Marcas y modelos" y vuelve a intentarlo.',
+      );
+      return;
+    }
+    const missing: string[] = [];
+    if (!form.name.trim()) missing.push("Nombre");
+    if (!form.asset_tag.trim()) missing.push("Asset tag");
+    if (!form.branch) missing.push("Sede");
+    if (!form.brand) missing.push("Marca");
+    if (!form.equipment_model) missing.push("Modelo");
+    if (!form.location.trim()) missing.push("Ubicación");
+    if (!form.purchase_date) missing.push("Fecha de compra");
+    if (missing.length) {
+      setFormError(`Faltan campos obligatorios: ${missing.join(", ")}.`);
+      return;
+    }
+
+    setFormError(null);
     setSaving(true);
 
     // El campo brand del form es sólo UI; el backend deriva la marca del
@@ -484,7 +524,7 @@ export function EquiposPage() {
       closeModal();
       await load(page);
     } catch (err) {
-      alert(getApiErrorMessage(err, "Error al guardar"));
+      setFormError(getApiErrorMessage(err, "Error al guardar"));
     } finally {
       setSaving(false);
     }
@@ -762,7 +802,16 @@ export function EquiposPage() {
         title={editing ? "Editar equipo" : "Nuevo equipo"}
         size="lg"
       >
-        <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+        <form onSubmit={submit} noValidate className="grid gap-4 sm:grid-cols-2">
+          {formError && (
+            <div
+              ref={formErrorRef}
+              role="alert"
+              className="sm:col-span-2 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
+            >
+              {formError}
+            </div>
+          )}
           <div className="text-sm font-semibold text-app">
             <h3 className="text-sm font-semibold text-app">
               Identificación del equipo
@@ -831,13 +880,18 @@ export function EquiposPage() {
           <Select
             label="Marca"
             value={String(form.brand)}
-            onChange={(e) =>
+            onChange={(e) => {
+              const brandId = Number(e.target.value);
+              const brandModels = models.filter(
+                (m) => m.brand === brandId && m.is_active,
+              );
               setForm({
                 ...form,
-                brand: Number(e.target.value),
-                equipment_model: 0,
-              })
-            }
+                brand: brandId,
+                equipment_model:
+                  brandModels.length === 1 ? brandModels[0].id : 0,
+              });
+            }}
             options={brandOptions}
             placeholder="Selecciona una marca"
             required
