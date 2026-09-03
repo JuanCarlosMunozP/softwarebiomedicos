@@ -26,6 +26,7 @@ from .serializers import (
     EquipmentCertificateSerializer,
     EquipmentInstructionSerializer,
     EquipmentSerializer,
+    EquipmentWorkOrderDetailSerializer,
     EquipmentWorkOrderSerializer,
     WorkOrderCostSerializer,
     WorkOrderEvidenceSerializer,
@@ -196,9 +197,15 @@ class EquipmentWorkOrderViewSet(AuditLogMixin, viewsets.ModelViewSet):
     )
 
     serializer_class = EquipmentWorkOrderSerializer
-    permission_classes = (IsAuthenticated, HasRolePermission)
-    permission_resource = "equipment"
 
+    def get_serializer_class(self):
+        if self.action == "details":
+            return EquipmentWorkOrderDetailSerializer
+        return EquipmentWorkOrderSerializer
+    permission_classes = (IsAuthenticated, HasRolePermission)
+    permission_resource = "work_orders"
+
+    filterset_fields = ("equipment", "status", "service_type", "technician")
     search_fields = (
         "number",
         "description",
@@ -209,18 +216,22 @@ class EquipmentWorkOrderViewSet(AuditLogMixin, viewsets.ModelViewSet):
         "technician__last_name",
     )
 
-    ordering_fields = ("number","start_date","end_date","status",)
+    ordering_fields = ("number", "start_date", "end_date", "status", "created_at")
+    ordering = ("-start_date",)
 
-    @action(detail=True,methods=["get"],url_path="details",)
-    def details(self,request,pk:int=None):
-
-        """ Devuelve una orden de trabajo junto a sus elementos relacionados"""
-
-        work_order = self.get_object()
-
-        serializer = self.get_serializer(work_order)
-
-        return Response(serializer.data)
+    @action(detail=True, methods=["get"], url_path="details")
+    def details(self, request, pk: int = None):
+        """Devuelve una orden de trabajo junto a sus elementos relacionados."""
+        work_order = (
+            self.get_queryset()
+            .prefetch_related(
+                "spare_parts", "measurements", "evidences", "signatures"
+            )
+            .select_related("cost")
+            .get(pk=self.kwargs["pk"])
+        )
+        self.check_object_permissions(request, work_order)
+        return Response(self.get_serializer(work_order).data)
 
 class WorkOrderSparePartViewSet(viewsets.ModelViewSet):
 
@@ -233,8 +244,9 @@ class WorkOrderSparePartViewSet(viewsets.ModelViewSet):
 
     serializer_class = WorkOrderSparePartSerializer
     permission_classes = (IsAuthenticated, HasRolePermission)
-    permission_resource = "equipment"
+    permission_resource = "work_orders"
 
+    filterset_fields = ("work_order",)
     search_fields = ("name","reference","work_order__number")
 
     ordering_fields = ("name","quantity","unit_cost","total_cost")
@@ -253,8 +265,9 @@ class WorkOrderMeasurementViewSet(viewsets.ModelViewSet):
 
     serializer_class = WorkOrderMeasurementSerializer
     permission_classes = (IsAuthenticated, HasRolePermission)
-    permission_resource = "equipment"
+    permission_resource = "work_orders"
 
+    filterset_fields = ("work_order", "passed")
     search_fields = (
         "parameter",
         "measured_value",
@@ -282,16 +295,16 @@ class WorkOrderEvidenceViewSet(viewsets.ModelViewSet):
 
     serializer_class = WorkOrderEvidenceSerializer
     permission_classes = (IsAuthenticated, HasRolePermission)
-    permission_resource = "equipment"
+    permission_resource = "work_orders"
 
+    filterset_fields = ("work_order", "evidence_type")
     search_fields = (
         "description",
         "work_order__number",
     )
 
-    ordering_fields = (
-        "evidence_type",
-    )
+    ordering_fields = ("evidence_type", "id")
+    ordering = ("id",)
 
 
 class WorkOrderSignatureViewSet(viewsets.ModelViewSet):
@@ -305,8 +318,9 @@ class WorkOrderSignatureViewSet(viewsets.ModelViewSet):
 
     serializer_class = WorkOrderSignatureSerializer
     permission_classes = (IsAuthenticated, HasRolePermission)
-    permission_resource = "equipment"
+    permission_resource = "work_orders"
 
+    filterset_fields = ("work_order", "role")
     search_fields = ("signed_by","role","work_order__number")
     ordering_fields = (
         "role",
@@ -331,8 +345,9 @@ class WorkOrderCostViewSet(viewsets.ModelViewSet):
 
     serializer_class = WorkOrderCostSerializer
     permission_classes = (IsAuthenticated, HasRolePermission)
-    permission_resource = "equipment"
+    permission_resource = "work_orders"
 
+    filterset_fields = ("work_order",)
     search_fields = (
         "work_order__number",
         "work_order__equipment__name",

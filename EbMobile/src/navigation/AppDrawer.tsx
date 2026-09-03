@@ -8,6 +8,7 @@ import { CustomDrawerContent } from "./CustomDrawerContent";
 import { DashboardScreen } from "@/screens/admin/DashboardScreen";
 import { EquiposScreen } from "@/screens/admin/EquiposScreen";
 import { MantenimientosScreen } from "@/screens/admin/MantenimientosScreen";
+import { OrdenesTrabajoScreen } from "@/screens/admin/OrdenesTrabajoScreen";
 import { AgendamientosScreen } from "@/screens/admin/AgendamientosScreen";
 import { FallasScreen } from "@/screens/admin/FallasScreen";
 import { SedesScreen } from "@/screens/admin/SedesScreen";
@@ -62,6 +63,13 @@ export function AppDrawer() {
           name="Mantenimientos"
           component={MantenimientosScreen}
           options={{ title: "Mantenimientos" }}
+        />
+      )}
+      {can(role, "work_orders", "view") && (
+        <Drawer.Screen
+          name="OrdenesTrabajo"
+          component={OrdenesTrabajoScreen}
+          options={{ title: "Órdenes de trabajo" }}
         />
       )}
       {can(role, "scheduling", "view") && (

@@ -17,6 +17,7 @@ import { EquiposPage } from "@/pages/admin/EquiposPage";
 import { EquipoDetallePage } from "@/pages/admin/EquipoDetallePage";
 import { UsuariosPage } from "@/pages/admin/UsuariosPage";
 import { MantenimientosPage } from "@/pages/admin/MantenimientosPage";
+import { OrdenesTrabajoPage } from "@/pages/admin/OrdenesTrabajoPage";
 import { AgendamientosPage } from "@/pages/admin/AgendamientosPage";
 import { FallasPage } from "@/pages/admin/FallasPage";
 import { PerfilPage } from "@/pages/admin/PerfilPage";
@@ -64,6 +65,7 @@ function App() {
                   <Route path="equipos" element={<EquiposPage />} />
                   <Route path="equipos/:id" element={<EquipoDetallePage />} />
                   <Route path="mantenimientos" element={<MantenimientosPage />} />
+                  <Route path="ordenes-trabajo" element={<OrdenesTrabajoPage />} />
                   <Route path="agendamientos" element={<AgendamientosPage />} />
                   <Route path="fallas" element={<FallasPage />} />
                   <Route path="perfil" element={<PerfilPage />} />

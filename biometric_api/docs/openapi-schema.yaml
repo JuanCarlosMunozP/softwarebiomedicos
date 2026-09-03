@@ -1467,6 +1467,10 @@ paths:
         description: Un término de búsqueda.
         schema:
           type: string
+      - in: query
+        name: work_order
+        schema:
+          type: integer
       tags:
       - v1
       responses:
@@ -1616,6 +1620,20 @@ paths:
       operationId: v1_equipment_work_order_evidences_list
       description: CRUD de evidencias de una orden de trabajo.
       parameters:
+      - in: query
+        name: evidence_type
+        schema:
+          type: string
+          enum:
+          - AUDIO
+          - DOCUMENT
+          - PHOTO
+          - VIDEO
+        description: |-
+          * `PHOTO` - Fotografía
+          * `VIDEO` - Video
+          * `DOCUMENT` - Documento
+          * `AUDIO` - Audio
       - name: ordering
         required: false
         in: query
@@ -1634,6 +1652,10 @@ paths:
         description: Un término de búsqueda.
         schema:
           type: string
+      - in: query
+        name: work_order
+        schema:
+          type: integer
       tags:
       - v1
       responses:
@@ -1763,6 +1785,166 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/equipment/work-order-measurements/:
+    get:
+      operationId: v1_equipment_work_order_measurements_list
+      description: CRUD de mediciones realizadas durante una orden de trabajo
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Qué campo usar para ordenar los resultados.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Un número de página dentro del conjunto de resultados paginado.
+        schema:
+          type: integer
+      - in: query
+        name: passed
+        schema:
+          type: boolean
+      - name: search
+        required: false
+        in: query
+        description: Un término de búsqueda.
+        schema:
+          type: string
+      - in: query
+        name: work_order
+        schema:
+          type: integer
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWorkOrderMeasurementList'
+          description: ''
+    post:
+      operationId: v1_equipment_work_order_measurements_create
+      description: CRUD de mediciones realizadas durante una orden de trabajo
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkOrderMeasurementRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WorkOrderMeasurementRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WorkOrderMeasurementRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderMeasurement'
+          description: ''
+  /api/v1/equipment/work-order-measurements/{id}/:
+    get:
+      operationId: v1_equipment_work_order_measurements_retrieve
+      description: CRUD de mediciones realizadas durante una orden de trabajo
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order measurement.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderMeasurement'
+          description: ''
+    put:
+      operationId: v1_equipment_work_order_measurements_update
+      description: CRUD de mediciones realizadas durante una orden de trabajo
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order measurement.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkOrderMeasurementRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WorkOrderMeasurementRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WorkOrderMeasurementRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderMeasurement'
+          description: ''
+    patch:
+      operationId: v1_equipment_work_order_measurements_partial_update
+      description: CRUD de mediciones realizadas durante una orden de trabajo
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order measurement.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedWorkOrderMeasurementRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedWorkOrderMeasurementRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedWorkOrderMeasurementRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderMeasurement'
+          description: ''
+    delete:
+      operationId: v1_equipment_work_order_measurements_destroy
+      description: CRUD de mediciones realizadas durante una orden de trabajo
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Un valor de entero único que identifique este work order measurement.
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
   /api/v1/equipment/work-order-signatures/:
     get:
       operationId: v1_equipment_work_order_signatures_list
@@ -1780,12 +1962,30 @@ paths:
         description: Un número de página dentro del conjunto de resultados paginado.
         schema:
           type: integer
+      - in: query
+        name: role
+        schema:
+          type: string
+          enum:
+          - CLIENT
+          - ENGINEER
+          - SUPERVISOR
+          - TECHNICIAN
+        description: |-
+          * `TECHNICIAN` - Technician
+          * `ENGINEER` - Engineer
+          * `CLIENT` - Client
+          * `SUPERVISOR` - Supervisor
       - name: search
         required: false
         in: query
         description: Un término de búsqueda.
         schema:
           type: string
+      - in: query
+        name: work_order
+        schema:
+          type: integer
       tags:
       - v1
       responses:
@@ -1938,6 +2138,10 @@ paths:
         description: Un término de búsqueda.
         schema:
           type: string
+      - in: query
+        name: work_order
+        schema:
+          type: integer
       tags:
       - v1
       responses:
@@ -2076,6 +2280,10 @@ paths:
       operationId: v1_equipment_work_orders_list
       description: CRUD de órdenes de trabajo de equipos
       parameters:
+      - in: query
+        name: equipment
+        schema:
+          type: integer
       - name: ordering
         required: false
         in: query
@@ -2094,6 +2302,40 @@ paths:
         description: Un término de búsqueda.
         schema:
           type: string
+      - in: query
+        name: service_type
+        schema:
+          type: string
+          enum:
+          - CALIBRATION
+          - CORRECTIVE
+          - INSPECTION
+          - INSTALLATION
+          - PREVENTIVE
+        description: |-
+          * `PREVENTIVE` - Preventivo
+          * `CORRECTIVE` - Correctivo
+          * `CALIBRATION` - Calibración
+          * `INSTALLATION` - Instalación
+          * `INSPECTION` - Inspección
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - CANCELLED
+          - FINISHED
+          - IN_PROGRESS
+          - PENDING
+        description: |-
+          * `PENDING` - Pendiente
+          * `IN_PROGRESS` - En proceso
+          * `FINISHED` - Terminada
+          * `CANCELLED` - Cancelada
+      - in: query
+        name: technician
+        schema:
+          type: integer
       tags:
       - v1
       responses:
@@ -2230,7 +2472,7 @@ paths:
   /api/v1/equipment/work-orders/{id}/details/:
     get:
       operationId: v1_equipment_work_orders_details_retrieve
-      description: Devuelve una orden de trabajo junto a sus elementos relacionados
+      description: Devuelve una orden de trabajo junto a sus elementos relacionados.
       parameters:
       - in: path
         name: id
@@ -2246,7 +2488,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EquipmentWorkOrder'
+                $ref: '#/components/schemas/EquipmentWorkOrderDetail'
           description: ''
   /api/v1/failures/:
     get:
@@ -4001,11 +4243,20 @@ components:
           readOnly: true
         equipment:
           type: integer
+        equipment_asset_tag:
+          type: string
+          readOnly: true
+        equipment_name:
+          type: string
+          readOnly: true
         number:
           type: string
           maxLength: 50
         service_type:
           $ref: '#/components/schemas/ServiceTypeEnum'
+        service_type_display:
+          type: string
+          readOnly: true
         start_date:
           type: string
           format: date-time
@@ -4022,7 +4273,10 @@ components:
           type: string
           readOnly: true
         status:
-          $ref: '#/components/schemas/EquipmentWorkOrderStatusEnum'
+          $ref: '#/components/schemas/Status2c8Enum'
+        status_display:
+          type: string
+          readOnly: true
         report:
           type: string
           format: uri
@@ -4035,10 +4289,106 @@ components:
       - created_at
       - description
       - equipment
+      - equipment_asset_tag
+      - equipment_name
       - id
       - number
       - service_type
+      - service_type_display
       - start_date
+      - status_display
+      - technician_name
+    EquipmentWorkOrderDetail:
+      type: object
+      description: Orden de trabajo + sus elementos relacionados (para la acción `details`).
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        equipment:
+          type: integer
+        equipment_asset_tag:
+          type: string
+          readOnly: true
+        equipment_name:
+          type: string
+          readOnly: true
+        number:
+          type: string
+          maxLength: 50
+        service_type:
+          $ref: '#/components/schemas/ServiceTypeEnum'
+        service_type_display:
+          type: string
+          readOnly: true
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+        description:
+          type: string
+        technician:
+          type: integer
+          nullable: true
+        technician_name:
+          type: string
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/Status2c8Enum'
+        status_display:
+          type: string
+          readOnly: true
+        report:
+          type: string
+          format: uri
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        spare_parts:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkOrderSparePart'
+          readOnly: true
+        measurements:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkOrderMeasurement'
+          readOnly: true
+        evidences:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkOrderEvidence'
+          readOnly: true
+        signatures:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkOrderSignature'
+          readOnly: true
+        cost:
+          type: string
+          readOnly: true
+      required:
+      - cost
+      - created_at
+      - description
+      - equipment
+      - equipment_asset_tag
+      - equipment_name
+      - evidences
+      - id
+      - measurements
+      - number
+      - service_type
+      - service_type_display
+      - signatures
+      - spare_parts
+      - start_date
+      - status_display
       - technician_name
     EquipmentWorkOrderRequest:
       type: object
@@ -4065,7 +4415,7 @@ components:
           type: integer
           nullable: true
         status:
-          $ref: '#/components/schemas/EquipmentWorkOrderStatusEnum'
+          $ref: '#/components/schemas/Status2c8Enum'
         report:
           type: string
           format: binary
@@ -4075,18 +4425,6 @@ components:
       - number
       - service_type
       - start_date
-    EquipmentWorkOrderStatusEnum:
-      enum:
-      - PENDING
-      - IN_PROGRESS
-      - FINISHED
-      - CANCELLED
-      type: string
-      description: |-
-        * `PENDING` - Pendiente
-        * `IN_PROGRESS` - En proceso
-        * `FINISHED` - Terminada
-        * `CANCELLED` - Cancelada
     EvidenceTypeEnum:
       enum:
       - PHOTO
@@ -4797,6 +5135,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/WorkOrderEvidence'
+    PaginatedWorkOrderMeasurementList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkOrderMeasurement'
     PaginatedWorkOrderSignatureList:
       type: object
       required:
@@ -5190,7 +5551,7 @@ components:
           type: integer
           nullable: true
         status:
-          $ref: '#/components/schemas/EquipmentWorkOrderStatusEnum'
+          $ref: '#/components/schemas/Status2c8Enum'
         report:
           type: string
           format: binary
@@ -5365,6 +5726,29 @@ components:
           format: binary
         work_order:
           type: integer
+    PatchedWorkOrderMeasurementRequest:
+      type: object
+      properties:
+        parameter:
+          type: string
+          minLength: 1
+          maxLength: 120
+        expected_value:
+          type: string
+          minLength: 1
+          maxLength: 100
+        measured_value:
+          type: string
+          minLength: 1
+          maxLength: 100
+        unit:
+          type: string
+          minLength: 1
+          maxLength: 20
+        passed:
+          type: boolean
+        work_order:
+          type: integer
     PatchedWorkOrderSignatureRequest:
       type: object
       properties:
@@ -5392,10 +5776,6 @@ components:
           maximum: 2147483647
           minimum: 0
         unit_cost:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
-        total_cost:
           type: string
           format: decimal
           pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
@@ -5453,6 +5833,18 @@ components:
         * `MEDIUM` - Media
         * `HIGH` - Alta
         * `CRITICAL` - Crítica
+    Status2c8Enum:
+      enum:
+      - PENDING
+      - IN_PROGRESS
+      - FINISHED
+      - CANCELLED
+      type: string
+      description: |-
+        * `PENDING` - Pendiente
+        * `IN_PROGRESS` - En proceso
+        * `FINISHED` - Terminada
+        * `CANCELLED` - Cancelada
     TechnologyTypeEnum:
       enum:
       - ELECTRONIC
@@ -5921,6 +6313,64 @@ components:
       - description
       - evidence_type
       - work_order
+    WorkOrderMeasurement:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        parameter:
+          type: string
+          maxLength: 120
+        expected_value:
+          type: string
+          maxLength: 100
+        measured_value:
+          type: string
+          maxLength: 100
+        unit:
+          type: string
+          maxLength: 20
+        passed:
+          type: boolean
+        work_order:
+          type: integer
+      required:
+      - expected_value
+      - id
+      - measured_value
+      - parameter
+      - unit
+      - work_order
+    WorkOrderMeasurementRequest:
+      type: object
+      properties:
+        parameter:
+          type: string
+          minLength: 1
+          maxLength: 120
+        expected_value:
+          type: string
+          minLength: 1
+          maxLength: 100
+        measured_value:
+          type: string
+          minLength: 1
+          maxLength: 100
+        unit:
+          type: string
+          minLength: 1
+          maxLength: 20
+        passed:
+          type: boolean
+        work_order:
+          type: integer
+      required:
+      - expected_value
+      - measured_value
+      - parameter
+      - unit
+      - work_order
     WorkOrderSignature:
       type: object
       properties:
@@ -5977,6 +6427,11 @@ components:
         id:
           type: integer
           readOnly: true
+        total_cost:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
         name:
           type: string
           maxLength: 150
@@ -5988,10 +6443,6 @@ components:
           maximum: 2147483647
           minimum: 0
         unit_cost:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
-        total_cost:
           type: string
           format: decimal
           pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
@@ -6024,17 +6475,12 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
-        total_cost:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
         work_order:
           type: integer
       required:
       - name
       - quantity
       - reference
-      - total_cost
       - unit_cost
       - work_order
     _AssignedUser:
