@@ -113,19 +113,37 @@ class TestMaintenanceCreate:
             assert required in body
 
 
-class TestMaintenanceListScopedByRole:
-    """El técnico solo ve los mantenimientos que tiene asignados."""
+def _finish_wo(record):
+    """El registro asignado nace con una orden de trabajo abierta; hasta que
+    no se termina, es una tarea y no aparece en el historial."""
+    from apps.equipment.models import EquipmentWorkOrder
 
-    def test_tecnico_only_sees_own_assignments(
+    EquipmentWorkOrder.objects.filter(maintenance_record=record).update(
+        status="FINISHED"
+    )
+
+
+class TestMaintenanceListScopedByRole:
+    """Técnico/ingeniero ven en el historial solo los mantenimientos suyos que
+    ya están realizados (orden de trabajo terminada). Los que están en curso
+    viven en "Órdenes de trabajo". Gestión ve todo."""
+
+    def test_tecnico_only_sees_own_finished_maintenances(
         self, api_client, tecnico, equipment
     ):
         from apps.users.tests.factories import TecnicoFactory
 
-        otro = TecnicoFactory()
-        MaintenanceRecordFactory.create_batch(
+        mios = MaintenanceRecordFactory.create_batch(
             2, equipment=equipment, assigned_technician=tecnico
         )
-        MaintenanceRecordFactory(equipment=equipment, assigned_technician=otro)
+        for r in mios:
+            _finish_wo(r)
+        # En curso (orden abierta) -> no aparece en el historial.
+        MaintenanceRecordFactory(equipment=equipment, assigned_technician=tecnico)
+        # Ajeno y sin asignar.
+        MaintenanceRecordFactory(
+            equipment=equipment, assigned_technician=TecnicoFactory()
+        )
         MaintenanceRecordFactory(equipment=equipment, assigned_technician=None)
 
         api_client.force_authenticate(user=tecnico)
@@ -134,7 +152,17 @@ class TestMaintenanceListScopedByRole:
         assert response.status_code == 200
         assert response.json()["count"] == 2
 
-    def test_management_sees_all(self, auth_client, tecnico, equipment):
+    def test_open_work_order_hides_record_from_technician_history(
+        self, api_client, tecnico, equipment
+    ):
+        MaintenanceRecordFactory(equipment=equipment, assigned_technician=tecnico)
+
+        api_client.force_authenticate(user=tecnico)
+        assert api_client.get(LIST_URL).json()["count"] == 0
+
+    def test_management_sees_all_including_in_progress(
+        self, auth_client, tecnico, equipment
+    ):
         MaintenanceRecordFactory.create_batch(
             2, equipment=equipment, assigned_technician=tecnico
         )
@@ -145,36 +173,22 @@ class TestMaintenanceListScopedByRole:
         assert response.status_code == 200
         assert response.json()["count"] == 3
 
-    def test_tecnico_created_record_is_self_assigned_and_visible(
-        self, api_client, tecnico, equipment
-    ):
-        api_client.force_authenticate(user=tecnico)
-        payload = {
-            "equipment": equipment.id,
-            "kind": MaintenanceKind.PREVENTIVE,
-            "date": "2026-01-15",
-            "description": "Registro hecho por el técnico.",
-        }
-        created = api_client.post(LIST_URL, payload, format="json")
-        assert created.status_code == 201
-        assert created.json()["assigned_technician"] == tecnico.id
-
-        listed = api_client.get(LIST_URL)
-        assert listed.json()["count"] == 1
-
-    def test_ingeniero_only_sees_own_assignments(
+    def test_ingeniero_only_sees_own_finished_maintenances(
         self, api_client, ingeniero, tecnico, equipment
     ):
         from apps.users.tests.factories import IngenieroFactory
 
-        otro_ing = IngenieroFactory()
-        # Asignados al ingeniero (en su FK) o a él como técnico de apoyo.
-        MaintenanceRecordFactory(equipment=equipment, assigned_engineer=ingeniero)
-        MaintenanceRecordFactory(
+        r1 = MaintenanceRecordFactory(
+            equipment=equipment, assigned_engineer=ingeniero
+        )
+        r2 = MaintenanceRecordFactory(
             equipment=equipment, assigned_technician=ingeniero
         )
-        # Ajenos: de otro ingeniero, de un técnico, y sin asignar.
-        MaintenanceRecordFactory(equipment=equipment, assigned_engineer=otro_ing)
+        _finish_wo(r1)
+        _finish_wo(r2)
+        MaintenanceRecordFactory(
+            equipment=equipment, assigned_engineer=IngenieroFactory()
+        )
         MaintenanceRecordFactory(equipment=equipment, assigned_technician=tecnico)
         MaintenanceRecordFactory(equipment=equipment)
 
@@ -183,23 +197,6 @@ class TestMaintenanceListScopedByRole:
 
         assert response.status_code == 200
         assert response.json()["count"] == 2
-
-    def test_ingeniero_created_record_is_self_assigned_and_visible(
-        self, api_client, ingeniero, equipment
-    ):
-        api_client.force_authenticate(user=ingeniero)
-        payload = {
-            "equipment": equipment.id,
-            "kind": MaintenanceKind.PREVENTIVE,
-            "date": "2026-01-15",
-            "description": "Registro hecho por el ingeniero.",
-        }
-        created = api_client.post(LIST_URL, payload, format="json")
-        assert created.status_code == 201
-        assert created.json()["assigned_engineer"] == ingeniero.id
-
-        listed = api_client.get(LIST_URL)
-        assert listed.json()["count"] == 1
 
 
 class TestMaintenanceList:

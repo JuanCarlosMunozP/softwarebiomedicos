@@ -134,8 +134,12 @@ class EquipmentViewSet(AuditLogMixin, viewsets.ModelViewSet):
         from apps.maintenance.models import MaintenanceRecord
 
         equipment = self.get_object()
-        queryset = MaintenanceRecord.objects.filter(equipment=equipment).order_by(
-            "-date", "-created_at"
+        queryset = (
+            MaintenanceRecord.objects.filter(equipment=equipment)
+            # Igual que la lista: solo mantenimientos ya realizados, no tareas
+            # con orden de trabajo abierta.
+            .exclude(work_order__status__in=("PENDING", "IN_PROGRESS", "CANCELLED"))
+            .order_by("-date", "-created_at")
         )
         page = self.paginate_queryset(queryset)
         if page is not None:

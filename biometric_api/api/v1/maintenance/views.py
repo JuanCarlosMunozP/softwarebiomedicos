@@ -36,11 +36,17 @@ class MaintenanceRecordViewSet(AuditLogMixin, viewsets.ModelViewSet):
     ordering_fields = ("date", "created_at", "cost")
     ordering = ("-date",)
 
+    # Órdenes de trabajo que significan "aún es una tarea, no un mantenimiento
+    # del historial". El registro reaparece cuando la orden queda Terminada.
+    _OPEN_WO_STATUSES = ("PENDING", "IN_PROGRESS", "CANCELLED")
+
     def get_queryset(self):
         qs = super().get_queryset()
-        # Técnico e ingeniero solo ven los mantenimientos que tienen asignados
-        # (cada uno en su FK correspondiente). Gestión (superadmin/admin/
-        # coordinador) ve todos.
+        # Técnico e ingeniero solo ven los mantenimientos que tienen asignados,
+        # y de esos, solo los ya realizados: si el registro tiene una orden de
+        # trabajo abierta todavía es una tarea (vive en "Órdenes de trabajo").
+        # Gestión (superadmin/admin/coordinador) ve todos, incluidos los que
+        # están en curso.
         user = self.request.user
         if not user.is_authenticated:
             return qs
@@ -50,4 +56,6 @@ class MaintenanceRecordViewSet(AuditLogMixin, viewsets.ModelViewSet):
             qs = qs.filter(
                 Q(assigned_engineer=user) | Q(assigned_technician=user)
             )
-        return qs
+        else:
+            return qs
+        return qs.exclude(work_order__status__in=self._OPEN_WO_STATUSES)
