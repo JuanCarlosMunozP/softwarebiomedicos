@@ -29,9 +29,7 @@ export interface Equipment {
   brand?: number;
   brand_name?: string;
   technology_type?: string | null;
-  technology_type_display?: string | null;
   biomedical_classification?: string | null;
-  biomedical_classification_display?: string | null;
   risk_class: RiskClass;
   risk_class_display?: string | null;
 
@@ -55,7 +53,7 @@ export interface Equipment {
   // ================================
 
   purchase_date: string;
-  supplier_acquisiton?: string | null;
+  supplier_acquisition?: string | null;
   equipment_cost?: string | number | null;
   manufacture_date?: string | null;
   start_use_date?: string | null;
@@ -81,7 +79,7 @@ export interface Equipment {
   // ===============================
 
   calibration_date?: string | null;
-  calibration_frequenty_months?: number | null;
+  calibration_frequency_months?: number | null;
   last_calibration?: string | null;
   next_calibration?: string | null;
 
@@ -89,10 +87,8 @@ export interface Equipment {
   // SEGURIDAD ELÉCTRICA
   // ===============================
 
-  electrical_safety_class?:string | null;
-  electrical_safety_class_display?: string | null;
+  electrical_safety_class?: string | null;
   electrical_safety_type?: string | null;
-  electrical_safety_type_display?: string | null;
 
   // ==============================
   // INFORMACIÓN REGULATORIA
