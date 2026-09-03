@@ -271,15 +271,42 @@ class EquipmentInstructionSerializer(serializers.ModelSerializer):
 
 
 class WorkOrderSparePartSerializer(serializers.ModelSerializer):
+    # Se calcula en el backend: cantidad × costo unitario.
+    total_cost = serializers.DecimalField(
+        max_digits=12, decimal_places=2, read_only=True
+    )
 
     class Meta:
         model = WorkOrderSparePart
+        fields = "__all__"
+        read_only_fields = ["id", "total_cost"]
 
-        fields = '__all__'
+    def validate_quantity(self, value):
+        if value is not None and value < 1:
+            raise serializers.ValidationError(_("La cantidad debe ser al menos 1."))
+        return value
 
-        read_only_fields = [
-            "id",
-        ]
+    def validate_unit_cost(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError(_("El costo unitario no puede ser negativo."))
+        return value
+
+    def _apply_total(self, instance):
+        instance.total_cost = (instance.quantity or 0) * (instance.unit_cost or 0)
+        return instance
+
+    def create(self, validated_data):
+        instance = WorkOrderSparePart(**validated_data)
+        self._apply_total(instance)
+        instance.save()
+        return instance
+
+    def update(self, instance, validated_data):
+        for k, v in validated_data.items():
+            setattr(instance, k, v)
+        self._apply_total(instance)
+        instance.save()
+        return instance
 
 class WorkOrderMeasurementSerializer(serializers.ModelSerializer):
 
@@ -336,6 +363,16 @@ class WorkOrderCostSerializer(serializers.ModelSerializer):
 class EquipmentWorkOrderSerializer(serializers.ModelSerializer):
 
     technician_name = serializers.SerializerMethodField()
+    equipment_asset_tag = serializers.CharField(
+        source="equipment.asset_tag", read_only=True
+    )
+    equipment_name = serializers.CharField(source="equipment.name", read_only=True)
+    service_type_display = serializers.CharField(
+        source="get_service_type_display", read_only=True
+    )
+    status_display = serializers.CharField(
+        source="get_status_display", read_only=True
+    )
 
     class Meta:
 
@@ -344,32 +381,84 @@ class EquipmentWorkOrderSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "equipment",
+            "equipment_asset_tag",
+            "equipment_name",
             "number",
             "service_type",
+            "service_type_display",
             "start_date",
             "end_date",
             "description",
             "technician",
             "technician_name",
             "status",
+            "status_display",
             "report",
             "created_at",
         )
 
         read_only_fields = [
             "id",
+            "equipment_asset_tag",
+            "equipment_name",
+            "service_type_display",
+            "status_display",
+            "technician_name",
             "created_at",
         ]
+        extra_kwargs = {
+            # El mensaje de "ya existe" lo emite validate_number (en español);
+            # se desactiva el UniqueValidator auto-generado por unique=True.
+            "number": {"validators": []},
+        }
 
-    def get_technician_name(self,obj):
-
+    def get_technician_name(self, obj):
         if not obj.technician:
             return None
+        return obj.technician.get_full_name() or obj.technician.username
 
-        return (
-            obj.technician.get_full_name()
-            or obj.technician.username
-        )
+    def validate_number(self, value):
+        value = (value or "").strip()
+        if not value:
+            raise serializers.ValidationError(_("El número de la orden es obligatorio."))
+        qs = EquipmentWorkOrder.objects.filter(number__iexact=value)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError(_("Ya existe una orden con este número."))
+        return value
+
+    def validate(self, attrs):
+        start = attrs.get("start_date", getattr(self.instance, "start_date", None))
+        end = attrs.get("end_date", getattr(self.instance, "end_date", None))
+        if start and end and end < start:
+            raise serializers.ValidationError(
+                {"end_date": _("La fecha de fin no puede ser anterior al inicio.")}
+            )
+        return attrs
 
     def validate_report(self, value):
         return validate_uploaded_file(value, allowed_extensions=DOCUMENT_EXTENSIONS)
+
+
+class EquipmentWorkOrderDetailSerializer(EquipmentWorkOrderSerializer):
+    """Orden de trabajo + sus elementos relacionados (para la acción `details`)."""
+
+    spare_parts = WorkOrderSparePartSerializer(many=True, read_only=True)
+    measurements = WorkOrderMeasurementSerializer(many=True, read_only=True)
+    evidences = WorkOrderEvidenceSerializer(many=True, read_only=True)
+    signatures = WorkOrderSignatureSerializer(many=True, read_only=True)
+    cost = serializers.SerializerMethodField()
+
+    class Meta(EquipmentWorkOrderSerializer.Meta):
+        fields = EquipmentWorkOrderSerializer.Meta.fields + (
+            "spare_parts",
+            "measurements",
+            "evidences",
+            "signatures",
+            "cost",
+        )
+
+    def get_cost(self, obj):
+        cost = getattr(obj, "cost", None)
+        return WorkOrderCostSerializer(cost).data if cost is not None else None

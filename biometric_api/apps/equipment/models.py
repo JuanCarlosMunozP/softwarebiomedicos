@@ -438,6 +438,7 @@ class WorkOrderMeasurement(models.Model):
     work_order = models.ForeignKey(
         EquipmentWorkOrder,
         on_delete=models.CASCADE,
+        related_name="measurements",
     )
 
     parameter = models.CharField(max_length=120)

@@ -25,6 +25,7 @@ ROLE_MATRIX: dict[str, dict[str, frozenset[str]]] = {
         "maintenance": _ALL,
         "scheduling": _ALL,
         "failures": _ALL,
+        "work_orders": _ALL,
     },
     Role.ADMIN: {
         "branches": _ALL,
@@ -32,6 +33,7 @@ ROLE_MATRIX: dict[str, dict[str, frozenset[str]]] = {
         "maintenance": _ALL,
         "scheduling": _ALL,
         "failures": _ALL,
+        "work_orders": _ALL,
     },
     Role.COORDINADOR: {
         "branches": frozenset({VIEW}),
@@ -39,6 +41,7 @@ ROLE_MATRIX: dict[str, dict[str, frozenset[str]]] = {
         "maintenance": _ALL,
         "scheduling": _ALL,
         "failures": frozenset({VIEW, CREATE, EDIT}),
+        "work_orders": _ALL,
     },
     Role.INGENIERO: {
         "branches": frozenset({VIEW}),
@@ -46,12 +49,16 @@ ROLE_MATRIX: dict[str, dict[str, frozenset[str]]] = {
         "maintenance": frozenset({VIEW, CREATE, EDIT}),
         "scheduling": frozenset({VIEW, CREATE, EDIT}),
         "failures": frozenset({VIEW, CREATE, EDIT}),
+        "work_orders": frozenset({VIEW, CREATE, EDIT}),
     },
     Role.TECNICO: {
         "equipment": frozenset({VIEW}),
         "maintenance": frozenset({VIEW, CREATE}),
         "scheduling": frozenset({VIEW}),
         "failures": frozenset({VIEW, CREATE}),
+        # El técnico ejecuta la orden: la crea, la edita y le agrega
+        # repuestos/mediciones/evidencias/firmas.
+        "work_orders": frozenset({VIEW, CREATE, EDIT}),
     },
 }
 

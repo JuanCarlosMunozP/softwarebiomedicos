@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Building2,
   ClipboardCheck,
+  FileText,
   Gauge,
   LogOut,
   Stethoscope,
@@ -48,6 +49,12 @@ const NAV_ITEMS: NavItem[] = [
     label: "Mantenimientos",
     icon: (c) => <Wrench size={18} color={c} />,
     visible: (r) => can(r, "maintenance", "view"),
+  },
+  {
+    key: "OrdenesTrabajo",
+    label: "Órdenes de trabajo",
+    icon: (c) => <FileText size={18} color={c} />,
+    visible: (r) => can(r, "work_orders", "view"),
   },
   {
     key: "Agendamientos",

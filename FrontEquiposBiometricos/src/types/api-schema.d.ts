@@ -664,6 +664,44 @@ export interface paths {
         patch: operations["v1_equipment_work_order_evidences_partial_update"];
         trace?: never;
     };
+    "/api/v1/equipment/work-order-measurements/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description CRUD de mediciones realizadas durante una orden de trabajo */
+        get: operations["v1_equipment_work_order_measurements_list"];
+        put?: never;
+        /** @description CRUD de mediciones realizadas durante una orden de trabajo */
+        post: operations["v1_equipment_work_order_measurements_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipment/work-order-measurements/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description CRUD de mediciones realizadas durante una orden de trabajo */
+        get: operations["v1_equipment_work_order_measurements_retrieve"];
+        /** @description CRUD de mediciones realizadas durante una orden de trabajo */
+        put: operations["v1_equipment_work_order_measurements_update"];
+        post?: never;
+        /** @description CRUD de mediciones realizadas durante una orden de trabajo */
+        delete: operations["v1_equipment_work_order_measurements_destroy"];
+        options?: never;
+        head?: never;
+        /** @description CRUD de mediciones realizadas durante una orden de trabajo */
+        patch: operations["v1_equipment_work_order_measurements_partial_update"];
+        trace?: never;
+    };
     "/api/v1/equipment/work-order-signatures/": {
         parameters: {
             query?: never;
@@ -785,7 +823,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Devuelve una orden de trabajo junto a sus elementos relacionados */
+        /** @description Devuelve una orden de trabajo junto a sus elementos relacionados. */
         get: operations["v1_equipment_work_orders_details_retrieve"];
         put?: never;
         post?: never;
@@ -1483,8 +1521,11 @@ export interface components {
         EquipmentWorkOrder: {
             readonly id: number;
             equipment: number;
+            readonly equipment_asset_tag: string;
+            readonly equipment_name: string;
             number: string;
             service_type: components["schemas"]["ServiceTypeEnum"];
+            readonly service_type_display: string;
             /** Format: date-time */
             start_date: string;
             /** Format: date-time */
@@ -1492,11 +1533,40 @@ export interface components {
             description: string;
             technician?: number | null;
             readonly technician_name: string;
-            status?: components["schemas"]["EquipmentWorkOrderStatusEnum"];
+            status?: components["schemas"]["Status2c8Enum"];
+            readonly status_display: string;
             /** Format: uri */
             report?: string | null;
             /** Format: date-time */
             readonly created_at: string;
+        };
+        /** @description Orden de trabajo + sus elementos relacionados (para la acción `details`). */
+        EquipmentWorkOrderDetail: {
+            readonly id: number;
+            equipment: number;
+            readonly equipment_asset_tag: string;
+            readonly equipment_name: string;
+            number: string;
+            service_type: components["schemas"]["ServiceTypeEnum"];
+            readonly service_type_display: string;
+            /** Format: date-time */
+            start_date: string;
+            /** Format: date-time */
+            end_date?: string | null;
+            description: string;
+            technician?: number | null;
+            readonly technician_name: string;
+            status?: components["schemas"]["Status2c8Enum"];
+            readonly status_display: string;
+            /** Format: uri */
+            report?: string | null;
+            /** Format: date-time */
+            readonly created_at: string;
+            readonly spare_parts: components["schemas"]["WorkOrderSparePart"][];
+            readonly measurements: components["schemas"]["WorkOrderMeasurement"][];
+            readonly evidences: components["schemas"]["WorkOrderEvidence"][];
+            readonly signatures: components["schemas"]["WorkOrderSignature"][];
+            readonly cost: string;
         };
         EquipmentWorkOrderRequest: {
             equipment: number;
@@ -1508,18 +1578,10 @@ export interface components {
             end_date?: string | null;
             description: string;
             technician?: number | null;
-            status?: components["schemas"]["EquipmentWorkOrderStatusEnum"];
+            status?: components["schemas"]["Status2c8Enum"];
             /** Format: binary */
             report?: string;
         };
-        /**
-         * @description * `PENDING` - Pendiente
-         *     * `IN_PROGRESS` - En proceso
-         *     * `FINISHED` - Terminada
-         *     * `CANCELLED` - Cancelada
-         * @enum {string}
-         */
-        EquipmentWorkOrderStatusEnum: "PENDING" | "IN_PROGRESS" | "FINISHED" | "CANCELLED";
         /**
          * @description * `PHOTO` - Fotografía
          *     * `VIDEO` - Video
@@ -1938,6 +2000,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["WorkOrderEvidence"][];
         };
+        PaginatedWorkOrderMeasurementList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["WorkOrderMeasurement"][];
+        };
         PaginatedWorkOrderSignatureList: {
             /** @example 123 */
             count: number;
@@ -2155,7 +2232,7 @@ export interface components {
             end_date?: string | null;
             description?: string;
             technician?: number | null;
-            status?: components["schemas"]["EquipmentWorkOrderStatusEnum"];
+            status?: components["schemas"]["Status2c8Enum"];
             /** Format: binary */
             report?: string;
         };
@@ -2260,6 +2337,14 @@ export interface components {
             file?: string;
             work_order?: number;
         };
+        PatchedWorkOrderMeasurementRequest: {
+            parameter?: string;
+            expected_value?: string;
+            measured_value?: string;
+            unit?: string;
+            passed?: boolean;
+            work_order?: number;
+        };
         PatchedWorkOrderSignatureRequest: {
             role?: components["schemas"]["WorkOrderSignatureRoleEnum"];
             signed_by?: string;
@@ -2271,8 +2356,6 @@ export interface components {
             quantity?: number;
             /** Format: decimal */
             unit_cost?: string;
-            /** Format: decimal */
-            total_cost?: string;
             work_order?: number;
         };
         /**
@@ -2309,6 +2392,14 @@ export interface components {
          * @enum {string}
          */
         SeverityEnum: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+        /**
+         * @description * `PENDING` - Pendiente
+         *     * `IN_PROGRESS` - En proceso
+         *     * `FINISHED` - Terminada
+         *     * `CANCELLED` - Cancelada
+         * @enum {string}
+         */
+        Status2c8Enum: "PENDING" | "IN_PROGRESS" | "FINISHED" | "CANCELLED";
         /**
          * @description * `ELECTRONIC` - Electrónico
          *     * `ELECTROMEDICAL` - Electromédico
@@ -2539,6 +2630,23 @@ export interface components {
             file?: string;
             work_order: number;
         };
+        WorkOrderMeasurement: {
+            readonly id: number;
+            parameter: string;
+            expected_value: string;
+            measured_value: string;
+            unit: string;
+            passed?: boolean;
+            work_order: number;
+        };
+        WorkOrderMeasurementRequest: {
+            parameter: string;
+            expected_value: string;
+            measured_value: string;
+            unit: string;
+            passed?: boolean;
+            work_order: number;
+        };
         WorkOrderSignature: {
             readonly id: number;
             role: components["schemas"]["WorkOrderSignatureRoleEnum"];
@@ -2562,13 +2670,13 @@ export interface components {
         WorkOrderSignatureRoleEnum: "TECHNICIAN" | "ENGINEER" | "CLIENT" | "SUPERVISOR";
         WorkOrderSparePart: {
             readonly id: number;
+            /** Format: decimal */
+            readonly total_cost: string;
             name: string;
             reference: string;
             quantity: number;
             /** Format: decimal */
             unit_cost: string;
-            /** Format: decimal */
-            total_cost: string;
             work_order: number;
         };
         WorkOrderSparePartRequest: {
@@ -2577,8 +2685,6 @@ export interface components {
             quantity: number;
             /** Format: decimal */
             unit_cost: string;
-            /** Format: decimal */
-            total_cost: string;
             work_order: number;
         };
         /** @description Representación mínima del usuario asignado (read-only, anidada). */
@@ -3981,6 +4087,7 @@ export interface operations {
                 page?: number;
                 /** @description Un término de búsqueda. */
                 search?: string;
+                work_order?: number;
             };
             header?: never;
             path?: never;
@@ -4125,12 +4232,20 @@ export interface operations {
     v1_equipment_work_order_evidences_list: {
         parameters: {
             query?: {
+                /**
+                 * @description * `PHOTO` - Fotografía
+                 *     * `VIDEO` - Video
+                 *     * `DOCUMENT` - Documento
+                 *     * `AUDIO` - Audio
+                 */
+                evidence_type?: "AUDIO" | "DOCUMENT" | "PHOTO" | "VIDEO";
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 /** @description Un término de búsqueda. */
                 search?: string;
+                work_order?: number;
             };
             header?: never;
             path?: never;
@@ -4272,6 +4387,158 @@ export interface operations {
             };
         };
     };
+    v1_equipment_work_order_measurements_list: {
+        parameters: {
+            query?: {
+                /** @description Qué campo usar para ordenar los resultados. */
+                ordering?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                passed?: boolean;
+                /** @description Un término de búsqueda. */
+                search?: string;
+                work_order?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedWorkOrderMeasurementList"];
+                };
+            };
+        };
+    };
+    v1_equipment_work_order_measurements_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkOrderMeasurementRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["WorkOrderMeasurementRequest"];
+                "multipart/form-data": components["schemas"]["WorkOrderMeasurementRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderMeasurement"];
+                };
+            };
+        };
+    };
+    v1_equipment_work_order_measurements_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este work order measurement. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderMeasurement"];
+                };
+            };
+        };
+    };
+    v1_equipment_work_order_measurements_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este work order measurement. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkOrderMeasurementRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["WorkOrderMeasurementRequest"];
+                "multipart/form-data": components["schemas"]["WorkOrderMeasurementRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderMeasurement"];
+                };
+            };
+        };
+    };
+    v1_equipment_work_order_measurements_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este work order measurement. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_equipment_work_order_measurements_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Un valor de entero único que identifique este work order measurement. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedWorkOrderMeasurementRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedWorkOrderMeasurementRequest"];
+                "multipart/form-data": components["schemas"]["PatchedWorkOrderMeasurementRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderMeasurement"];
+                };
+            };
+        };
+    };
     v1_equipment_work_order_signatures_list: {
         parameters: {
             query?: {
@@ -4279,8 +4546,16 @@ export interface operations {
                 ordering?: string;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
+                /**
+                 * @description * `TECHNICIAN` - Technician
+                 *     * `ENGINEER` - Engineer
+                 *     * `CLIENT` - Client
+                 *     * `SUPERVISOR` - Supervisor
+                 */
+                role?: "CLIENT" | "ENGINEER" | "SUPERVISOR" | "TECHNICIAN";
                 /** @description Un término de búsqueda. */
                 search?: string;
+                work_order?: number;
             };
             header?: never;
             path?: never;
@@ -4431,6 +4706,7 @@ export interface operations {
                 page?: number;
                 /** @description Un término de búsqueda. */
                 search?: string;
+                work_order?: number;
             };
             header?: never;
             path?: never;
@@ -4575,12 +4851,29 @@ export interface operations {
     v1_equipment_work_orders_list: {
         parameters: {
             query?: {
+                equipment?: number;
                 /** @description Qué campo usar para ordenar los resultados. */
                 ordering?: string;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 /** @description Un término de búsqueda. */
                 search?: string;
+                /**
+                 * @description * `PREVENTIVE` - Preventivo
+                 *     * `CORRECTIVE` - Correctivo
+                 *     * `CALIBRATION` - Calibración
+                 *     * `INSTALLATION` - Instalación
+                 *     * `INSPECTION` - Inspección
+                 */
+                service_type?: "CALIBRATION" | "CORRECTIVE" | "INSPECTION" | "INSTALLATION" | "PREVENTIVE";
+                /**
+                 * @description * `PENDING` - Pendiente
+                 *     * `IN_PROGRESS` - En proceso
+                 *     * `FINISHED` - Terminada
+                 *     * `CANCELLED` - Cancelada
+                 */
+                status?: "CANCELLED" | "FINISHED" | "IN_PROGRESS" | "PENDING";
+                technician?: number;
             };
             header?: never;
             path?: never;
@@ -4739,7 +5032,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EquipmentWorkOrder"];
+                    "application/json": components["schemas"]["EquipmentWorkOrderDetail"];
                 };
             };
         };

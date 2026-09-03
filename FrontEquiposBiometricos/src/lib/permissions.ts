@@ -6,7 +6,8 @@ export type Resource =
   | "equipment"
   | "maintenance"
   | "scheduling"
-  | "failures";
+  | "failures"
+  | "work_orders";
 
 export type Action = "view" | "create" | "edit" | "delete";
 
@@ -20,6 +21,7 @@ const matrix: Matrix = {
     maintenance: ["view", "create", "edit", "delete"],
     scheduling: ["view", "create", "edit", "delete"],
     failures: ["view", "create", "edit", "delete"],
+    work_orders: ["view", "create", "edit", "delete"],
   },
   admin: {
     users: ["view", "create", "edit", "delete"],
@@ -28,6 +30,7 @@ const matrix: Matrix = {
     maintenance: ["view", "create", "edit", "delete"],
     scheduling: ["view", "create", "edit", "delete"],
     failures: ["view", "create", "edit", "delete"],
+    work_orders: ["view", "create", "edit", "delete"],
   },
   coordinador: {
     branches: ["view"],
@@ -35,6 +38,7 @@ const matrix: Matrix = {
     maintenance: ["view", "create", "edit", "delete"],
     scheduling: ["view", "create", "edit", "delete"],
     failures: ["view", "create", "edit"],
+    work_orders: ["view", "create", "edit", "delete"],
   },
   ingeniero: {
     branches: ["view"],
@@ -42,12 +46,14 @@ const matrix: Matrix = {
     maintenance: ["view", "create", "edit"],
     scheduling: ["view", "create", "edit"],
     failures: ["view", "create", "edit"],
+    work_orders: ["view", "create", "edit"],
   },
   tecnico: {
     equipment: ["view"],
     maintenance: ["view", "create"],
     scheduling: ["view"],
     failures: ["view", "create"],
+    work_orders: ["view", "create", "edit"],
   },
 };
 

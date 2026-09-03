@@ -12,6 +12,7 @@ export type AppDrawerParamList = {
   Dashboard: undefined;
   Equipos: undefined;
   Mantenimientos: undefined;
+  OrdenesTrabajo: undefined;
   Agendamientos: undefined;
   Fallas: undefined;
   Sedes: undefined;
