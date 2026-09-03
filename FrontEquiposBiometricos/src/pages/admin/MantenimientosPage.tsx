@@ -91,18 +91,6 @@ export function MantenimientosPage() {
   const canCreate = can(role, "maintenance", "create");
   const canEdit = can(role, "maintenance", "edit");
   const canDelete = can(role, "maintenance", "delete");
-  const isManagement =
-    role === "superadmin" || role === "admin" || role === "coordinador";
-
-  // ¿Este mantenimiento está asignado al usuario actual? El técnico / ingeniero
-  // asignado puede abrirlo para "realizarlo" (registrar hallazgos, costo, PDF)
-  // aunque no tenga permiso general de edición.
-  const isMine = (m: MaintenanceRecord) =>
-    !!usuario &&
-    (m.assigned_technician === usuario.id || m.assigned_engineer === usuario.id);
-  // El asignado registrando su propio trabajo: no puede reasignar ni mover el
-  // equipo, solo dejar constancia de lo que hizo.
-  const doingOwnWork = !isManagement && !!editing && isMine(editing);
 
   const equipmentOptions = useMemo(
     () =>
@@ -456,25 +444,15 @@ export function MantenimientosPage() {
                     </td>
                     <td className="py-3">
                       <div className="flex justify-end gap-2">
-                        {!isManagement && isMine(m) ? (
+                        {canEdit && (
                           <Button
                             size="sm"
-                            leftIcon={<Wrench size={14} />}
+                            variant="secondary"
+                            leftIcon={<Pencil size={14} />}
                             onClick={() => openEdit(m)}
                           >
-                            Realizar mantenimiento
+                            Editar
                           </Button>
-                        ) : (
-                          canEdit && (
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              leftIcon={<Pencil size={14} />}
-                              onClick={() => openEdit(m)}
-                            >
-                              Editar
-                            </Button>
-                          )
                         )}
                         {canDelete && (
                           <Button
@@ -499,13 +477,7 @@ export function MantenimientosPage() {
       <Modal
         open={creating || !!editing}
         onClose={closeModal}
-        title={
-          doingOwnWork
-            ? "Realizar mantenimiento"
-            : editing
-              ? "Editar mantenimiento"
-              : "Nuevo mantenimiento"
-        }
+        title={editing ? "Editar mantenimiento" : "Nuevo mantenimiento"}
         size="lg"
       >
         <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
@@ -522,7 +494,6 @@ export function MantenimientosPage() {
             options={equipmentOptions}
             placeholder="Selecciona un equipo"
             required
-            disabled={doingOwnWork}
             className="sm:col-span-2"
           />
           <Select
@@ -568,7 +539,7 @@ export function MantenimientosPage() {
             onChange={(e) => setForm({ ...form, date: e.target.value })}
             required
           />
-          {doingOwnWork ? null : technicianListAvailable ? (
+          {technicianListAvailable ? (
             <TechnicianSelect
               label="Técnico o ingeniero"
               value={form.assigned_technician ?? form.assigned_engineer ?? null}
