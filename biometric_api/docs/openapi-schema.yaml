@@ -4230,8 +4230,7 @@ components:
           type: string
         technician:
           type: string
-          title: Técnico
-          maxLength: 120
+          readOnly: true
         assigned_engineer:
           type: integer
           nullable: true
@@ -4290,6 +4289,7 @@ components:
       - kind
       - pdf_file_url
       - scheduled_maintenance_detail
+      - technician
       - updated_at
     MaintenanceRecordKindEnum:
       enum:
@@ -4304,7 +4304,7 @@ components:
         * `CORRECTIVE` - Mantenimiento correctivo
         * `REPAIR` - Reparación mayor
         * `CALIBRATION` - Calibración
-        * `INSPECTION` - Inspection
+        * `INSPECTION` - Inspección
     MaintenanceRecordRequest:
       type: object
       properties:
@@ -4324,10 +4324,6 @@ components:
           minLength: 1
         observations:
           type: string
-        technician:
-          type: string
-          title: Técnico
-          maxLength: 120
         assigned_engineer:
           type: integer
           nullable: true
@@ -5245,10 +5241,6 @@ components:
           minLength: 1
         observations:
           type: string
-        technician:
-          type: string
-          title: Técnico
-          maxLength: 120
         assigned_engineer:
           type: integer
           nullable: true

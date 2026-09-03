@@ -12,18 +12,9 @@ class MaintenanceKind(models.TextChoices):
     PREVENTIVE = "PREVENTIVE", _("Mantenimiento preventivo")
     CORRECTIVE = "CORRECTIVE", _("Mantenimiento correctivo")
     REPAIR = "REPAIR", _("Reparación mayor")
-    CALIBRATION = "CALIBRATION",_("Calibración")
-    INSPECTION = "INSPECTION",_("Inspection")
+    CALIBRATION = "CALIBRATION", _("Calibración")
+    INSPECTION = "INSPECTION", _("Inspección")
 
-
-class MaintenanceScheduleType(models.TextChoices):
-    PREVENTIVE = "PREVENTIVE", _("Preventivo")
-    CALIBRATION = "CALIBRATION",_("Calibración")
-    INSPECTION = "INSPECTION",_("INSPECTION")
-
-class MaintenanceScheduleStatus(models.TextChoices):
-    ACTIVE = "ACTIVE",_("Activa")
-    INACTIVE = "iNACTIVE", _("Inactiva")
 
 class MaintenanceRecord(models.Model):
     equipment = models.ForeignKey(
@@ -103,76 +94,3 @@ class MaintenanceRecord(models.Model):
 
     def __str__(self) -> str:
         return f"{self.get_kind_display()} - {self.equipment.asset_tag} - {self.date}"
-
-
-class EquipmentMaintenanceSchedule(models.Model):
-
-    equipment = models.ForeignKey(
-        Equipment,
-        on_delete=models.CASCADE,
-        related_name='maintenance_schedules',
-        verbose_name=_("Equipo"),
-    )
-
-    schedule_type = models.CharField(
-        _("Tipo de mantenimiento"),
-        max_length=30,
-        choices=MaintenanceScheduleType.choices,
-    )
-
-    frequency_months = models.PositiveIntegerField(
-        _("Frecuencia (meses)"),
-        validators=[MinValueValidator(1)],
-    )
-
-    last_execution_date = models.DateField(
-        _("Última Ejecución"),
-        null=True,
-        blank=True,
-    )
-
-    next_execution_date = models.DateField(
-        _("Próxima ejecución"),
-        null=True,
-        blank=True,
-        db_index=True,
-    )
-
-    status = models.CharField(
-        _("Estado"),
-        max_length=20,
-        choices=MaintenanceScheduleStatus.choices,
-        default=MaintenanceScheduleStatus.ACTIVE,
-    )
-
-    observations = models.TextField(
-        _("Observaciones"),
-        blank=True,
-    )
-
-    created_at = models.DateTimeField(
-        _("Creado"),
-        auto_now_add=True,
-    )
-
-    updated_at = models.DateTimeField(
-        _("Actualizado"),
-        auto_now=True
-    )
-
-    class Meta:
-        ordering = ["next_execution_date"]
-
-        constraints = [
-            models.UniqueConstraint(
-                fields=["equipment","schedule_type"],
-                name="unique_equipment_schedule_type",
-            )
-        ]
-
-    def __str__(self):
-
-        return (
-            f"{self.equipment.name}"
-            f"{self.get_schedule_type_display()}"
-        )

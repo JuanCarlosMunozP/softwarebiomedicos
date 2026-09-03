@@ -1610,8 +1610,7 @@ export interface components {
             date: string;
             description: string;
             observations?: string;
-            /** Técnico */
-            technician?: string;
+            readonly technician: string;
             assigned_engineer?: number | null;
             readonly assigned_engineer_detail: components["schemas"]["_AssignedUser"];
             assigned_technician?: number | null;
@@ -1642,7 +1641,7 @@ export interface components {
          *     * `CORRECTIVE` - Mantenimiento correctivo
          *     * `REPAIR` - Reparación mayor
          *     * `CALIBRATION` - Calibración
-         *     * `INSPECTION` - Inspection
+         *     * `INSPECTION` - Inspección
          * @enum {string}
          */
         MaintenanceRecordKindEnum: "PREVENTIVE" | "CORRECTIVE" | "REPAIR" | "CALIBRATION" | "INSPECTION";
@@ -1658,8 +1657,6 @@ export interface components {
             date: string;
             description: string;
             observations?: string;
-            /** Técnico */
-            technician?: string;
             assigned_engineer?: number | null;
             assigned_technician?: number | null;
             /** Format: decimal */
@@ -2195,8 +2192,6 @@ export interface components {
             date?: string;
             description?: string;
             observations?: string;
-            /** Técnico */
-            technician?: string;
             assigned_engineer?: number | null;
             assigned_technician?: number | null;
             /** Format: decimal */

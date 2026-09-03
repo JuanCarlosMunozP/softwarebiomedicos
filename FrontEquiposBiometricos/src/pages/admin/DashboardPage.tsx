@@ -34,6 +34,7 @@ import type {
   EquipmentStatusBucket,
   FailureSeverity,
   FailureSeverityBucket,
+  MaintenanceKind,
   MaintenanceMonthBucket,
 } from "@/types/dashboard";
 import type { EquipmentStatus } from "@/types/equipment";
@@ -66,10 +67,12 @@ const SEVERITY_COLOR: Record<FailureSeverity, string> = {
   CRITICAL: "#dc2626",
 };
 
-const KIND_COLOR: Record<"PREVENTIVE" | "CORRECTIVE" | "REPAIR", string> = {
+const KIND_COLOR: Record<MaintenanceKind, string> = {
   PREVENTIVE: "#3b82f6",
   CORRECTIVE: "#f59e0b",
   REPAIR: "#ef4444",
+  CALIBRATION: "#8b5cf6",
+  INSPECTION: "#64748b",
 };
 
 const COP = new Intl.NumberFormat("es-CO", {
@@ -464,6 +467,8 @@ function MaintenanceTimeSeriesChart({
     Preventivo: d.PREVENTIVE,
     Correctivo: d.CORRECTIVE,
     Reparación: d.REPAIR,
+    Calibración: d.CALIBRATION,
+    Inspección: d.INSPECTION,
     costo: Number(d.cost),
   }));
   return (
@@ -523,6 +528,18 @@ function MaintenanceTimeSeriesChart({
               dataKey="Reparación"
               stackId="kind"
               fill={KIND_COLOR.REPAIR}
+            />
+            <Bar
+              yAxisId="count"
+              dataKey="Calibración"
+              stackId="kind"
+              fill={KIND_COLOR.CALIBRATION}
+            />
+            <Bar
+              yAxisId="count"
+              dataKey="Inspección"
+              stackId="kind"
+              fill={KIND_COLOR.INSPECTION}
             />
             <Line
               yAxisId="cost"

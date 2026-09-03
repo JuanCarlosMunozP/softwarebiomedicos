@@ -25,6 +25,8 @@ _MAINTENANCE_KINDS = [
     MaintenanceKind.PREVENTIVE,
     MaintenanceKind.CORRECTIVE,
     MaintenanceKind.REPAIR,
+    MaintenanceKind.CALIBRATION,
+    MaintenanceKind.INSPECTION,
 ]
 
 
@@ -129,9 +131,7 @@ def _maintenance_time_series(today: date) -> list[dict]:
     by_month: dict[str, dict] = {
         m.isoformat()[:7]: {
             "month": m.isoformat()[:7],
-            "PREVENTIVE": 0,
-            "CORRECTIVE": 0,
-            "REPAIR": 0,
+            **{k: 0 for k in _MAINTENANCE_KINDS},
             "cost": Decimal(0),
         }
         for m in months
@@ -142,7 +142,8 @@ def _maintenance_time_series(today: date) -> list[dict]:
         bucket_key = (bucket.date() if hasattr(bucket, "date") else bucket).isoformat()[:7]
         if bucket_key not in by_month:
             continue
-        by_month[bucket_key][row["kind"]] = row["count"]
+        if row["kind"] in by_month[bucket_key]:
+            by_month[bucket_key][row["kind"]] = row["count"]
         by_month[bucket_key]["cost"] += row["cost"]
 
     result = []

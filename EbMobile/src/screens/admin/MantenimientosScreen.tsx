@@ -34,6 +34,8 @@ const KIND_OPTS: SelectOption<MaintenanceKind>[] = [
   { label: "Preventivo", value: "PREVENTIVE" },
   { label: "Correctivo", value: "CORRECTIVE" },
   { label: "Reparación", value: "REPAIR" },
+  { label: "Calibración", value: "CALIBRATION" },
+  { label: "Inspección", value: "INSPECTION" },
 ];
 
 export function MantenimientosScreen() {
@@ -356,9 +358,21 @@ function emptyForm(): MaintenanceInput {
 }
 
 function kindLabel(k: MaintenanceKind) {
-  return { PREVENTIVE: "Preventivo", CORRECTIVE: "Correctivo", REPAIR: "Reparación" }[k];
+  return {
+    PREVENTIVE: "Preventivo",
+    CORRECTIVE: "Correctivo",
+    REPAIR: "Reparación",
+    CALIBRATION: "Calibración",
+    INSPECTION: "Inspección",
+  }[k];
 }
 
 function kindTone(k: MaintenanceKind) {
-  return ({ PREVENTIVE: "success", CORRECTIVE: "warning", REPAIR: "danger" } as const)[k];
+  return {
+    PREVENTIVE: "success",
+    CORRECTIVE: "warning",
+    REPAIR: "danger",
+    CALIBRATION: "info",
+    INSPECTION: "neutral",
+  }[k] as "success" | "warning" | "danger" | "info" | "neutral";
 }
