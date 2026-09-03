@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from api.v1.common.mixins import AuditLogMixin
-from api.v1.common.permissions import RestrictDeleteToManagement
+from api.v1.common.permissions import HasRolePermission
 from apps.equipment.models import (
     Equipment,
     EquipmentAttachment,
@@ -54,7 +54,8 @@ class EquipmentViewSet(AuditLogMixin, viewsets.ModelViewSet):
         "branch", "equipment_model", "equipment_model__brand"
     )
     serializer_class = EquipmentSerializer
-    permission_classes = (IsAuthenticated, RestrictDeleteToManagement)
+    permission_classes = (IsAuthenticated, HasRolePermission)
+    permission_resource = "equipment"
     filterset_class = EquipmentFilter
     search_fields = (
         "name",
@@ -117,7 +118,8 @@ class EquipmentAttachmentViewSet(viewsets.ModelViewSet):
     )
 
     serializer_class = EquipmentAttachmentSerializer
-    permission_classes = (IsAuthenticated, RestrictDeleteToManagement)
+    permission_classes = (IsAuthenticated, HasRolePermission)
+    permission_resource = "equipment"
 
     search_fields = ("title","equipment__name","equipment__asset_tag")
 
@@ -140,7 +142,8 @@ class EquipmentCertificateViewSet(viewsets.ModelViewSet):
 
     serializer_class = EquipmentCertificateSerializer
 
-    permission_classes = (IsAuthenticated, RestrictDeleteToManagement)
+    permission_classes = (IsAuthenticated, HasRolePermission)
+    permission_resource = "equipment"
 
     search_fields = (
         "certificate_number",
@@ -166,7 +169,8 @@ class EquipmentInstructionViewSet(viewsets.ModelViewSet):
 
     serializer_class = EquipmentInstructionSerializer
 
-    permission_classes = (IsAuthenticated, RestrictDeleteToManagement)
+    permission_classes = (IsAuthenticated, HasRolePermission)
+    permission_resource = "equipment"
 
     search_fields = (
         "activity",
@@ -192,7 +196,8 @@ class EquipmentWorkOrderViewSet(AuditLogMixin, viewsets.ModelViewSet):
     )
 
     serializer_class = EquipmentWorkOrderSerializer
-    permission_classes = (IsAuthenticated, RestrictDeleteToManagement)
+    permission_classes = (IsAuthenticated, HasRolePermission)
+    permission_resource = "equipment"
 
     search_fields = (
         "number",
@@ -227,7 +232,8 @@ class WorkOrderSparePartViewSet(viewsets.ModelViewSet):
             )
 
     serializer_class = WorkOrderSparePartSerializer
-    permission_classes = (IsAuthenticated, RestrictDeleteToManagement)
+    permission_classes = (IsAuthenticated, HasRolePermission)
+    permission_resource = "equipment"
 
     search_fields = ("name","reference","work_order__number")
 
@@ -246,7 +252,8 @@ class WorkOrderMeasurementViewSet(viewsets.ModelViewSet):
     )
 
     serializer_class = WorkOrderMeasurementSerializer
-    permission_classes = (IsAuthenticated, RestrictDeleteToManagement)
+    permission_classes = (IsAuthenticated, HasRolePermission)
+    permission_resource = "equipment"
 
     search_fields = (
         "parameter",
@@ -274,7 +281,8 @@ class WorkOrderEvidenceViewSet(viewsets.ModelViewSet):
     )
 
     serializer_class = WorkOrderEvidenceSerializer
-    permission_classes = (IsAuthenticated, RestrictDeleteToManagement)
+    permission_classes = (IsAuthenticated, HasRolePermission)
+    permission_resource = "equipment"
 
     search_fields = (
         "description",
@@ -296,7 +304,8 @@ class WorkOrderSignatureViewSet(viewsets.ModelViewSet):
     )
 
     serializer_class = WorkOrderSignatureSerializer
-    permission_classes = (IsAuthenticated, RestrictDeleteToManagement)
+    permission_classes = (IsAuthenticated, HasRolePermission)
+    permission_resource = "equipment"
 
     search_fields = ("signed_by","role","work_order__number")
     ordering_fields = (
@@ -321,7 +330,8 @@ class WorkOrderCostViewSet(viewsets.ModelViewSet):
     )
 
     serializer_class = WorkOrderCostSerializer
-    permission_classes = (IsAuthenticated, RestrictDeleteToManagement)
+    permission_classes = (IsAuthenticated, HasRolePermission)
+    permission_resource = "equipment"
 
     search_fields = (
         "work_order__number",

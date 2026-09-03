@@ -3,7 +3,7 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 
 from api.v1.common.mixins import AuditLogMixin
-from api.v1.common.permissions import RestrictDeleteToManagement
+from api.v1.common.permissions import HasRolePermission
 from apps.maintenance.models import MaintenanceRecord
 
 from .filters import MaintenanceRecordFilter
@@ -15,7 +15,8 @@ class MaintenanceRecordViewSet(AuditLogMixin, viewsets.ModelViewSet):
 
     queryset = MaintenanceRecord.objects.all()
     serializer_class = MaintenanceRecordSerializer
-    permission_classes = (IsAuthenticated, RestrictDeleteToManagement)
+    permission_classes = (IsAuthenticated, HasRolePermission)
+    permission_resource = "maintenance"
     parser_classes = (JSONParser, MultiPartParser, FormParser)
     filterset_class = MaintenanceRecordFilter
     search_fields = (

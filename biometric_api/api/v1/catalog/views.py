@@ -4,7 +4,7 @@ from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from api.v1.common.permissions import RestrictDeleteToManagement
+from api.v1.common.permissions import HasRolePermission
 from apps.catalog.models import Brand, EquipmentModel
 
 from .filters import BrandFilter, EquipmentModelFilter
@@ -16,7 +16,8 @@ class BrandViewSet(viewsets.ModelViewSet):
 
     queryset = Brand.objects.all()
     serializer_class = BrandSerializer
-    permission_classes = (IsAuthenticated, RestrictDeleteToManagement)
+    permission_classes = (IsAuthenticated, HasRolePermission)
+    permission_resource = "equipment"
     filterset_class = BrandFilter
     search_fields = ("name",)
     ordering_fields = ("name", "created_at")
@@ -39,7 +40,8 @@ class EquipmentModelViewSet(viewsets.ModelViewSet):
 
     queryset = EquipmentModel.objects.select_related("brand")
     serializer_class = EquipmentModelSerializer
-    permission_classes = (IsAuthenticated, RestrictDeleteToManagement)
+    permission_classes = (IsAuthenticated, HasRolePermission)
+    permission_resource = "equipment"
     filterset_class = EquipmentModelFilter
     search_fields = ("name", "description", "brand__name")
     ordering_fields = ("name", "brand__name", "created_at")

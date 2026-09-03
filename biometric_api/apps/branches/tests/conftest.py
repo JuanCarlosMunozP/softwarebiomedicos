@@ -1,14 +1,9 @@
 import pytest
 from rest_framework.test import APIClient
 
-from apps.users.tests.factories import AdminFactory
+from apps.users.tests.factories import AdminFactory, TecnicoFactory
 
-from .factories import BranchFactory, UserFactory
-
-
-@pytest.fixture
-def user(db):
-    return UserFactory()
+from .factories import BranchFactory
 
 
 @pytest.fixture
@@ -17,8 +12,17 @@ def api_client():
 
 
 @pytest.fixture
-def auth_client(api_client, user):
-    api_client.force_authenticate(user=user)
+def auth_client(api_client, db):
+    # Las sedes solo las gestiona superadmin/admin (ver ROLE_MATRIX). El resto
+    # de tests de CRUD usan este cliente para probar validación/normalización,
+    # no permisos.
+    api_client.force_authenticate(user=AdminFactory())
+    return api_client
+
+
+@pytest.fixture
+def tecnico_client(api_client, db):
+    api_client.force_authenticate(user=TecnicoFactory())
     return api_client
 
 
