@@ -120,23 +120,6 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
             "updated_at",
         )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Cuando el asignado (técnico/ingeniero) abre su mantenimiento para
-        # "realizarlo", solo puede dejar constancia del trabajo: no reasignar
-        # ni mover el equipo. Esos campos los maneja la gestión.
-        request = self.context.get("request")
-        user = getattr(request, "user", None)
-        is_update = self.instance is not None and not isinstance(self.instance, list)
-        if (
-            is_update
-            and user is not None
-            and getattr(user, "is_authenticated", False)
-            and user.role in (User.Role.TECNICO, User.Role.INGENIERO)
-        ):
-            for name in ("equipment", "assigned_engineer", "assigned_technician"):
-                self.fields[name].read_only = True
-
     def get_pdf_file_url(self, obj: MaintenanceRecord) -> str | None:
         if not obj.pdf_file:
             return None
