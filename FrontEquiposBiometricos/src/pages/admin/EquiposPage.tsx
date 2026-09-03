@@ -352,14 +352,14 @@ export function EquiposPage() {
 
       purchase_date: e.purchase_date,
       manufacture_date:e.manufacture_date ?? "",
-      supplier_acquisition: e.supplier_acquisiton ?? "",
+      supplier_acquisition: e.supplier_acquisition ?? "",
       start_use_date:e.start_use_date ?? "",
       equipment_cost:
         e.equipment_cost !== null && e.equipment_cost !== undefined
           ? String(e.equipment_cost)
           : "",
       
-      warranty_start_date: e.warranty_end_date ?? "",
+      warranty_start_date: e.warranty_start_date ?? "",
       warranty_end_date: e.warranty_end_date ?? "",
 
       maintenance_provider: e.maintenance_provider ?? "",
@@ -372,10 +372,9 @@ export function EquiposPage() {
         next_preventive:e.next_preventive ?? "",
 
         calibration_date: e.calibration_date ?? "",
-        calibration_frequency_months: 
-          e.calibration_frequenty_months !== null &&
-          e.calibration_frequenty_months !== undefined 
-            ? String(e.calibration_frequenty_months !== undefined)
+        calibration_frequency_months:
+          e.calibration_frequency_months != null
+            ? String(e.calibration_frequency_months)
             : "",
           
       
