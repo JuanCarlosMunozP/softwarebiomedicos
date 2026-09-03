@@ -90,6 +90,28 @@ class EquipmentViewSet(AuditLogMixin, viewsets.ModelViewSet):
         serializer = self.get_serializer(equipment)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=["post"], url_path="regenerate-qr-all")
+    def regenerate_qr_all(self, request):
+        """Regenera el código QR de todos los equipos.
+
+        Útil tras cambiar FRONTEND_BASE_URL o al preparar una tanda de
+        etiquetas para imprimir. Con ``?missing=1`` solo cubre los equipos
+        que aún no tienen QR.
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        missing = request.query_params.get("missing") in ("1", "true", "True")
+        if missing:
+            queryset = queryset.filter(qr_code="")
+
+        count = 0
+        for equipment in queryset.iterator():
+            if equipment.qr_code:
+                equipment.qr_code.delete(save=False)
+            generate_qr_for_equipment(equipment)
+            count += 1
+
+        return Response({"regenerated": count}, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=["get"], url_path="history")
     def history(self, request, pk: int = None):
         """Historial paginado de mantenimientos del equipo."""

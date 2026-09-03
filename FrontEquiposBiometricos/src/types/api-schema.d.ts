@@ -564,6 +564,29 @@ export interface paths {
         patch: operations["v1_equipment_instructions_partial_update"];
         trace?: never;
     };
+    "/api/v1/equipment/regenerate-qr-all/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Regenera el código QR de todos los equipos.
+         *
+         *     Útil tras cambiar FRONTEND_BASE_URL o al preparar una tanda de
+         *     etiquetas para imprimir. Con ``?missing=1`` solo cubre los equipos
+         *     que aún no tienen QR.
+         */
+        post: operations["v1_equipment_regenerate_qr_all_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/equipment/work-order-costs/": {
         parameters: {
             query?: never;
@@ -4074,6 +4097,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EquipmentInstruction"];
+                };
+            };
+        };
+    };
+    v1_equipment_regenerate_qr_all_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EquipmentRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["EquipmentRequest"];
+                "multipart/form-data": components["schemas"]["EquipmentRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Equipment"];
                 };
             };
         };

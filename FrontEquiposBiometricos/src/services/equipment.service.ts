@@ -47,6 +47,20 @@ export const equipmentService = {
     const res = await api.get<Equipment>(`/equipment/${id}/`);
     return res.data;
   },
+  /** Trae todos los equipos recorriendo la paginación del backend. */
+  async listAll(params: Omit<EquipmentListParams, "page" | "page_size"> = {}) {
+    const all: Equipment[] = [];
+    for (let page = 1; page < 500; page += 1) {
+      const res = await api.get<Paginated<Equipment> | Equipment[]>(
+        "/equipment/",
+        { params: { ...params, page } },
+      );
+      if (Array.isArray(res.data)) return res.data;
+      all.push(...res.data.results);
+      if (!res.data.next) break;
+    }
+    return all;
+  },
   async byAssetTag(tag: string) {
     const res = await api.get<Equipment>(
       `/equipment/by-asset-tag/${encodeURIComponent(tag)}/`,
@@ -66,6 +80,14 @@ export const equipmentService = {
   },
   async regenerateQr(id: number) {
     const res = await api.post<Equipment>(`/equipment/${id}/regenerate-qr/`);
+    return res.data;
+  },
+  async regenerateQrAll(params: { missing?: boolean } = {}) {
+    const res = await api.post<{ regenerated: number }>(
+      "/equipment/regenerate-qr-all/",
+      null,
+      { params: params.missing ? { missing: 1 } : {} },
+    );
     return res.data;
   },
 };

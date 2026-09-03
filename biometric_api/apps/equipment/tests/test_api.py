@@ -25,6 +25,9 @@ def regenerate_url(pk):
     return reverse("v1:equipment:equipment-regenerate-qr", args=[pk])
 
 
+REGENERATE_ALL_URL = reverse("v1:equipment:equipment-regenerate-qr-all")
+
+
 @pytest.mark.django_db
 class TestEquipmentAuth:
     def test_list_requires_auth(self, api_client):
@@ -266,6 +269,36 @@ class TestEquipmentRegenerateQr:
         assert body["qr_code_url"]
         equipment.refresh_from_db()
         assert storage.exists(equipment.qr_code.name)
+
+    def test_regenerate_all_covers_every_equipment(self, auth_client, branch):
+        EquipmentFactory(branch=branch)
+        EquipmentFactory(branch=branch)
+
+        response = auth_client.post(REGENERATE_ALL_URL)
+
+        assert response.status_code == 200
+        assert response.json()["regenerated"] == Equipment.objects.count()
+        for eq in Equipment.objects.all():
+            assert eq.qr_code.storage.exists(eq.qr_code.name)
+
+    def test_regenerate_all_missing_only(self, auth_client, branch):
+        with_qr = EquipmentFactory(branch=branch)
+        without_qr = EquipmentFactory(branch=branch)
+        without_qr.qr_code.delete(save=True)
+
+        response = auth_client.post(f"{REGENERATE_ALL_URL}?missing=1")
+
+        assert response.status_code == 200
+        assert response.json()["regenerated"] == 1
+        without_qr.refresh_from_db()
+        assert without_qr.qr_code
+        del with_qr
+
+    def test_regenerate_all_forbidden_for_tecnico(self, api_client, branch):
+        from apps.users.tests.factories import TecnicoFactory
+
+        api_client.force_authenticate(user=TecnicoFactory())
+        assert api_client.post(REGENERATE_ALL_URL).status_code == 403
 
 
 @pytest.mark.django_db
