@@ -129,9 +129,11 @@ export function EtiquetasQrPage() {
     if (!opts.silent) setLoading(true);
     setError(null);
     try {
+      // El filtro por sede es opcional: si el rol no puede listar sedes
+      // (técnico), no se rompe la página.
       const [eq, brs] = await Promise.all([
         equipmentService.listAll({ ordering: "name" }),
-        branchesService.list({ ordering: "name" }),
+        branchesService.list({ ordering: "name" }).catch(() => [] as Branch[]),
       ]);
       setBranches(brs);
       setItems((prev) => {
