@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { CalendarClock, FileText, Pencil, Plus, Trash2, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -62,9 +62,7 @@ const empty: MaintenanceInput = {
 export function MantenimientosPage() {
   const { usuario } = useAuth();
   const role = usuario?.role;
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const canOpenWorkOrder = role === "ingeniero" || role === "tecnico";
 
   const [items, setItems] = useState<MaintenanceRecord[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -445,18 +443,9 @@ export function MantenimientosPage() {
                       )}
                     </td>
                     <td className="py-3">
-                      <div className="flex justify-end gap-2">
-                        {m.work_order && canOpenWorkOrder && (
-                          <Button
-                            size="sm"
-                            leftIcon={<FileText size={14} />}
-                            onClick={() => navigate("/admin/ordenes-trabajo")}
-                          >
-                            Realizar en orden de trabajo
-                          </Button>
-                        )}
-                        {m.work_order && !canOpenWorkOrder && (
-                          <span className="self-center text-xs text-app-muted">
+                      <div className="flex items-center justify-end gap-2">
+                        {m.work_order && (
+                          <span className="text-xs text-app-muted">
                             Orden {m.work_order.number}
                           </span>
                         )}

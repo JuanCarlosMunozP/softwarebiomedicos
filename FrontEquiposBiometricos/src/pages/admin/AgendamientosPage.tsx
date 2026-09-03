@@ -414,6 +414,7 @@ export function AgendamientosPage() {
                           )
                         ) : (
                           canRegisterMaintenance &&
+                          !canOpenWorkOrder &&
                           !s.is_completed && (
                             <Button
                               size="sm"
