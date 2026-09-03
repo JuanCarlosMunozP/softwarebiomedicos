@@ -65,7 +65,7 @@ export function AppDrawer() {
           options={{ title: "Mantenimientos" }}
         />
       )}
-      {can(role, "work_orders", "view") && (
+      {(role === "ingeniero" || role === "tecnico") && (
         <Drawer.Screen
           name="OrdenesTrabajo"
           component={OrdenesTrabajoScreen}

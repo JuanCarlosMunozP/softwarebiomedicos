@@ -86,6 +86,9 @@ export function AgendamientosPage() {
   const canEdit = can(role, "scheduling", "edit");
   const canDelete = can(role, "scheduling", "delete");
   const canRegisterMaintenance = can(role, "maintenance", "create");
+  // Solo el ingeniero/técnico ejecuta la orden de trabajo; la gestión hace
+  // seguimiento por el estado de la solicitud.
+  const canOpenWorkOrder = role === "ingeniero" || role === "tecnico";
 
   const equipmentOptions = useMemo(
     () =>
@@ -396,13 +399,19 @@ export function AgendamientosPage() {
                     <td className="py-3">
                       <div className="flex justify-end gap-2">
                         {s.work_order ? (
-                          <Button
-                            size="sm"
-                            leftIcon={<Wrench size={14} />}
-                            onClick={() => navigate("/admin/ordenes-trabajo")}
-                          >
-                            Ver orden de trabajo
-                          </Button>
+                          canOpenWorkOrder ? (
+                            <Button
+                              size="sm"
+                              leftIcon={<Wrench size={14} />}
+                              onClick={() => navigate("/admin/ordenes-trabajo")}
+                            >
+                              Ver orden de trabajo
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-app-muted">
+                              Orden {s.work_order.number}
+                            </span>
+                          )
                         ) : (
                           canRegisterMaintenance &&
                           !s.is_completed && (
