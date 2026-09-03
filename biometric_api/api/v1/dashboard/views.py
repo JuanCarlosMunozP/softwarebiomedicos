@@ -20,6 +20,17 @@ from apps.equipment.models import Equipment, EquipmentStatus
 from apps.failures.models import FailureRecord, FailureSeverity
 from apps.maintenance.models import MaintenanceKind, MaintenanceRecord
 from apps.scheduling.models import MaintenanceSchedule
+from apps.users.models import User
+
+
+def _assignment_scope(user) -> Q | None:
+    """Para el rol técnico, restringe las métricas de trabajo (solicitudes y
+    mantenimientos) a lo que tiene asignado. Para el resto de roles devuelve
+    None: ven los agregados de toda la clínica (equipos, fallas, MTBF son
+    salud general de la institución, sin responsable)."""
+    if getattr(user, "role", None) == User.Role.TECNICO:
+        return Q(assigned_technician=user)
+    return None
 
 _MAINTENANCE_KINDS = [
     MaintenanceKind.PREVENTIVE,
@@ -51,8 +62,10 @@ def _failures_kpis() -> dict:
     }
 
 
-def _scheduling_kpis(today: date) -> dict:
+def _scheduling_kpis(today: date, scope: Q | None = None) -> dict:
     pending = MaintenanceSchedule.objects.filter(is_completed=False)
+    if scope is not None:
+        pending = pending.filter(scope)
     return {
         "next_7_days": pending.filter(
             scheduled_date__gte=today,
@@ -62,10 +75,12 @@ def _scheduling_kpis(today: date) -> dict:
     }
 
 
-def _maintenance_kpis(today: date) -> dict:
+def _maintenance_kpis(today: date, scope: Q | None = None) -> dict:
     month_qs = MaintenanceRecord.objects.filter(
         date__year=today.year, date__month=today.month
     )
+    if scope is not None:
+        month_qs = month_qs.filter(scope)
     aggregate = month_qs.aggregate(
         count=Count("id"),
         cost=Coalesce(Sum("cost"), Decimal(0)),
@@ -107,7 +122,7 @@ def _failures_distribution() -> list[dict]:
     return rows
 
 
-def _maintenance_time_series(today: date) -> list[dict]:
+def _maintenance_time_series(today: date, scope: Q | None = None) -> list[dict]:
     # Construye una lista ordenada de los últimos 6 meses incluyendo el actual.
     months: list[date] = []
     cursor = today.replace(day=1)
@@ -121,9 +136,11 @@ def _maintenance_time_series(today: date) -> list[dict]:
     months.reverse()
 
     start = months[0]
+    records = MaintenanceRecord.objects.filter(date__gte=start)
+    if scope is not None:
+        records = records.filter(scope)
     rows = (
-        MaintenanceRecord.objects.filter(date__gte=start)
-        .annotate(bucket=TruncMonth("date"))
+        records.annotate(bucket=TruncMonth("date"))
         .values("bucket", "kind")
         .annotate(count=Count("id"), cost=Coalesce(Sum("cost"), Decimal(0)))
     )
@@ -154,14 +171,13 @@ def _maintenance_time_series(today: date) -> list[dict]:
     return result
 
 
-def _overdue_schedules(today: date) -> list[dict]:
-    qs = (
-        MaintenanceSchedule.objects.filter(
-            is_completed=False, scheduled_date__lt=today
-        )
-        .select_related("equipment")
-        .order_by("scheduled_date")[:10]
+def _overdue_schedules(today: date, scope: Q | None = None) -> list[dict]:
+    base = MaintenanceSchedule.objects.filter(
+        is_completed=False, scheduled_date__lt=today
     )
+    if scope is not None:
+        base = base.filter(scope)
+    qs = base.select_related("equipment").order_by("scheduled_date")[:10]
     return [
         {
             "id": s.id,
@@ -227,22 +243,24 @@ class DashboardSummaryView(APIView):
 
     def get(self, request):
         today = timezone.localdate()
+        # Para el técnico, las métricas de trabajo se acotan a lo suyo.
+        scope = _assignment_scope(request.user)
         payload = {
             "kpis": {
                 "equipment": _equipment_kpis(),
                 "failures": _failures_kpis(),
-                "scheduling": _scheduling_kpis(today),
-                "maintenance": _maintenance_kpis(today),
+                "scheduling": _scheduling_kpis(today, scope),
+                "maintenance": _maintenance_kpis(today, scope),
             },
             "distributions": {
                 "equipment_by_status": _equipment_distribution(),
                 "failures_by_severity": _failures_distribution(),
             },
             "time_series": {
-                "maintenance_by_month": _maintenance_time_series(today),
+                "maintenance_by_month": _maintenance_time_series(today, scope),
             },
             "lists": {
-                "overdue_schedules": _overdue_schedules(today),
+                "overdue_schedules": _overdue_schedules(today, scope),
                 "worst_mtbf": _worst_mtbf(),
             },
             "my_tasks": {
