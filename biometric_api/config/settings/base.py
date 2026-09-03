@@ -41,6 +41,9 @@ ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
 # Apps
 # ---------------------------------------------------------------------------
 DJANGO_APPS = [
+    # `daphne` debe ir antes de `django.contrib.staticfiles` para que
+    # `runserver` use el servidor ASGI de Channels (soporta WebSockets).
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -50,6 +53,7 @@ DJANGO_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
+    "channels",
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
@@ -70,6 +74,7 @@ LOCAL_APPS: list[str] = [
     "apps.scheduling",
     "apps.failures",
     "apps.audit",
+    "apps.realtime",
     # Las apps de dominio se irán agregando incrementalmente:
     # "apps.core",
 ]
@@ -343,6 +348,18 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
+
+# ---------------------------------------------------------------------------
+# Channels (WebSockets) — canal `/ws/notifications/`
+# ---------------------------------------------------------------------------
+# Reusa el mismo Redis que Celery pero en otra DB para no mezclar keys.
+CHANNELS_REDIS_URL = env("CHANNELS_REDIS_URL", default="redis://localhost:6379/3")
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {"hosts": [CHANNELS_REDIS_URL]},
+    }
+}
 
 # ---------------------------------------------------------------------------
 # Notificaciones de mantenimiento
