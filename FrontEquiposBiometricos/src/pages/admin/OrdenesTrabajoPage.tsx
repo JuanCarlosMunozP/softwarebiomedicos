@@ -343,7 +343,17 @@ export function OrdenesTrabajoPage() {
                         <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
                           <ClipboardList size={14} />
                         </span>
-                        <span className="font-medium">{w.number}</span>
+                        <div>
+                          <span className="font-medium">{w.number}</span>
+                          {w.schedule_info && (
+                            <p className="text-xs text-app-muted">
+                              De solicitud
+                              {w.schedule_info.scheduled_date
+                                ? ` · programada ${w.schedule_info.scheduled_date}`
+                                : ""}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="py-3 text-app-muted">

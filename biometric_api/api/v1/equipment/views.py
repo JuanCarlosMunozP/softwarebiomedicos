@@ -229,6 +229,7 @@ class EquipmentWorkOrderViewSet(AuditLogMixin, viewsets.ModelViewSet):
     queryset = EquipmentWorkOrder.objects.select_related(
         "equipment",
         "technician",
+        "schedule",
     )
 
     serializer_class = EquipmentWorkOrderSerializer

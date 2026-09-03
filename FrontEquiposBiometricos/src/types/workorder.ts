@@ -61,6 +61,14 @@ export interface WorkOrderCost {
   other_cost: string;
 }
 
+export interface WorkOrderScheduleInfo {
+  id: number;
+  kind: "PREVENTIVE" | "REPAIR";
+  scheduled_date: string | null;
+  requested_date: string;
+  is_completed: boolean;
+}
+
 export interface WorkOrder {
   id: number;
   equipment: number;
@@ -77,6 +85,9 @@ export interface WorkOrder {
   status: WorkOrderStatus;
   status_display?: string;
   report?: string | null;
+  /** Solicitud que originó la orden (si se creó automáticamente al asignar). */
+  schedule?: number | null;
+  schedule_info?: WorkOrderScheduleInfo | null;
   created_at?: string;
 }
 

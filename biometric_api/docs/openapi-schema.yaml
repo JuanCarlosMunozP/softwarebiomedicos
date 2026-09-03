@@ -4311,6 +4311,14 @@ components:
           type: string
           format: uri
           nullable: true
+        schedule:
+          type: integer
+          readOnly: true
+          nullable: true
+          title: Solicitud de origen
+        schedule_info:
+          type: string
+          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -4323,6 +4331,8 @@ components:
       - equipment_name
       - id
       - number
+      - schedule
+      - schedule_info
       - service_type
       - service_type_display
       - start_date
@@ -4375,6 +4385,14 @@ components:
           type: string
           format: uri
           nullable: true
+        schedule:
+          type: integer
+          readOnly: true
+          nullable: true
+          title: Solicitud de origen
+        schedule_info:
+          type: string
+          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -4413,6 +4431,8 @@ components:
       - id
       - measurements
       - number
+      - schedule
+      - schedule_info
       - service_type
       - service_type_display
       - signatures
@@ -4785,6 +4805,9 @@ components:
         maintenance_record_detail:
           type: string
           readOnly: true
+        work_order:
+          type: string
+          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -4811,6 +4834,7 @@ components:
       - requested_by_detail
       - requested_date
       - updated_at
+      - work_order
     MaintenanceScheduleRequest:
       type: object
       properties:

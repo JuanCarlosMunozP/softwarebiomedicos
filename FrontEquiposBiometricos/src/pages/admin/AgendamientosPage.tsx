@@ -395,16 +395,29 @@ export function AgendamientosPage() {
                     </td>
                     <td className="py-3">
                       <div className="flex justify-end gap-2">
-                        {canRegisterMaintenance && !s.is_completed && (
+                        {s.work_order ? (
                           <Button
                             size="sm"
                             leftIcon={<Wrench size={14} />}
-                            onClick={() =>
-                              navigate(`/admin/mantenimientos?scheduling=${s.id}`)
-                            }
+                            onClick={() => navigate("/admin/ordenes-trabajo")}
                           >
-                            Realizar mantenimiento
+                            Ver orden de trabajo
                           </Button>
+                        ) : (
+                          canRegisterMaintenance &&
+                          !s.is_completed && (
+                            <Button
+                              size="sm"
+                              leftIcon={<Wrench size={14} />}
+                              onClick={() =>
+                                navigate(
+                                  `/admin/mantenimientos?scheduling=${s.id}`,
+                                )
+                              }
+                            >
+                              Realizar mantenimiento
+                            </Button>
+                          )
                         )}
                         {canEdit && !s.is_completed && (
                           <Button

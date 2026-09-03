@@ -74,6 +74,8 @@ class MaintenanceScheduleSerializer(serializers.ModelSerializer):
     scheduled_date = serializers.DateField(required=False, allow_null=True)
     maintenance_record = serializers.SerializerMethodField()
     maintenance_record_detail = serializers.SerializerMethodField()
+    # Orden de trabajo que se crea sola al asignar la solicitud.
+    work_order = serializers.SerializerMethodField()
 
     class Meta:
         model = MaintenanceSchedule
@@ -96,6 +98,7 @@ class MaintenanceScheduleSerializer(serializers.ModelSerializer):
             "is_completed",
             "maintenance_record",
             "maintenance_record_detail",
+            "work_order",
             "created_at",
             "updated_at",
         )
@@ -111,6 +114,7 @@ class MaintenanceScheduleSerializer(serializers.ModelSerializer):
             "notified_at",
             "maintenance_record",
             "maintenance_record_detail",
+            "work_order",
             "created_at",
             "updated_at",
         )
@@ -135,6 +139,12 @@ class MaintenanceScheduleSerializer(serializers.ModelSerializer):
         if record is None:
             return None
         return _MaintenanceRecordMiniSerializer(record, context=self.context).data
+
+    def get_work_order(self, obj):
+        wo = getattr(obj, "work_order", None)
+        if wo is None:
+            return None
+        return {"id": wo.id, "number": wo.number, "status": wo.status}
 
     def validate_equipment(self, value):
         if value.status == EquipmentStatus.INACTIVE:
