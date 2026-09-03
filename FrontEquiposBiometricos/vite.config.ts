@@ -46,6 +46,11 @@ export default defineConfig({
         target: 'ws://127.0.0.1:8000',
         ws: true,
       },
+      // Archivos subidos (QR de equipos, PDFs de hojas de vida, evidencias).
+      // Django los sirve bajo /media/ en dev; en prod es nginx/S3. Sin este
+      // proxy, <img src="/media/..."> cae en el fallback SPA de Vite y la
+      // imagen no carga.
+      '/media': { target: 'http://127.0.0.1:8000' },
     },
   },
   // Declaramos explícitamente las dependencias a pre-bundlear para que el
