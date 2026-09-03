@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework import status
 
 from apps.equipment.models import EquipmentWorkOrder
-from apps.users.tests.factories import TecnicoFactory
+from apps.users.tests.factories import IngenieroFactory, TecnicoFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -181,3 +181,83 @@ class TestWorkOrderPermissions:
         assert api_client.delete(wo_detail(wo.id)).status_code == (
             status.HTTP_403_FORBIDDEN
         )
+
+
+class TestWorkOrderScopedByRole:
+    """Técnico e ingeniero solo ven/editan las órdenes que tienen asignadas."""
+
+    def _wo(self, equipment, number, technician=None):
+        return EquipmentWorkOrder.objects.create(
+            equipment=equipment,
+            number=number,
+            service_type="PREVENTIVE",
+            start_date=timezone.now(),
+            description="x",
+            technician=technician,
+        )
+
+    def test_field_role_only_sees_own_orders(self, api_client, equipment):
+        ing = IngenieroFactory()
+        self._wo(equipment, "OT-MIA", technician=ing)
+        self._wo(equipment, "OT-AJENA", technician=TecnicoFactory())
+        self._wo(equipment, "OT-SIN")
+
+        api_client.force_authenticate(user=ing)
+        assert api_client.get(WO_LIST).json()["count"] == 1
+
+    def test_management_sees_all_orders(self, auth_client, equipment):
+        self._wo(equipment, "OT-A", technician=TecnicoFactory())
+        self._wo(equipment, "OT-B")
+
+        assert auth_client.get(WO_LIST).json()["count"] == 2
+
+    def test_field_role_created_order_is_self_assigned(self, api_client, equipment):
+        tec = TecnicoFactory()
+        api_client.force_authenticate(user=tec)
+
+        created = api_client.post(
+            WO_LIST, _wo_payload(equipment, number="OT-AUTO"), format="json"
+        )
+
+        assert created.status_code == 201
+        assert created.json()["technician"] == tec.id
+        assert api_client.get(WO_LIST).json()["count"] == 1
+
+    def test_field_role_cannot_touch_others_order(self, api_client, equipment):
+        wo = self._wo(equipment, "OT-OTRO", technician=TecnicoFactory())
+        api_client.force_authenticate(user=IngenieroFactory())
+
+        # No la ve...
+        assert api_client.get(wo_detail(wo.id)).status_code == 404
+        # ...ni puede colgarle un repuesto.
+        resp = api_client.post(
+            SP_LIST,
+            {
+                "work_order": wo.id,
+                "name": "Fusible",
+                "reference": "F-1",
+                "quantity": 1,
+                "unit_cost": "1000.00",
+            },
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_field_role_can_work_on_own_order_children(self, api_client, equipment):
+        tec = TecnicoFactory()
+        wo = self._wo(equipment, "OT-PROPIA", technician=tec)
+        api_client.force_authenticate(user=tec)
+
+        resp = api_client.post(
+            SP_LIST,
+            {
+                "work_order": wo.id,
+                "name": "Empaque",
+                "reference": "E-9",
+                "quantity": 2,
+                "unit_cost": "5000.00",
+            },
+            format="json",
+        )
+        assert resp.status_code == 201
+        assert api_client.get(SP_LIST, {"work_order": wo.id}).json()["count"] == 1

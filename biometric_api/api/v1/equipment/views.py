@@ -1,6 +1,8 @@
 from django.shortcuts import get_object_or_404
+from django.utils.translation import gettext_lazy as _
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -19,6 +21,7 @@ from apps.equipment.models import (
     WorkOrderSparePart,
 )
 from apps.equipment.services import generate_qr_for_equipment
+from apps.users.models import User
 
 from .filters import EquipmentFilter
 from .serializers import (
@@ -34,6 +37,16 @@ from .serializers import (
     WorkOrderSignatureSerializer,
     WorkOrderSparePartSerializer,
 )
+
+# Roles "de campo": ejecutan órdenes de trabajo, no las administran. Solo ven
+# y editan las que tienen asignadas (technician == ellos).
+_FIELD_ROLES = (User.Role.TECNICO, User.Role.INGENIERO)
+
+
+def _only_own_work_orders(user) -> bool:
+    return bool(
+        user and user.is_authenticated and getattr(user, "role", None) in _FIELD_ROLES
+    )
 
 
 class EquipmentViewSet(AuditLogMixin, viewsets.ModelViewSet):
@@ -227,6 +240,24 @@ class EquipmentWorkOrderViewSet(AuditLogMixin, viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated, HasRolePermission)
     permission_resource = "work_orders"
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if _only_own_work_orders(self.request.user):
+            qs = qs.filter(technician=self.request.user)
+        return qs
+
+    def perform_create(self, serializer):
+        # Un técnico/ingeniero que crea una orden sin indicar responsable queda
+        # asignado a sí mismo (si no, no la vería: su lista está filtrada a las
+        # suyas).
+        user = self.request.user
+        if _only_own_work_orders(user) and not serializer.validated_data.get(
+            "technician"
+        ):
+            serializer.save(technician=user)
+        else:
+            serializer.save()
+
     filterset_fields = ("equipment", "status", "service_type", "technician")
     search_fields = (
         "number",
@@ -244,18 +275,44 @@ class EquipmentWorkOrderViewSet(AuditLogMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=["get"], url_path="details")
     def details(self, request, pk: int = None):
         """Devuelve una orden de trabajo junto a sus elementos relacionados."""
-        work_order = (
+        work_order = get_object_or_404(
             self.get_queryset()
             .prefetch_related(
                 "spare_parts", "measurements", "evidences", "signatures"
             )
-            .select_related("cost")
-            .get(pk=self.kwargs["pk"])
+            .select_related("cost"),
+            pk=self.kwargs["pk"],
         )
         self.check_object_permissions(request, work_order)
         return Response(self.get_serializer(work_order).data)
 
-class WorkOrderSparePartViewSet(viewsets.ModelViewSet):
+
+class _WorkOrderChildScopedMixin:
+    """Los roles de campo solo ven y editan los elementos (repuestos,
+    mediciones, evidencias, firmas, costos) de sus propias órdenes de
+    trabajo."""
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if _only_own_work_orders(self.request.user):
+            qs = qs.filter(work_order__technician=self.request.user)
+        return qs
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        work_order = serializer.validated_data.get("work_order")
+        if (
+            _only_own_work_orders(user)
+            and work_order is not None
+            and work_order.technician_id != user.id
+        ):
+            raise PermissionDenied(
+                _("Solo puedes editar los elementos de tus propias órdenes de trabajo.")
+            )
+        serializer.save()
+
+
+class WorkOrderSparePartViewSet(_WorkOrderChildScopedMixin, viewsets.ModelViewSet):
 
     """ CRUD de repuestos utilizados en una orden de trabajo."""
 
@@ -276,7 +333,7 @@ class WorkOrderSparePartViewSet(viewsets.ModelViewSet):
     ordering = ("name",)
 
 
-class WorkOrderMeasurementViewSet(viewsets.ModelViewSet):
+class WorkOrderMeasurementViewSet(_WorkOrderChildScopedMixin, viewsets.ModelViewSet):
 
     "CRUD de mediciones realizadas durante una orden de trabajo"
 
@@ -306,7 +363,7 @@ class WorkOrderMeasurementViewSet(viewsets.ModelViewSet):
     ordering = ("parameter",)
 
 
-class WorkOrderEvidenceViewSet(viewsets.ModelViewSet):
+class WorkOrderEvidenceViewSet(_WorkOrderChildScopedMixin, viewsets.ModelViewSet):
 
     """CRUD de evidencias de una orden de trabajo."""
 
@@ -329,7 +386,7 @@ class WorkOrderEvidenceViewSet(viewsets.ModelViewSet):
     ordering = ("id",)
 
 
-class WorkOrderSignatureViewSet(viewsets.ModelViewSet):
+class WorkOrderSignatureViewSet(_WorkOrderChildScopedMixin, viewsets.ModelViewSet):
 
     """CRUD de firmas de una orden de trabajo."""
 
@@ -351,7 +408,7 @@ class WorkOrderSignatureViewSet(viewsets.ModelViewSet):
 
     ordering = ("-signed_at",)
 
-class WorkOrderCostViewSet(viewsets.ModelViewSet):
+class WorkOrderCostViewSet(_WorkOrderChildScopedMixin, viewsets.ModelViewSet):
 
     """
 
