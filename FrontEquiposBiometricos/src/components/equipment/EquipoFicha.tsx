@@ -7,6 +7,7 @@ import {
   Download,
   FileText,
   Pencil,
+  RefreshCw,
   Timer,
   Trash2,
   Wrench,
@@ -15,6 +16,7 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
+import { equipmentService } from "@/services/equipment.service";
 import { maintenanceService } from "@/services/maintenance.service";
 import { schedulingService } from "@/services/scheduling.service";
 import { assignedUserName } from "@/lib/users";
@@ -140,6 +142,8 @@ export function EquipoFichaContent({
   const [loadingS, setLoadingS] = useState(false);
   const [scheduledKind, setScheduledKind] = useState<string>("");
   const [eq, setEq] = useState<Equipment | null>(equipment);
+  const [regeneratingQr, setRegeneratingQr] = useState(false);
+  const [qrBust, setQrBust] = useState(0);
 
   useEffect(() => {
     setEq(equipment);
@@ -147,6 +151,7 @@ export function EquipoFichaContent({
     setHistory([]);
     setScheduled([]);
     setScheduledKind("");
+    setQrBust(0);
   }, [equipment]);
 
   useEffect(() => {
@@ -178,10 +183,29 @@ export function EquipoFichaContent({
   const branchLabel =
     eq.branch_name ?? (branchName ? branchName(eq.branch) : `Sede #${eq.branch}`);
 
-  const downloadQr = async () => {
-    if (!eq.qr_code_url) return;
+  const qrSrc = eq.qr_code_url
+    ? qrBust
+      ? `${eq.qr_code_url}${eq.qr_code_url.includes("?") ? "&" : "?"}v=${qrBust}`
+      : eq.qr_code_url
+    : null;
+
+  const regenerateQr = async () => {
+    setRegeneratingQr(true);
     try {
-      const res = await fetch(eq.qr_code_url);
+      const updated = await equipmentService.regenerateQr(eq.id);
+      setEq(updated);
+      setQrBust(Date.now());
+    } catch {
+      // El QR anterior sigue siendo válido; no bloqueamos la ficha.
+    } finally {
+      setRegeneratingQr(false);
+    }
+  };
+
+  const downloadQr = async () => {
+    if (!qrSrc) return;
+    try {
+      const res = await fetch(qrSrc);
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -192,7 +216,7 @@ export function EquipoFichaContent({
       a.remove();
       URL.revokeObjectURL(url);
     } catch {
-      window.open(eq.qr_code_url, "_blank", "noopener,noreferrer");
+      if (qrSrc) window.open(qrSrc, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -202,9 +226,9 @@ export function EquipoFichaContent({
         <div className="grid gap-5 sm:grid-cols-[auto_1fr]">
           <div className="flex flex-col items-center gap-2">
             <div className="rounded-xl border border-app bg-white p-3">
-              {eq.qr_code_url ? (
+              {qrSrc ? (
                 <img
-                  src={eq.qr_code_url}
+                  src={qrSrc}
                   alt={`QR del equipo ${eq.asset_tag}`}
                   className="h-40 w-40 object-contain"
                 />
@@ -215,15 +239,31 @@ export function EquipoFichaContent({
               )}
             </div>
             <p className="font-mono text-xs text-app-muted">{eq.asset_tag}</p>
-            <Button
-              size="sm"
-              variant="secondary"
-              leftIcon={<Download size={14} />}
-              disabled={!eq.qr_code_url}
-              onClick={() => void downloadQr()}
-            >
-              Descargar QR
-            </Button>
+            <p className="max-w-40 text-center text-[11px] text-app-muted">
+              Al escanearlo abre esta hoja de vida.
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                leftIcon={<Download size={14} />}
+                disabled={!qrSrc}
+                onClick={() => void downloadQr()}
+              >
+                Descargar
+              </Button>
+              {canEdit && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  leftIcon={<RefreshCw size={14} />}
+                  loading={regeneratingQr}
+                  onClick={() => void regenerateQr()}
+                >
+                  Regenerar
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-col gap-3">

@@ -9,15 +9,15 @@ PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 
 @pytest.mark.django_db
 class TestBuildQrPayload:
-    def test_payload_uses_id_not_asset_tag(self, settings):
+    def test_payload_points_to_life_sheet_by_id(self, settings):
         settings.FRONTEND_BASE_URL = "https://app.test"
         eq = EquipmentFactory(asset_tag="EQ-XYZ")
-        assert build_qr_payload(eq) == f"https://app.test/equipment/{eq.id}"
+        assert build_qr_payload(eq) == f"https://app.test/admin/equipos/{eq.id}"
 
     def test_strips_trailing_slash(self, settings):
         settings.FRONTEND_BASE_URL = "https://app.test/"
         eq = EquipmentFactory()
-        assert build_qr_payload(eq) == f"https://app.test/equipment/{eq.id}"
+        assert build_qr_payload(eq) == f"https://app.test/admin/equipos/{eq.id}"
 
 
 @pytest.mark.django_db

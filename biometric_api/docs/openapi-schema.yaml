@@ -1441,6 +1441,36 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/equipment/regenerate-qr-all/:
+    post:
+      operationId: v1_equipment_regenerate_qr_all_create
+      description: |-
+        Regenera el código QR de todos los equipos.
+
+        Útil tras cambiar FRONTEND_BASE_URL o al preparar una tanda de
+        etiquetas para imprimir. Con ``?missing=1`` solo cubre los equipos
+        que aún no tienen QR.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EquipmentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EquipmentRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipment'
+          description: ''
   /api/v1/equipment/work-order-costs/:
     get:
       operationId: v1_equipment_work_order_costs_list

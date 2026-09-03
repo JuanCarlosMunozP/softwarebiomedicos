@@ -317,7 +317,7 @@ else:
 # ---------------------------------------------------------------------------
 # Frontend (para los enlaces que apuntan los QR)
 # ---------------------------------------------------------------------------
-FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://localhost:3000")
+FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://127.0.0.1:5173")
 
 # ---------------------------------------------------------------------------
 # Email

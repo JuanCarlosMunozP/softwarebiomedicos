@@ -15,6 +15,7 @@ import { DashboardPage } from "@/pages/admin/DashboardPage";
 import { SedesPage } from "@/pages/admin/SedesPage";
 import { EquiposPage } from "@/pages/admin/EquiposPage";
 import { EquipoDetallePage } from "@/pages/admin/EquipoDetallePage";
+import { EtiquetasQrPage } from "@/pages/admin/EtiquetasQrPage";
 import { UsuariosPage } from "@/pages/admin/UsuariosPage";
 import { MantenimientosPage } from "@/pages/admin/MantenimientosPage";
 import { OrdenesTrabajoPage } from "@/pages/admin/OrdenesTrabajoPage";
@@ -63,6 +64,7 @@ function App() {
                   <Route index element={<DashboardPage />} />
                   <Route path="sedes" element={<SedesPage />} />
                   <Route path="equipos" element={<EquiposPage />} />
+                  <Route path="equipos/etiquetas" element={<EtiquetasQrPage />} />
                   <Route path="equipos/:id" element={<EquipoDetallePage />} />
                   <Route path="mantenimientos" element={<MantenimientosPage />} />
                   <Route path="ordenes-trabajo" element={<OrdenesTrabajoPage />} />

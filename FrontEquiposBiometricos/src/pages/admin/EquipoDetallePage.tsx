@@ -6,11 +6,14 @@ import { Card } from "@/components/ui/Card";
 import { EquipoFichaContent } from "@/components/equipment/EquipoFicha";
 import { equipmentService } from "@/services/equipment.service";
 import { getApiErrorMessage } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import { can } from "@/lib/permissions";
 import type { Equipment } from "@/types/equipment";
 
 export function EquipoDetallePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { usuario } = useAuth();
   const numericId = Number(id);
 
   const [equipment, setEquipment] = useState<Equipment | null>(null);
@@ -80,7 +83,10 @@ export function EquipoDetallePage() {
         </Card>
       ) : (
         <Card>
-          <EquipoFichaContent equipment={equipment} />
+          <EquipoFichaContent
+            equipment={equipment}
+            canEdit={can(usuario?.role, "equipment", "edit")}
+          />
         </Card>
       )}
     </div>

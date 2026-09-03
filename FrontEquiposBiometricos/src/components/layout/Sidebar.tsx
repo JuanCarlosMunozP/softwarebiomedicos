@@ -6,6 +6,7 @@ import {
   ClipboardList,
   FileText,
   LayoutDashboard,
+  QrCode,
   User,
   Users,
   Wrench,
@@ -33,7 +34,8 @@ interface LinkDef {
 const allLinks: LinkDef[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/admin/sedes", label: "Sedes", icon: Building2, resource: "branches" },
-  { to: "/admin/equipos", label: "Equipos", icon: ClipboardList, resource: "equipment" },
+  { to: "/admin/equipos", label: "Equipos", icon: ClipboardList, resource: "equipment", end: true },
+  { to: "/admin/equipos/etiquetas", label: "Etiquetas QR", icon: QrCode, resource: "equipment" },
   { to: "/admin/mantenimientos", label: "Mantenimientos", icon: Wrench, resource: "maintenance" },
   { to: "/admin/ordenes-trabajo", label: "Órdenes de trabajo", icon: FileText, resource: "work_orders" },
   { to: "/admin/agendamientos", label: "Solicitudes", icon: CalendarClock, resource: "scheduling" },
