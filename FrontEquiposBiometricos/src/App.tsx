@@ -66,10 +66,23 @@ function App() {
                   <Route path="equipos" element={<EquiposPage />} />
                   <Route path="equipos/etiquetas" element={<EtiquetasQrPage />} />
                   <Route path="equipos/:id" element={<EquipoDetallePage />} />
-                  <Route path="mantenimientos" element={<MantenimientosPage />} />
                   <Route path="agendamientos" element={<AgendamientosPage />} />
                   <Route path="fallas" element={<FallasPage />} />
                   <Route path="perfil" element={<PerfilPage />} />
+
+                  {/* Historial de mantenimientos: solo gestión. */}
+                  <Route
+                    element={
+                      <ProtectedRoute
+                        roles={["superadmin", "admin", "coordinador"]}
+                      />
+                    }
+                  >
+                    <Route
+                      path="mantenimientos"
+                      element={<MantenimientosPage />}
+                    />
+                  </Route>
 
                   {/* Órdenes de trabajo: solo quien ejecuta el trabajo. */}
                   <Route

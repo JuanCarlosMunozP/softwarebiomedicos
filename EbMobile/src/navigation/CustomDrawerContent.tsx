@@ -48,7 +48,9 @@ const NAV_ITEMS: NavItem[] = [
     key: "Mantenimientos",
     label: "Mantenimientos",
     icon: (c) => <Wrench size={18} color={c} />,
-    visible: (r) => can(r, "maintenance", "view"),
+    // Historial: solo gestión. El campo trabaja en "Órdenes de trabajo".
+    visible: (r) =>
+      r === "superadmin" || r === "admin" || r === "coordinador",
   },
   {
     key: "OrdenesTrabajo",

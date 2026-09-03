@@ -58,7 +58,9 @@ export function AppDrawer() {
           options={{ title: "Equipos" }}
         />
       )}
-      {can(role, "maintenance", "view") && (
+      {(role === "superadmin" ||
+        role === "admin" ||
+        role === "coordinador") && (
         <Drawer.Screen
           name="Mantenimientos"
           component={MantenimientosScreen}
