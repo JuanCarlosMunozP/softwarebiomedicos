@@ -61,19 +61,18 @@ export function EquiposScreen() {
 
   const load = useCallback(async () => {
     try {
-      const [eq, b, m] = await Promise.all([
-        equipmentService.list({
-          search: search || undefined,
-          status: filterStatus ?? undefined,
-          branch: filterBranch ?? undefined,
-          ordering: "name",
-        }),
-        branchesService.list({ is_active: true }),
-        modelsService.list({ is_active: true }),
-      ]);
+      const eq = await equipmentService.list({
+        search: search || undefined,
+        status: filterStatus ?? undefined,
+        branch: filterBranch ?? undefined,
+        ordering: "name",
+      });
       setItems(eq);
-      setBranches(b);
-      setModels(m);
+      // Sedes y modelos son para los <Select> de crear/editar. El técnico no
+      // puede listar sedes (403) pero tampoco puede crear equipos: si falla,
+      // la pantalla sigue viva con la lista.
+      branchesService.list({ is_active: true }).then(setBranches).catch(() => {});
+      modelsService.list({ is_active: true }).then(setModels).catch(() => {});
     } catch (err) {
       Alert.alert("Error", getApiErrorMessage(err));
     }

@@ -1,3 +1,5 @@
+import type { AssignedUser } from "@/types/auth";
+
 export type ScheduleKind = "PREVENTIVE" | "REPAIR";
 
 export interface RequestedByUser {
@@ -18,9 +20,10 @@ export interface ScheduledMaintenance {
   /** Fecha de programación; null mientras la solicitud no se agenda. */
   scheduled_date: string | null;
   notes?: string;
-  technician?: number | null;
-  technician_name?: string | null;
-  technician_username?: string | null;
+  assigned_engineer?: number | null;
+  assigned_engineer_detail?: AssignedUser | null;
+  assigned_technician?: number | null;
+  assigned_technician_detail?: AssignedUser | null;
   is_completed: boolean;
   notified_at?: string | null;
   created_at?: string;
@@ -40,6 +43,7 @@ export interface ScheduleUpdateInput {
   kind?: ScheduleKind;
   scheduled_date?: string | null;
   notes?: string;
-  technician?: number | null;
+  assigned_technician?: number | null;
+  assigned_engineer?: number | null;
   is_completed?: boolean;
 }
