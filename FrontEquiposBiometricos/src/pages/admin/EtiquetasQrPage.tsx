@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Printer, RefreshCw } from "lucide-react";
+import { Printer, RefreshCw, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -125,27 +125,53 @@ export function EtiquetasQrPage() {
   const [regenerating, setRegenerating] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (opts: { silent?: boolean } = {}) => {
+    if (!opts.silent) setLoading(true);
     setError(null);
     try {
       const [eq, brs] = await Promise.all([
         equipmentService.listAll({ ordering: "name" }),
         branchesService.list({ ordering: "name" }),
       ]);
-      setItems(eq);
       setBranches(brs);
-      setSelected(new Set(eq.map((e) => e.id)));
+      setItems((prev) => {
+        if (opts.silent) {
+          // Refresco en segundo plano: respetamos lo que el usuario deseleccionó
+          // y marcamos por defecto los equipos nuevos (recién creados) para que
+          // aparezcan listos para imprimir.
+          const knownIds = new Set(prev.map((e) => e.id));
+          const newIds = eq.filter((e) => !knownIds.has(e.id)).map((e) => e.id);
+          if (newIds.length) {
+            setSelected((sel) => new Set([...sel, ...newIds]));
+            setNotice(
+              `${newIds.length} equipo(s) nuevo(s) agregado(s) al panel.`,
+            );
+          }
+        } else {
+          setSelected(new Set(eq.map((e) => e.id)));
+        }
+        return eq;
+      });
     } catch (err) {
-      setError(getApiErrorMessage(err, "No se pudieron cargar los equipos"));
+      if (!opts.silent) {
+        setError(getApiErrorMessage(err, "No se pudieron cargar los equipos"));
+      }
     } finally {
-      setLoading(false);
+      if (!opts.silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
+  }, []);
+
+  // Al volver a la pestaña, refrescamos en silencio: si se creó un equipo
+  // en otra vista, su etiqueta QR aparece sin recargar la página.
+  useEffect(() => {
+    const onFocus = () => void load({ silent: true });
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, []);
 
   const filtered = useMemo(() => {
@@ -231,6 +257,13 @@ export function EtiquetasQrPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            leftIcon={<RotateCw size={16} />}
+            onClick={() => void load({ silent: true })}
+          >
+            Actualizar
+          </Button>
           {canRegenerate && (
             <Button
               variant="secondary"
