@@ -31,6 +31,8 @@ export interface ScheduledMaintenance {
   notified_at?: string | null;
   maintenance_record?: number | null;
   maintenance_record_detail?: MaintenanceRecord | null;
+  /** Orden de trabajo creada al asignar la solicitud. */
+  work_order?: { id: number; number: string; status: string } | null;
   created_at?: string;
   updated_at?: string;
 }

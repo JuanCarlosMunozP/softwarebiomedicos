@@ -384,6 +384,18 @@ class EquipmentWorkOrder(models.Model):
         blank=True
     )
 
+    # Solicitud de mantenimiento que originó esta orden. Se crea sola cuando
+    # la gestión asigna un responsable a la solicitud; al terminar la orden,
+    # la solicitud queda cumplida.
+    schedule = models.OneToOneField(
+        "scheduling.MaintenanceSchedule",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="work_order",
+        verbose_name=_("Solicitud de origen"),
+    )
+
     status = models.CharField(
         max_length=20,
         choices=WorkOrderStatus.choices,

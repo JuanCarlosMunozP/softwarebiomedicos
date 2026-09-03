@@ -1560,6 +1560,9 @@ export interface components {
             readonly status_display: string;
             /** Format: uri */
             report?: string | null;
+            /** Solicitud de origen */
+            readonly schedule: number | null;
+            readonly schedule_info: string;
             /** Format: date-time */
             readonly created_at: string;
         };
@@ -1583,6 +1586,9 @@ export interface components {
             readonly status_display: string;
             /** Format: uri */
             report?: string | null;
+            /** Solicitud de origen */
+            readonly schedule: number | null;
+            readonly schedule_info: string;
             /** Format: date-time */
             readonly created_at: string;
             readonly spare_parts: components["schemas"]["WorkOrderSparePart"][];
@@ -1786,6 +1792,7 @@ export interface components {
             is_completed?: boolean;
             readonly maintenance_record: string;
             readonly maintenance_record_detail: string;
+            readonly work_order: string;
             /**
              * Creado
              * Format: date-time

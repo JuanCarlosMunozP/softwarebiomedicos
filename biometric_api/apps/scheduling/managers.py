@@ -37,4 +37,5 @@ class MaintenanceScheduleManager(
             "assigned_engineer",
             "assigned_technician",
             "requested_by",
+            "work_order",
         )

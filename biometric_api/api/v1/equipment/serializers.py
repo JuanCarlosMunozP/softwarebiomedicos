@@ -373,6 +373,7 @@ class EquipmentWorkOrderSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(
         source="get_status_display", read_only=True
     )
+    schedule_info = serializers.SerializerMethodField()
 
     class Meta:
 
@@ -394,6 +395,8 @@ class EquipmentWorkOrderSerializer(serializers.ModelSerializer):
             "status",
             "status_display",
             "report",
+            "schedule",
+            "schedule_info",
             "created_at",
         )
 
@@ -404,6 +407,8 @@ class EquipmentWorkOrderSerializer(serializers.ModelSerializer):
             "service_type_display",
             "status_display",
             "technician_name",
+            "schedule",
+            "schedule_info",
             "created_at",
         ]
         extra_kwargs = {
@@ -416,6 +421,18 @@ class EquipmentWorkOrderSerializer(serializers.ModelSerializer):
         if not obj.technician:
             return None
         return obj.technician.get_full_name() or obj.technician.username
+
+    def get_schedule_info(self, obj):
+        s = obj.schedule
+        if s is None:
+            return None
+        return {
+            "id": s.id,
+            "kind": s.kind,
+            "scheduled_date": s.scheduled_date,
+            "requested_date": s.requested_date,
+            "is_completed": s.is_completed,
+        }
 
     def validate_number(self, value):
         value = (value or "").strip()
