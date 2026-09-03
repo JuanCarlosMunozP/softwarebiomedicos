@@ -552,7 +552,7 @@ export function MantenimientosPage() {
             />
           ) : (
             <Input
-              label="ID del técnico"
+              label="ID del técnico (opcional)"
               type="number"
               value={form.assigned_technician ?? ""}
               onChange={(e) =>
@@ -564,8 +564,11 @@ export function MantenimientosPage() {
                   assigned_engineer: null,
                 })
               }
-              required
-              hint="Tu rol no permite listar usuarios; ingresa el ID del técnico manualmente."
+              hint={
+                role === "tecnico" || role === "ingeniero"
+                  ? "Si lo dejas vacío, queda asignado a ti."
+                  : "Tu rol no lista usuarios; deja vacío o escribe el ID del responsable."
+              }
             />
           )}
           <Input
