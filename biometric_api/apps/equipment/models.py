@@ -384,9 +384,9 @@ class EquipmentWorkOrder(models.Model):
         blank=True
     )
 
-    # Solicitud de mantenimiento que originó esta orden. Se crea sola cuando
-    # la gestión asigna un responsable a la solicitud; al terminar la orden,
-    # la solicitud queda cumplida.
+    # Origen de la orden: se crea sola cuando la gestión asigna un responsable
+    # a una solicitud (schedule) o registra un mantenimiento con responsable
+    # (maintenance_record). Solo uno de los dos está poblado.
     schedule = models.OneToOneField(
         "scheduling.MaintenanceSchedule",
         on_delete=models.SET_NULL,
@@ -394,6 +394,14 @@ class EquipmentWorkOrder(models.Model):
         blank=True,
         related_name="work_order",
         verbose_name=_("Solicitud de origen"),
+    )
+    maintenance_record = models.OneToOneField(
+        "maintenance.MaintenanceRecord",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="work_order",
+        verbose_name=_("Mantenimiento de origen"),
     )
 
     status = models.CharField(

@@ -1716,6 +1716,7 @@ export interface components {
             readonly pdf_file_url: string | null;
             scheduled_maintenance?: number | null;
             readonly scheduled_maintenance_detail: components["schemas"]["_ScheduledMaintenanceMini"];
+            readonly work_order: string;
             /**
              * Creado
              * Format: date-time

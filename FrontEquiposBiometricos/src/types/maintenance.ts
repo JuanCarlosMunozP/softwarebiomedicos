@@ -28,6 +28,8 @@ export interface MaintenanceRecord {
   pdf_file_url?: string | null;
   scheduled_maintenance?: number | null;
   scheduled_maintenance_detail?: ScheduledMaintenance | null;
+  /** Orden de trabajo creada al asignar un responsable. */
+  work_order?: { id: number; number: string; status: string } | null;
   created_at?: string;
   updated_at?: string;
 }
