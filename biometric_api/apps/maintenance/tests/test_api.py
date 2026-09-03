@@ -162,6 +162,45 @@ class TestMaintenanceListScopedByRole:
         listed = api_client.get(LIST_URL)
         assert listed.json()["count"] == 1
 
+    def test_ingeniero_only_sees_own_assignments(
+        self, api_client, ingeniero, tecnico, equipment
+    ):
+        from apps.users.tests.factories import IngenieroFactory
+
+        otro_ing = IngenieroFactory()
+        # Asignados al ingeniero (en su FK) o a él como técnico de apoyo.
+        MaintenanceRecordFactory(equipment=equipment, assigned_engineer=ingeniero)
+        MaintenanceRecordFactory(
+            equipment=equipment, assigned_technician=ingeniero
+        )
+        # Ajenos: de otro ingeniero, de un técnico, y sin asignar.
+        MaintenanceRecordFactory(equipment=equipment, assigned_engineer=otro_ing)
+        MaintenanceRecordFactory(equipment=equipment, assigned_technician=tecnico)
+        MaintenanceRecordFactory(equipment=equipment)
+
+        api_client.force_authenticate(user=ingeniero)
+        response = api_client.get(LIST_URL)
+
+        assert response.status_code == 200
+        assert response.json()["count"] == 2
+
+    def test_ingeniero_created_record_is_self_assigned_and_visible(
+        self, api_client, ingeniero, equipment
+    ):
+        api_client.force_authenticate(user=ingeniero)
+        payload = {
+            "equipment": equipment.id,
+            "kind": MaintenanceKind.PREVENTIVE,
+            "date": "2026-01-15",
+            "description": "Registro hecho por el ingeniero.",
+        }
+        created = api_client.post(LIST_URL, payload, format="json")
+        assert created.status_code == 201
+        assert created.json()["assigned_engineer"] == ingeniero.id
+
+        listed = api_client.get(LIST_URL)
+        assert listed.json()["count"] == 1
+
 
 class TestMaintenanceList:
     def test_list_paginated(self, auth_client, equipment):
