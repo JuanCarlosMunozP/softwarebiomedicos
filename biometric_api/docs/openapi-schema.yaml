@@ -4655,6 +4655,9 @@ components:
           allOf:
           - $ref: '#/components/schemas/_ScheduledMaintenanceMini'
           readOnly: true
+        work_order:
+          type: string
+          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -4679,6 +4682,7 @@ components:
       - scheduled_maintenance_detail
       - technician
       - updated_at
+      - work_order
     MaintenanceRecordKindEnum:
       enum:
       - PREVENTIVE

@@ -86,6 +86,8 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
     scheduled_maintenance_detail = _ScheduledMaintenanceMiniSerializer(
         source="scheduled_maintenance", read_only=True
     )
+    # Orden de trabajo que se crea sola al asignar un responsable.
+    work_order = serializers.SerializerMethodField()
 
     class Meta:
         model = MaintenanceRecord
@@ -107,6 +109,7 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
             "pdf_file_url",
             "scheduled_maintenance",
             "scheduled_maintenance_detail",
+            "work_order",
             "created_at",
             "updated_at",
         )
@@ -116,6 +119,7 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
             "assigned_engineer_detail",
             "assigned_technician_detail",
             "scheduled_maintenance_detail",
+            "work_order",
             "created_at",
             "updated_at",
         )
@@ -146,6 +150,12 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
             if user is not None:
                 return f"{user.first_name} {user.last_name}".strip() or user.username
         return obj.technician or ""
+
+    def get_work_order(self, obj):
+        wo = getattr(obj, "work_order", None)
+        if wo is None:
+            return None
+        return {"id": wo.id, "number": wo.number, "status": wo.status}
 
     def validate_cost(self, value):
         if value is not None and value < 0:

@@ -40,4 +40,5 @@ class MaintenanceRecordManager(models.Manager.from_queryset(MaintenanceRecordQue
             "equipment__branch",
             "assigned_engineer",
             "assigned_technician",
+            "work_order",
         )
