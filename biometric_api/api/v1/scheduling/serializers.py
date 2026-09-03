@@ -22,6 +22,19 @@ class _AssignedUserSerializer(serializers.ModelSerializer):
         return f"{obj.first_name} {obj.last_name}".strip()
 
 
+class _RequestedBySerializer(serializers.ModelSerializer):
+    """Quién creó la solicitud (read-only, anidado)."""
+
+    full_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ("id", "username", "full_name")
+
+    def get_full_name(self, obj: User) -> str:
+        return f"{obj.first_name} {obj.last_name}".strip()
+
+
 class _MaintenanceRecordMiniSerializer(serializers.ModelSerializer):
     """Representación mínima del mantenimiento que cumplió un agendamiento."""
 
@@ -56,6 +69,9 @@ class MaintenanceScheduleSerializer(serializers.ModelSerializer):
     assigned_technician_detail = _AssignedUserSerializer(
         source="assigned_technician", read_only=True
     )
+    requested_by_detail = _RequestedBySerializer(source="requested_by", read_only=True)
+    # La solicitud nace sin fecha programada; la gestión la fija después.
+    scheduled_date = serializers.DateField(required=False, allow_null=True)
     maintenance_record = serializers.SerializerMethodField()
     maintenance_record_detail = serializers.SerializerMethodField()
 
@@ -67,6 +83,9 @@ class MaintenanceScheduleSerializer(serializers.ModelSerializer):
             "equipment_asset_tag",
             "branch_name",
             "kind",
+            "requested_date",
+            "requested_by",
+            "requested_by_detail",
             "scheduled_date",
             "notes",
             "assigned_engineer",
@@ -84,6 +103,9 @@ class MaintenanceScheduleSerializer(serializers.ModelSerializer):
             "id",
             "equipment_asset_tag",
             "branch_name",
+            "requested_date",
+            "requested_by",
+            "requested_by_detail",
             "assigned_engineer_detail",
             "assigned_technician_detail",
             "notified_at",
@@ -92,6 +114,12 @@ class MaintenanceScheduleSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        if request is not None and request.user.is_authenticated:
+            validated_data["requested_by"] = request.user
+        return super().create(validated_data)
 
     def _record(self, obj):
         # Acceso seguro al reverso OneToOne: si no hay vínculo, devuelve None
@@ -116,6 +144,8 @@ class MaintenanceScheduleSerializer(serializers.ModelSerializer):
         return value
 
     def validate_scheduled_date(self, value):
+        if value is None:
+            return value
         if self.instance is None and value < timezone.localdate():
             raise serializers.ValidationError(
                 _("La fecha programada no puede ser pasada.")

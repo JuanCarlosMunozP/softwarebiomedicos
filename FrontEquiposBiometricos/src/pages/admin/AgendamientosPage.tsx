@@ -28,7 +28,6 @@ import { getApiErrorMessage } from "@/lib/api";
 import type { Equipment } from "@/types/equipment";
 import type { Usuario } from "@/types/auth";
 import type {
-  ScheduleInput,
   ScheduleKind,
   ScheduledMaintenance,
 } from "@/types/scheduling";
@@ -40,7 +39,18 @@ const KIND_LABEL: Record<ScheduleKind, string> = {
   REPAIR: "Reparación",
 };
 
-const empty: ScheduleInput = {
+const today = () => new Date().toISOString().slice(0, 10);
+
+interface FormState {
+  equipment: number;
+  kind: ScheduleKind;
+  scheduled_date: string;
+  notes: string;
+  assigned_technician: number | null;
+  assigned_engineer: number | null;
+}
+
+const empty: FormState = {
   equipment: 0,
   kind: "PREVENTIVE",
   scheduled_date: "",
@@ -63,7 +73,7 @@ export function AgendamientosPage() {
 
   const [editing, setEditing] = useState<ScheduledMaintenance | null>(null);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState<ScheduleInput>(empty);
+  const [form, setForm] = useState<FormState>(empty);
   const [saving, setSaving] = useState(false);
 
   const [toDelete, setToDelete] = useState<ScheduledMaintenance | null>(null);
@@ -96,7 +106,7 @@ export function AgendamientosPage() {
     setError(null);
     try {
       const data = await schedulingService.list({
-        ordering: "scheduled_date",
+        ordering: "-requested_date",
         search: search || undefined,
         is_completed:
           completedFilter === "true"
@@ -107,7 +117,7 @@ export function AgendamientosPage() {
       });
       setItems(data);
     } catch (err) {
-      setError(getApiErrorMessage(err, "No se pudieron cargar los agendamientos"));
+      setError(getApiErrorMessage(err, "No se pudieron cargar las solicitudes"));
     } finally {
       setLoading(false);
     }
@@ -165,7 +175,7 @@ export function AgendamientosPage() {
     setForm({
       equipment: s.equipment,
       kind: s.kind,
-      scheduled_date: s.scheduled_date,
+      scheduled_date: s.scheduled_date ?? "",
       notes: s.notes ?? "",
       assigned_technician: s.assigned_technician ?? null,
       assigned_engineer: s.assigned_engineer ?? null,
@@ -184,9 +194,20 @@ export function AgendamientosPage() {
     setSaving(true);
     try {
       if (editing) {
-        await schedulingService.update(editing.id, form);
+        await schedulingService.update(editing.id, {
+          equipment: form.equipment,
+          kind: form.kind,
+          scheduled_date: form.scheduled_date || null,
+          notes: form.notes,
+          assigned_technician: form.assigned_technician,
+          assigned_engineer: form.assigned_engineer,
+        });
       } else {
-        await schedulingService.create(form);
+        await schedulingService.create({
+          equipment: form.equipment,
+          kind: form.kind,
+          notes: form.notes,
+        });
       }
       closeModal();
       await load();
@@ -216,7 +237,7 @@ export function AgendamientosPage() {
       await schedulingService.complete(s.id);
       await load();
     } catch (err) {
-      alert(getApiErrorMessage(err, "No se pudo marcar como cumplido"));
+      alert(getApiErrorMessage(err, "No se pudo marcar como cumplida"));
     }
   };
 
@@ -234,16 +255,16 @@ export function AgendamientosPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-app sm:text-3xl">
-            Agendamientos
+            Solicitudes
           </h1>
           <p className="text-sm text-app-muted">
-            Programación de mantenimientos futuros. Al crear se envía un correo
-            de notificación.
+            Solicitudes de mantenimiento. La programación y la asignación de
+            responsable se hacen después, al editar cada solicitud.
           </p>
         </div>
         {canCreate && (
           <Button leftIcon={<Plus size={16} />} onClick={openCreate}>
-            Nuevo agendamiento
+            Nueva solicitud
           </Button>
         )}
       </div>
@@ -259,12 +280,12 @@ export function AgendamientosPage() {
             }}
           />
           <Select
-            placeholder="Todos"
+            placeholder="Todas"
             value={completedFilter}
             onChange={(e) => setCompletedFilter(e.target.value)}
             options={[
               { value: "false", label: "Pendientes" },
-              { value: "true", label: "Cumplidos" },
+              { value: "true", label: "Cumplidas" },
             ]}
           />
           <Button variant="secondary" onClick={() => void load()}>
@@ -284,16 +305,16 @@ export function AgendamientosPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-app text-left text-xs uppercase tracking-wider text-app-muted">
-                <th className="pb-2 font-medium">Equipo</th>
-                <th className="pb-2 font-medium">Tipo</th>
-                <th className="pb-2 font-medium">Fecha</th>
-                <th className="pb-2 font-medium">Técnico</th>
-                <th className="pb-2 font-medium">Estado</th>
-                <th className="pb-2 font-medium text-right">Acciones</th>
+              <tr className="border-b border-app text-left text-xs uppercase tracking-wider text-app-muted [&>th]:pb-2 [&>th]:pr-6 [&>th]:font-medium [&>th]:whitespace-nowrap">
+                <th>Equipo</th>
+                <th>Tipo</th>
+                <th>Fechas</th>
+                <th>Técnico</th>
+                <th>Estado</th>
+                <th className="pr-0 text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--border)]">
+            <tbody className="divide-y divide-[var(--border)] [&>tr>td]:pr-6 [&>tr>td]:align-top">
               {loading ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-app-muted">
@@ -303,7 +324,7 @@ export function AgendamientosPage() {
               ) : items.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-app-muted">
-                    Sin agendamientos.
+                    Sin solicitudes.
                   </td>
                 </tr>
               ) : (
@@ -321,10 +342,16 @@ export function AgendamientosPage() {
                           {s.notes && (
                             <p className="text-xs text-app-muted">{s.notes}</p>
                           )}
+                          {s.requested_by_detail && (
+                            <p className="text-xs text-app-muted">
+                              Solicitada por {s.requested_by_detail.full_name ||
+                                s.requested_by_detail.username}
+                            </p>
+                          )}
                           {s.maintenance_record_detail && (
                             <p className="mt-1 inline-flex items-center gap-1 text-xs text-app-muted">
                               <Wrench size={11} />
-                              Cumplido por mantenimiento #
+                              Cumplida por mantenimiento #
                               {s.maintenance_record_detail.id} ·{" "}
                               {s.maintenance_record_detail.date}
                             </p>
@@ -337,7 +364,18 @@ export function AgendamientosPage() {
                         {KIND_LABEL[s.kind]}
                       </Badge>
                     </td>
-                    <td className="py-3 text-app-muted">{s.scheduled_date}</td>
+                    <td className="py-3 text-app-muted whitespace-nowrap">
+                      <div>
+                        <span className="text-xs uppercase tracking-wide">Sol.</span>{" "}
+                        {s.requested_date}
+                      </div>
+                      <div className="text-xs">
+                        <span className="uppercase tracking-wide">Prog.</span>{" "}
+                        {s.scheduled_date ?? (
+                          <span className="italic">por programar</span>
+                        )}
+                      </div>
+                    </td>
                     <td className="py-3 text-app-muted">
                       {labelForScheduleTechnician(s) ? (
                         <span className="inline-flex items-center gap-1.5">
@@ -352,7 +390,7 @@ export function AgendamientosPage() {
                     </td>
                     <td className="py-3">
                       <Badge tone={s.is_completed ? "success" : "warning"}>
-                        {s.is_completed ? "Cumplido" : "Pendiente"}
+                        {s.is_completed ? "Cumplida" : "Pendiente"}
                       </Badge>
                     </td>
                     <td className="py-3">
@@ -395,7 +433,7 @@ export function AgendamientosPage() {
                             leftIcon={<Pencil size={14} />}
                             onClick={() => openEdit(s)}
                           >
-                            Editar
+                            {s.scheduled_date ? "Editar" : "Programar"}
                           </Button>
                         )}
                         {canDelete && (
@@ -421,7 +459,7 @@ export function AgendamientosPage() {
       <Modal
         open={creating || !!editing}
         onClose={closeModal}
-        title={editing ? "Editar agendamiento" : "Nuevo agendamiento"}
+        title={editing ? "Programar solicitud" : "Nueva solicitud"}
         size="lg"
       >
         <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
@@ -447,44 +485,58 @@ export function AgendamientosPage() {
               label,
             }))}
           />
-          <Input
-            label="Fecha programada"
-            type="date"
-            value={form.scheduled_date}
-            onChange={(e) =>
-              setForm({ ...form, scheduled_date: e.target.value })
-            }
-            required
-          />
-          <div className="sm:col-span-2">
-            {technicianListAvailable ? (
-              <TechnicianSelect
-                label="Técnico o ingeniero asignado"
-                value={form.assigned_technician ?? form.assigned_engineer ?? null}
-                onChange={(_id, user) =>
-                  setForm({ ...form, ...assignmentPayload(user ?? null) })
-                }
-                technicians={technicians}
-                hint="Búscalo por nombre, usuario o correo. Opcional — puedes asignarlo más tarde."
-              />
-            ) : (
-              <Input
-                label="ID del técnico (opcional)"
-                type="number"
-                value={form.assigned_technician ?? ""}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    assigned_technician: e.target.value
-                      ? Number(e.target.value)
-                      : null,
-                    assigned_engineer: null,
-                  })
-                }
-                hint="Tu rol no permite listar usuarios; ingresa el ID manualmente o déjalo vacío."
-              />
-            )}
-          </div>
+          {editing ? (
+            <Input
+              label="Fecha programada"
+              type="date"
+              value={form.scheduled_date}
+              onChange={(e) =>
+                setForm({ ...form, scheduled_date: e.target.value })
+              }
+            />
+          ) : (
+            <Input
+              label="Fecha de solicitud"
+              type="date"
+              value={today()}
+              readOnly
+              disabled
+              hint="Se registra automáticamente con la fecha de hoy."
+            />
+          )}
+          {editing && (
+            <div className="sm:col-span-2">
+              {technicianListAvailable ? (
+                <TechnicianSelect
+                  label="Técnico o ingeniero asignado"
+                  value={
+                    form.assigned_technician ?? form.assigned_engineer ?? null
+                  }
+                  onChange={(_id, user) =>
+                    setForm({ ...form, ...assignmentPayload(user ?? null) })
+                  }
+                  technicians={technicians}
+                  hint="Búscalo por nombre, usuario o correo. Opcional — puedes asignarlo más tarde."
+                />
+              ) : (
+                <Input
+                  label="ID del técnico (opcional)"
+                  type="number"
+                  value={form.assigned_technician ?? ""}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      assigned_technician: e.target.value
+                        ? Number(e.target.value)
+                        : null,
+                      assigned_engineer: null,
+                    })
+                  }
+                  hint="Tu rol no permite listar usuarios; ingresa el ID manualmente o déjalo vacío."
+                />
+              )}
+            </div>
+          )}
           <div className="flex flex-col gap-1.5 sm:col-span-2">
             <label className="text-sm font-medium text-app">Notas</label>
             <textarea
@@ -507,8 +559,8 @@ export function AgendamientosPage() {
 
       <ConfirmDialog
         open={!!toDelete}
-        title="Cancelar agendamiento"
-        description="¿Eliminar este agendamiento? Esta acción no se puede deshacer."
+        title="Cancelar solicitud"
+        description="¿Eliminar esta solicitud? Esta acción no se puede deshacer."
         confirmText="Eliminar"
         danger
         loading={deleting}

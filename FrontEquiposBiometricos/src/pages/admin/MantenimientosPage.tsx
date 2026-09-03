@@ -113,7 +113,7 @@ export function MantenimientosPage() {
     }
     return list.map((s) => ({
       value: String(s.id),
-      label: `${s.scheduled_date} · ${s.kind === "PREVENTIVE" ? "Preventivo" : "Reparación"}${s.notes ? ` — ${s.notes}` : ""}`,
+      label: `${s.scheduled_date ?? "Sin fecha"} · ${s.kind === "PREVENTIVE" ? "Preventivo" : "Reparación"}${s.notes ? ` — ${s.notes}` : ""}`,
     }));
   }, [pendingSchedules, form.equipment, editing]);
 

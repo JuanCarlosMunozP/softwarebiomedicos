@@ -3,6 +3,12 @@ import type { MaintenanceRecord } from "@/types/maintenance";
 
 export type ScheduleKind = "PREVENTIVE" | "REPAIR";
 
+export interface RequestedByUser {
+  id: number;
+  username: string;
+  full_name: string;
+}
+
 export interface ScheduledMaintenance {
   id: number;
   equipment: number;
@@ -10,7 +16,12 @@ export interface ScheduledMaintenance {
   equipment_name?: string;
   branch_name?: string;
   kind: ScheduleKind;
-  scheduled_date: string;
+  /** Fecha en que se creó la solicitud (solo lectura). */
+  requested_date: string;
+  requested_by?: number | null;
+  requested_by_detail?: RequestedByUser | null;
+  /** Fecha de programación; null mientras la solicitud no se agenda. */
+  scheduled_date: string | null;
   notes?: string;
   assigned_engineer?: number | null;
   assigned_engineer_detail?: AssignedUser | null;
@@ -24,11 +35,20 @@ export interface ScheduledMaintenance {
   updated_at?: string;
 }
 
-export interface ScheduleInput {
+/** Campos que envía el formulario de "Nueva solicitud". */
+export interface ScheduleCreateInput {
   equipment: number;
   kind: ScheduleKind;
-  scheduled_date: string;
+  notes?: string;
+}
+
+/** Campos editables al programar/asignar una solicitud existente. */
+export interface ScheduleUpdateInput {
+  equipment?: number;
+  kind?: ScheduleKind;
+  scheduled_date?: string | null;
   notes?: string;
   assigned_technician?: number | null;
   assigned_engineer?: number | null;
+  is_completed?: boolean;
 }

@@ -34,7 +34,7 @@ const allLinks: LinkDef[] = [
   { to: "/admin/sedes", label: "Sedes", icon: Building2, resource: "branches" },
   { to: "/admin/equipos", label: "Equipos", icon: ClipboardList, resource: "equipment" },
   { to: "/admin/mantenimientos", label: "Mantenimientos", icon: Wrench, resource: "maintenance" },
-  { to: "/admin/agendamientos", label: "Agendamientos", icon: CalendarClock, resource: "scheduling" },
+  { to: "/admin/agendamientos", label: "Solicitudes", icon: CalendarClock, resource: "scheduling" },
   { to: "/admin/fallas", label: "Reportes de falla", icon: AlertTriangle, resource: "failures" },
   { to: "/admin/usuarios", label: "Usuarios", icon: Users, resource: "users" },
   { to: "/admin/perfil", label: "Mi perfil", icon: User },

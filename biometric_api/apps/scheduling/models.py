@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.equipment.models import Equipment
@@ -25,7 +26,24 @@ class MaintenanceSchedule(models.Model):
         choices=ScheduledMaintenanceKind.choices,
         db_index=True,
     )
-    scheduled_date = models.DateField(_("Fecha programada"), db_index=True)
+    requested_date = models.DateField(
+        _("Fecha de solicitud"),
+        default=timezone.localdate,
+        db_index=True,
+    )
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="requested_schedules",
+        verbose_name=_("Solicitado por"),
+    )
+    # Una solicitud nace sin fecha programada; la fija quien la agenda/asigna
+    # después (gestión). Por eso es opcional.
+    scheduled_date = models.DateField(
+        _("Fecha programada"), null=True, blank=True, db_index=True
+    )
     notes = models.TextField(_("Notas"), blank=True)
     assigned_engineer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -53,8 +71,8 @@ class MaintenanceSchedule(models.Model):
     objects = MaintenanceScheduleManager()
 
     class Meta:
-        verbose_name = _("Agendamiento de mantenimiento")
-        verbose_name_plural = _("Agendamientos de mantenimiento")
+        verbose_name = _("Solicitud de mantenimiento")
+        verbose_name_plural = _("Solicitudes de mantenimiento")
         ordering = ["scheduled_date"]
         indexes = [
             models.Index(fields=["equipment", "scheduled_date"], name="sched_eq_date_idx"),
@@ -64,4 +82,5 @@ class MaintenanceSchedule(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f"{self.get_kind_display()} - {self.equipment.asset_tag} - {self.scheduled_date}"
+        fecha = self.scheduled_date or _("sin programar")
+        return f"{self.get_kind_display()} - {self.equipment.asset_tag} - {fecha}"

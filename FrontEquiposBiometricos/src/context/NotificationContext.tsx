@@ -37,9 +37,10 @@ function toastFromEvent(event: NotificationEvent): Omit<ToastData, "id"> {
   switch (event.type) {
     case "schedule_email_sent": {
       const sentAtLocal = formatLocalTime(event.sent_at);
+      const fecha = event.scheduled_date || "sin programar";
       return {
-        title: "Correo de agendamiento enviado",
-        body: `${event.equipment_asset_tag} · ${event.scheduled_date}`,
+        title: "Correo de solicitud enviado",
+        body: `${event.equipment_asset_tag} · ${fecha}`,
         meta: `${event.branch_name} · ${sentAtLocal}`,
       };
     }

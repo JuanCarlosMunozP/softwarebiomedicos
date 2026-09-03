@@ -68,7 +68,7 @@ export function AppDrawer() {
         <Drawer.Screen
           name="Agendamientos"
           component={AgendamientosScreen}
-          options={{ title: "Agendamientos" }}
+          options={{ title: "Solicitudes" }}
         />
       )}
       {can(role, "failures", "view") && (

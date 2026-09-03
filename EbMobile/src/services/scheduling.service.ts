@@ -1,6 +1,10 @@
 import { api } from "@/lib/api";
 import type { Paginated } from "@/types/api";
-import type { ScheduleInput, ScheduledMaintenance } from "@/types/scheduling";
+import type {
+  ScheduleCreateInput,
+  ScheduleUpdateInput,
+  ScheduledMaintenance,
+} from "@/types/scheduling";
 
 export interface ScheduleListParams {
   ordering?: string;
@@ -10,6 +14,9 @@ export interface ScheduleListParams {
   is_completed?: boolean;
   scheduled_date_after?: string;
   scheduled_date_before?: string;
+  requested_date_after?: string;
+  requested_date_before?: string;
+  unscheduled?: boolean;
   search?: string;
 }
 
@@ -32,14 +39,14 @@ export const schedulingService = {
     );
     return res.data;
   },
-  async create(input: ScheduleInput) {
+  async create(input: ScheduleCreateInput) {
     const res = await api.post<ScheduledMaintenance>(
       "/scheduling/maintenances/",
       input,
     );
     return res.data;
   },
-  async update(id: number, input: Partial<ScheduleInput> & { is_completed?: boolean }) {
+  async update(id: number, input: ScheduleUpdateInput) {
     const res = await api.patch<ScheduledMaintenance>(
       `/scheduling/maintenances/${id}/`,
       input,

@@ -234,7 +234,7 @@ function MyTasksSection({
     <Card>
       <CardHeader
         title="Mis tareas próximas"
-        subtitle="Agendamientos asignados a ti en los próximos 7 días"
+        subtitle="Solicitudes asignadas a ti en los próximos 7 días"
       />
       <ul className="divide-y divide-[var(--border)]">
         {schedules.map((s) => (
@@ -547,8 +547,8 @@ function OverdueSchedulesList({
   return (
     <Card>
       <CardHeader
-        title="Agendamientos vencidos"
-        subtitle="Pendientes cuya fecha ya pasó"
+        title="Solicitudes vencidas"
+        subtitle="Programadas cuya fecha ya pasó"
         action={
           items.length > 0 ? (
             <Link
@@ -566,7 +566,7 @@ function OverdueSchedulesList({
             size={24}
             className="mx-auto mb-2 text-emerald-500"
           />
-          No hay agendamientos vencidos.
+          No hay solicitudes vencidas.
         </div>
       ) : (
         <ul className="divide-y divide-[var(--border)]">

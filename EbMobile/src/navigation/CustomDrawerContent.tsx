@@ -51,7 +51,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     key: "Agendamientos",
-    label: "Agendamientos",
+    label: "Solicitudes",
     icon: (c) => <ClipboardCheck size={18} color={c} />,
     visible: (r) => can(r, "scheduling", "view"),
   },
