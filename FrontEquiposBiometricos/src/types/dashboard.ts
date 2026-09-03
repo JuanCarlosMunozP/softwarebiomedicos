@@ -44,6 +44,8 @@ export interface MaintenanceMonthBucket {
   PREVENTIVE: number;
   CORRECTIVE: number;
   REPAIR: number;
+  CALIBRATION: number;
+  INSPECTION: number;
   /** Decimal como string. */
   cost: string;
 }

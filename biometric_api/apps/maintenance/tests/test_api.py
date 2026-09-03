@@ -304,7 +304,6 @@ class TestMaintenanceUpdate:
             "kind": MaintenanceKind.CORRECTIVE,
             "date": "2026-02-01",
             "description": "Reemplazo total del registro",
-            "technician": "Nuevo Técnico",
             "cost": "999.00",
         }
         response = auth_client.put(detail_url(maintenance_record.id), payload, format="json")
@@ -312,7 +311,28 @@ class TestMaintenanceUpdate:
         assert response.status_code == 200
         maintenance_record.refresh_from_db()
         assert maintenance_record.kind == MaintenanceKind.CORRECTIVE
-        assert maintenance_record.technician == "Nuevo Técnico"
+        assert maintenance_record.description == "Reemplazo total del registro"
+
+    def test_technician_field_is_read_only_and_derived(
+        self, auth_client, equipment, tecnico
+    ):
+        record = MaintenanceRecordFactory(
+            equipment=equipment, technician="Texto viejo", assigned_technician=None
+        )
+        # Un registro antiguo sin FK muestra su texto histórico.
+        assert auth_client.get(detail_url(record.id)).json()["technician"] == (
+            "Texto viejo"
+        )
+        # Al asignar un técnico, el campo pasa a derivar de la asignación e
+        # ignora cualquier `technician` enviado en el body.
+        resp = auth_client.patch(
+            detail_url(record.id),
+            {"assigned_technician": tecnico.id, "technician": "IGNORADO"},
+            format="json",
+        )
+        assert resp.status_code == 200
+        expected = f"{tecnico.first_name} {tecnico.last_name}".strip()
+        assert resp.json()["technician"] == expected
 
     def test_patch_with_future_date_returns_400(self, auth_client, maintenance_record):
         future = (timezone.localdate() + timedelta(days=10)).isoformat()

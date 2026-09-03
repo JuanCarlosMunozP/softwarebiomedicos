@@ -4,8 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from api.v1.common.file_validation import DOCUMENT_EXTENSIONS, validate_uploaded_file
-from apps.maintenance.models import EquipmentMaintenanceSchedule, MaintenanceRecord
-from apps.maintenance.services import calculate_schedule_status
+from apps.maintenance.models import MaintenanceRecord
 from apps.scheduling.models import MaintenanceSchedule
 from apps.users.models import User
 
@@ -41,6 +40,11 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
     observations = serializers.CharField(
         required=False, allow_blank=True, trim_whitespace=False
     )
+    # `technician` (texto libre) es un campo legacy. La fuente de verdad del
+    # responsable son los FK `assigned_technician`/`assigned_engineer`; este
+    # campo es solo de lectura y deriva su valor de la asignación, cayendo al
+    # texto histórico guardado si un registro antiguo no tiene FK.
+    technician = serializers.SerializerMethodField()
     # Definimos el campo cost explícitamente para que el mensaje de "no negativo"
     # provenga de validate_cost (en español) y no del MinValueValidator del modelo.
     cost = serializers.DecimalField(
@@ -137,8 +141,11 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
     def validate_observations(self, value: str) -> str:
         return value.strip() if value else ""
 
-    def validate_technician(self, value: str) -> str:
-        return value.strip() if value else ""
+    def get_technician(self, obj) -> str:
+        for user in (obj.assigned_technician, obj.assigned_engineer):
+            if user is not None:
+                return f"{user.first_name} {user.last_name}".strip() or user.username
+        return obj.technician or ""
 
     def validate_cost(self, value):
         if value is not None and value < 0:
@@ -309,48 +316,3 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
             schedule.is_completed = True
             schedule.save(update_fields=["is_completed", "updated_at"])
         return instance
-
-
-class EquipmentMaintenanceScheduleSerializer(serializers.ModelSerializer):
-
-    equipment_name = serializers.CharField(
-        source="equipment.name",
-        read_only=True,
-    )
-
-    equipment_asset_tag = serializers.CharField(
-        source="equipment.asset_tag",
-        read_only=True,
-    )
-
-    schedule_status = serializers.SerializerMethodField()
-
-    class Meta:
-
-        model = EquipmentMaintenanceSchedule
-
-        fields = [
-            "id",
-            "equipment",
-            "equipment.asset_tag",
-            "schedule_type",
-            "frequency_months",
-            "last_execution_date",
-            "next_execution_date",
-            "schedule_status",
-            "status",
-            "observations",
-            "created_at",
-            "updated_at"
-        ]
-
-        read_only_fields = [
-            "last_execution_date",
-            "next_execution_date",
-            "schedule_status",
-        ]
-
-    def get_schedule_status(self,obj):
-        return calculate_schedule_status(
-            obj.next_execution_date
-        )

@@ -1,6 +1,11 @@
 import type { AssignedUser } from "@/types/auth";
 
-export type MaintenanceKind = "PREVENTIVE" | "CORRECTIVE" | "REPAIR";
+export type MaintenanceKind =
+  | "PREVENTIVE"
+  | "CORRECTIVE"
+  | "REPAIR"
+  | "CALIBRATION"
+  | "INSPECTION";
 
 export interface MaintenanceRecord {
   id: number;
