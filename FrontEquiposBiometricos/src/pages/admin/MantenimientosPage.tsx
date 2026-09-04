@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CalendarClock, FileText, Pencil, Plus, Trash2, Wrench } from "lucide-react";
+import {
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Pencil,
+  Plus,
+  Trash2,
+  Wrench,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -27,6 +36,7 @@ import type {
 import type { ScheduledMaintenance } from "@/types/scheduling";
 
 const TECHNICIAN_ROLES = ["tecnico", "ingeniero"];
+const PAGE_SIZE = 20;
 
 const KIND_LABEL: Record<MaintenanceKind, string> = {
   PREVENTIVE: "Preventivo",
@@ -65,6 +75,8 @@ export function MantenimientosPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [items, setItems] = useState<MaintenanceRecord[]>([]);
+  const [count, setCount] = useState(0);
+  const [page, setPage] = useState(1);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   // Si la carga (silenciosa) de equipos falla, lo avisamos en el <Select> del
   // formulario en vez de dejar un desplegable vacío sin explicación.
@@ -128,17 +140,21 @@ export function MantenimientosPage() {
     }));
   }, [pendingSchedules, form.equipment, editing]);
 
-  const load = async () => {
+  const load = async (targetPage = page) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await maintenanceService.list({
+      const data = await maintenanceService.listPaginated({
         ordering: "-date",
         search: search || undefined,
         kind: kindFilter || undefined,
         equipment: equipmentFilter ? Number(equipmentFilter) : undefined,
+        page: targetPage,
+        page_size: PAGE_SIZE,
       });
-      setItems(data);
+      setItems(data.results);
+      setCount(data.count);
+      setPage(targetPage);
     } catch (err) {
       setError(getApiErrorMessage(err, "No se pudieron cargar los mantenimientos"));
     } finally {
@@ -146,9 +162,12 @@ export function MantenimientosPage() {
     }
   };
 
+  // Cada aplicación de filtros (Enter o botón) vuelve a la página 1.
+  const applyFilters = () => void load(1);
+
   useEffect(() => {
     void Promise.all([
-      load(),
+      load(1),
       equipmentService
         .list({ ordering: "name" })
         .then((data) => {
@@ -319,6 +338,10 @@ export function MantenimientosPage() {
     }
   };
 
+  const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+  const start = count === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const end = Math.min(page * PAGE_SIZE, count);
+
   return (
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -344,7 +367,7 @@ export function MantenimientosPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") void load();
+              if (e.key === "Enter") applyFilters();
             }}
           />
           <Select
@@ -362,7 +385,7 @@ export function MantenimientosPage() {
               label,
             }))}
           />
-          <Button variant="secondary" onClick={() => void load()}>
+          <Button variant="secondary" onClick={applyFilters}>
             Aplicar filtros
           </Button>
         </div>
@@ -485,6 +508,37 @@ export function MantenimientosPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-app pt-3 text-xs text-app-muted">
+          <p>
+            {count === 0
+              ? "Sin resultados"
+              : `Mostrando ${start}–${end} de ${count}`}
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="secondary"
+              leftIcon={<ChevronLeft size={14} />}
+              disabled={page <= 1 || loading}
+              onClick={() => void load(Math.max(1, page - 1))}
+            >
+              Anterior
+            </Button>
+            <span className="px-2 text-app">
+              {page} / {totalPages}
+            </span>
+            <Button
+              size="sm"
+              variant="secondary"
+              rightIcon={<ChevronRight size={14} />}
+              disabled={page >= totalPages || loading}
+              onClick={() => void load(Math.min(totalPages, page + 1))}
+            >
+              Siguiente
+            </Button>
+          </div>
         </div>
       </Card>
 

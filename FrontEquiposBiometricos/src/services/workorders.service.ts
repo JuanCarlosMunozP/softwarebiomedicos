@@ -22,6 +22,8 @@ export interface WorkOrderListParams {
   service_type?: string;
   technician?: number;
   search?: string;
+  page?: number;
+  page_size?: number;
 }
 
 export const workOrdersService = {
@@ -31,6 +33,22 @@ export const workOrdersService = {
       { params },
     );
     return unwrap(res.data);
+  },
+  /** Igual que list(), pero conserva count/next/previous para paginar en la UI. */
+  async listPaginated(params: WorkOrderListParams = {}) {
+    const res = await api.get<Paginated<WorkOrder> | WorkOrder[]>(
+      "/equipment/work-orders/",
+      { params },
+    );
+    if (Array.isArray(res.data)) {
+      return {
+        count: res.data.length,
+        next: null as string | null,
+        previous: null as string | null,
+        results: res.data,
+      };
+    }
+    return res.data;
   },
   async details(id: number) {
     const res = await api.get<WorkOrderDetail>(

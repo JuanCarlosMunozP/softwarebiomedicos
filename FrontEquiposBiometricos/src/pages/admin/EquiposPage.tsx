@@ -259,9 +259,11 @@ export function EquiposPage() {
   // ---- Carga datos auxiliares ----
   const loadCatalog = async () => {
     try {
+      // listAll, no list: con más de una página de marcas/modelos, list()
+      // solo trae la primera y el resto falta en los <Select> del formulario.
       const [bs, ms] = await Promise.all([
-        brandsService.list({ ordering: "name" }),
-        modelsService.list({ ordering: "name" }),
+        brandsService.listAll({ ordering: "name" }),
+        modelsService.listAll({ ordering: "name" }),
       ]);
       setBrands(bs);
       setModels(ms);

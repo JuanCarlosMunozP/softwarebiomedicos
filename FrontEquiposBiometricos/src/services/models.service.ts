@@ -7,6 +7,8 @@ export interface ModelsListParams {
   brand?: number;
   is_active?: boolean;
   search?: string;
+  page?: number;
+  page_size?: number;
 }
 
 function unwrapList<T>(data: Paginated<T> | T[]): T[] {
@@ -21,6 +23,40 @@ export const modelsService = {
       { params },
     );
     return unwrapList(res.data);
+  },
+  /** Igual que list(), pero conserva count/next/previous para paginar en la UI. */
+  async listPaginated(params: ModelsListParams = {}) {
+    const res = await api.get<Paginated<EquipmentModel> | EquipmentModel[]>(
+      "/catalog/equipment-models/",
+      { params },
+    );
+    if (Array.isArray(res.data)) {
+      return {
+        count: res.data.length,
+        next: null as string | null,
+        previous: null as string | null,
+        results: res.data,
+      };
+    }
+    return res.data;
+  },
+  /**
+   * Trae TODOS los modelos recorriendo la paginación. Úsalo para poblar un
+   * <Select> (ej. "Modelo" al crear un equipo): con list()/listPaginated()
+   * el desplegable solo ofrecería la página visible, no todo el catálogo.
+   */
+  async listAll(params: Omit<ModelsListParams, "page" | "page_size"> = {}) {
+    const all: EquipmentModel[] = [];
+    for (let page = 1; page < 500; page += 1) {
+      const res = await api.get<Paginated<EquipmentModel> | EquipmentModel[]>(
+        "/catalog/equipment-models/",
+        { params: { ...params, page } },
+      );
+      if (Array.isArray(res.data)) return res.data;
+      all.push(...res.data.results);
+      if (!res.data.next) break;
+    }
+    return all;
   },
   async retrieve(id: number) {
     const res = await api.get<EquipmentModel>(`/catalog/equipment-models/${id}/`);
