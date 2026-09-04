@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/Badge";
 import { equipmentService } from "@/services/equipment.service";
 import { maintenanceService } from "@/services/maintenance.service";
 import { schedulingService } from "@/services/scheduling.service";
-import { assignedUserName } from "@/lib/users";
+import { assignedRoleLabel, assignedUserName } from "@/lib/users";
 import type { Equipment, EquipmentStatus } from "@/types/equipment";
 import type {
   MaintenanceKind,
@@ -399,7 +399,18 @@ export function EquipoFichaContent({
                 Este equipo aún no tiene mantenimientos registrados.
               </p>
             ) : (
-              history.map((m) => (
+              history.map((m) => {
+                // El responsable puede ser técnico O ingeniero (a veces
+                // asignado directamente por un coordinador/admin/superadmin
+                // al registrar el mantenimiento) — el rol se etiqueta según
+                // quién quedó asignado, en vez de asumir siempre "Técnico".
+                const responsableDetail =
+                  m.assigned_technician_detail ?? m.assigned_engineer_detail;
+                const responsableRole = assignedRoleLabel(responsableDetail);
+                const responsableName =
+                  assignedUserName(responsableDetail) ??
+                  (m.technician?.trim() || "—");
+                return (
                 <div
                   key={m.id}
                   className="flex flex-col gap-2 rounded-lg border border-app bg-app-muted p-3 sm:flex-row sm:items-start sm:gap-4"
@@ -412,12 +423,8 @@ export function EquipoFichaContent({
                       <Badge tone={KIND_TONE[m.kind]}>{KIND_LABEL[m.kind]}</Badge>
                       <span className="text-xs text-app-muted">{m.date}</span>
                       <span className="text-xs text-app-muted">
-                        Técnico:{" "}
-                        <span className="text-app">
-                          {assignedUserName(m.assigned_technician_detail) ??
-                            assignedUserName(m.assigned_engineer_detail) ??
-                            (m.technician?.trim() || "—")}
-                        </span>
+                        {responsableRole}:{" "}
+                        <span className="text-app">{responsableName}</span>
                       </span>
                       {m.cost && (
                         <span className="text-xs text-app-muted">
@@ -429,7 +436,7 @@ export function EquipoFichaContent({
                     {m.observations && (
                       <div className="mt-1.5 rounded-md border-l-2 border-[var(--color-primary)]/40 bg-surface px-2.5 py-1.5">
                         <p className="text-xs font-medium text-app-muted">
-                          Observaciones del técnico
+                          Observaciones
                         </p>
                         <p className="mt-0.5 whitespace-pre-line text-sm text-app">
                           {m.observations}
@@ -448,7 +455,8 @@ export function EquipoFichaContent({
                     </a>
                   )}
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         )}

@@ -383,7 +383,7 @@ export function MantenimientosPage() {
                 <th className="pb-2 font-medium">Equipo</th>
                 <th className="pb-2 font-medium">Tipo</th>
                 <th className="pb-2 font-medium">Fecha</th>
-                <th className="pb-2 font-medium">Técnico</th>
+                <th className="pb-2 font-medium">Responsable</th>
                 <th className="pb-2 font-medium">Costo</th>
                 <th className="pb-2 font-medium">PDF</th>
                 <th className="pb-2 font-medium text-right">Acciones</th>
@@ -614,7 +614,7 @@ export function MantenimientosPage() {
           </div>
           <div className="flex flex-col gap-1.5 sm:col-span-2">
             <label className="text-sm font-medium text-app">
-              Observaciones del técnico (opcional)
+              Observaciones (opcional)
             </label>
             <textarea
               value={form.observations ?? ""}
