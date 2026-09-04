@@ -22,6 +22,20 @@ export const modelsService = {
     );
     return unwrapList(res.data);
   },
+  /** Trae TODOS los modelos recorriendo la paginación — ver equipmentService.listAll. */
+  async listAll(params: ModelsListParams = {}) {
+    const all: EquipmentModel[] = [];
+    for (let page = 1; page < 500; page += 1) {
+      const res = await api.get<Paginated<EquipmentModel> | EquipmentModel[]>(
+        "/catalog/equipment-models/",
+        { params: { ...params, page } },
+      );
+      if (Array.isArray(res.data)) return res.data;
+      all.push(...res.data.results);
+      if (!res.data.next) break;
+    }
+    return all;
+  },
   async retrieve(id: number) {
     const res = await api.get<EquipmentModel>(`/catalog/equipment-models/${id}/`);
     return res.data;

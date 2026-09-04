@@ -97,7 +97,9 @@ export function OrdenesTrabajoScreen() {
           ordering: "-start_date",
           status: statusFilter ?? undefined,
         }),
-        equipmentService.list({ ordering: "name" }),
+        // listAll: con más de una página de equipos, faltaban opciones en el
+        // <Select> de "Equipo" sin ningún aviso.
+        equipmentService.listAll({ ordering: "name" }),
       ]);
       setItems(list);
       setEquipos(eq);
