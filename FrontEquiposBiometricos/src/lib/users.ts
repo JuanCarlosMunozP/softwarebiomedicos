@@ -24,6 +24,15 @@ export function assignedFirstName(u?: AssignedUser | null): string | null {
 }
 
 /**
+ * Etiqueta de rol del usuario asignado (ej. "Ingeniero biomédico", "Técnico")
+ * para no asumir siempre "Técnico" cuando el responsable puede ser
+ * cualquiera de los roles que ejecutan mantenimientos.
+ */
+export function assignedRoleLabel(u?: AssignedUser | null): string {
+  return u?.role_display?.trim() || "Responsable";
+}
+
+/**
  * El backend separa la asignación en dos FK distintas según el rol:
  * `assigned_technician` (rol técnico) y `assigned_engineer` (rol ingeniero),
  * y valida el rol estrictamente. Dado el usuario elegido en el
