@@ -4,6 +4,8 @@ import {
   Bell,
   CalendarClock,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Pencil,
   Plus,
   Trash2,
@@ -40,6 +42,7 @@ const KIND_LABEL: Record<ScheduleKind, string> = {
 };
 
 const today = () => new Date().toISOString().slice(0, 10);
+const PAGE_SIZE = 20;
 
 interface FormState {
   equipment: number;
@@ -65,6 +68,8 @@ export function AgendamientosPage() {
   const navigate = useNavigate();
 
   const [items, setItems] = useState<ScheduledMaintenance[]>([]);
+  const [count, setCount] = useState(0);
+  const [page, setPage] = useState(1);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   // La lista de equipos se carga aparte y en silencio; si falla, avisamos en
   // el <Select> del formulario para que no quede un desplegable vacío sin
@@ -108,11 +113,11 @@ export function AgendamientosPage() {
     return e ? `${e.name} (${e.asset_tag})` : `Equipo #${id}`;
   };
 
-  const load = async () => {
+  const load = async (targetPage = page) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await schedulingService.list({
+      const data = await schedulingService.listPaginated({
         ordering: "-requested_date",
         search: search || undefined,
         is_completed:
@@ -121,8 +126,12 @@ export function AgendamientosPage() {
             : completedFilter === "false"
               ? false
               : undefined,
+        page: targetPage,
+        page_size: PAGE_SIZE,
       });
-      setItems(data);
+      setItems(data.results);
+      setCount(data.count);
+      setPage(targetPage);
     } catch (err) {
       setError(getApiErrorMessage(err, "No se pudieron cargar las solicitudes"));
     } finally {
@@ -130,9 +139,12 @@ export function AgendamientosPage() {
     }
   };
 
+  // Cada aplicación de filtros (Enter o botón) vuelve a la página 1.
+  const applyFilters = () => void load(1);
+
   useEffect(() => {
     void Promise.all([
-      load(),
+      load(1),
       equipmentService
         .list({ ordering: "name" })
         .then((data) => {
@@ -263,6 +275,10 @@ export function AgendamientosPage() {
     }
   };
 
+  const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+  const start = count === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const end = Math.min(page * PAGE_SIZE, count);
+
   return (
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -289,7 +305,7 @@ export function AgendamientosPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") void load();
+              if (e.key === "Enter") applyFilters();
             }}
           />
           <Select
@@ -301,7 +317,7 @@ export function AgendamientosPage() {
               { value: "true", label: "Cumplidas" },
             ]}
           />
-          <Button variant="secondary" onClick={() => void load()}>
+          <Button variant="secondary" onClick={applyFilters}>
             Aplicar filtros
           </Button>
         </div>
@@ -486,6 +502,37 @@ export function AgendamientosPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-app pt-3 text-xs text-app-muted">
+          <p>
+            {count === 0
+              ? "Sin resultados"
+              : `Mostrando ${start}–${end} de ${count}`}
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="secondary"
+              leftIcon={<ChevronLeft size={14} />}
+              disabled={page <= 1 || loading}
+              onClick={() => void load(Math.max(1, page - 1))}
+            >
+              Anterior
+            </Button>
+            <span className="px-2 text-app">
+              {page} / {totalPages}
+            </span>
+            <Button
+              size="sm"
+              variant="secondary"
+              rightIcon={<ChevronRight size={14} />}
+              disabled={page >= totalPages || loading}
+              onClick={() => void load(Math.min(totalPages, page + 1))}
+            >
+              Siguiente
+            </Button>
+          </div>
         </div>
       </Card>
 

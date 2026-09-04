@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { Building2, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  Building2,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -27,6 +34,8 @@ const PHONE_RE = /^\+?[0-9\s\-()]{7,20}$/;
 
 /** Valida en el cliente lo mismo que el backend, para no gastar un viaje al
  *  servidor y decir exactamente qué campo falla. */
+const PAGE_SIZE = 20;
+
 function validateBranch(form: BranchInput): Record<string, string> {
   const errs: Record<string, string> = {};
   if (!form.name.trim()) errs.name = "El nombre es obligatorio.";
@@ -45,6 +54,8 @@ export function SedesPage() {
   const role = usuario?.role;
 
   const [items, setItems] = useState<Branch[]>([]);
+  const [count, setCount] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -62,15 +73,19 @@ export function SedesPage() {
   const canEdit = can(role, "branches", "edit");
   const canDelete = can(role, "branches", "delete");
 
-  const load = async () => {
+  const load = async (targetPage = page) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await branchesService.list({
+      const data = await branchesService.listPaginated({
         ordering: "name",
         search: search || undefined,
+        page: targetPage,
+        page_size: PAGE_SIZE,
       });
-      setItems(data);
+      setItems(data.results);
+      setCount(data.count);
+      setPage(targetPage);
     } catch (err) {
       setError(getApiErrorMessage(err, "No se pudieron cargar las sedes"));
     } finally {
@@ -78,8 +93,11 @@ export function SedesPage() {
     }
   };
 
+  // Cada búsqueda (Enter o botón "Buscar") vuelve a la página 1.
+  const search1 = () => void load(1);
+
   useEffect(() => {
-    void load();
+    void load(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -167,6 +185,10 @@ export function SedesPage() {
     }
   };
 
+  const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+  const start = count === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const end = Math.min(page * PAGE_SIZE, count);
+
   return (
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -190,11 +212,11 @@ export function SedesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") void load();
+              if (e.key === "Enter") search1();
             }}
             className="max-w-sm"
           />
-          <Button variant="secondary" onClick={() => void load()}>
+          <Button variant="secondary" onClick={search1}>
             Buscar
           </Button>
         </div>
@@ -285,6 +307,37 @@ export function SedesPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-app pt-3 text-xs text-app-muted">
+          <p>
+            {count === 0
+              ? "Sin resultados"
+              : `Mostrando ${start}–${end} de ${count}`}
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="secondary"
+              leftIcon={<ChevronLeft size={14} />}
+              disabled={page <= 1 || loading}
+              onClick={() => void load(Math.max(1, page - 1))}
+            >
+              Anterior
+            </Button>
+            <span className="px-2 text-app">
+              {page} / {totalPages}
+            </span>
+            <Button
+              size="sm"
+              variant="secondary"
+              rightIcon={<ChevronRight size={14} />}
+              disabled={page >= totalPages || loading}
+              onClick={() => void load(Math.min(totalPages, page + 1))}
+            >
+              Siguiente
+            </Button>
+          </div>
         </div>
       </Card>
 

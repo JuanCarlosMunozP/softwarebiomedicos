@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Boxes,
   Building,
+  ChevronLeft,
+  ChevronRight,
   Layers,
   Pencil,
   Plus,
@@ -22,6 +24,8 @@ import { getApiErrorMessage } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import type { Brand, BrandInput, EquipmentModel, ModelInput } from "@/types/brand";
 
+const PAGE_SIZE = 20;
+
 interface Props {
   // Permite que el componente padre se entere de cambios y refresque sus
   // selects (por ejemplo el formulario de equipos).
@@ -38,7 +42,15 @@ export function MarcasModelosPanel({ onChanged }: Props) {
 
   // ---- Estado ----
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [brandCount, setBrandCount] = useState(0);
+  const [brandPage, setBrandPage] = useState(1);
+  // Catálogo completo (sin paginar) SOLO para el <Select> de "Marca" al
+  // crear un modelo — `brands` de arriba es la página visible en pantalla,
+  // no todo el catálogo, y el desplegable necesita ofrecer todas las marcas.
+  const [allBrands, setAllBrands] = useState<Brand[]>([]);
   const [models, setModels] = useState<EquipmentModel[]>([]);
+  const [modelCount, setModelCount] = useState(0);
+  const [modelPage, setModelPage] = useState(1);
   const [loadingB, setLoadingB] = useState(true);
   const [loadingM, setLoadingM] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,20 +83,27 @@ export function MarcasModelosPanel({ onChanged }: Props) {
   const [deletingModel, setDeletingModel] = useState(false);
 
   // ---- Carga ----
-  const loadBrands = async () => {
+  // listPaginated (no list): con más de una página de marcas/modelos, list()
+  // solo trae la primera y el resto queda invisible sin ningún aviso.
+  const loadBrands = async (targetPage = brandPage) => {
     setLoadingB(true);
     setError(null);
     try {
-      const data = await brandsService.list({
+      const data = await brandsService.listPaginated({
         ordering: "name",
         search: brandSearch || undefined,
+        page: targetPage,
+        page_size: PAGE_SIZE,
       });
-      setBrands(data);
-      // Mantener selección si todavía existe; sino seleccionar la primera.
-      if (selectedBrand && !data.some((b) => b.id === selectedBrand.id)) {
-        setSelectedBrand(data[0] ?? null);
+      setBrands(data.results);
+      setBrandCount(data.count);
+      setBrandPage(targetPage);
+      // Mantener selección si todavía existe en esta página; sino seleccionar
+      // la primera de la página actual.
+      if (selectedBrand && !data.results.some((b) => b.id === selectedBrand.id)) {
+        setSelectedBrand(data.results[0] ?? null);
       } else if (!selectedBrand) {
-        setSelectedBrand(data[0] ?? null);
+        setSelectedBrand(data.results[0] ?? null);
       }
     } catch (err) {
       setError(getApiErrorMessage(err, "No se pudieron cargar las marcas"));
@@ -93,19 +112,24 @@ export function MarcasModelosPanel({ onChanged }: Props) {
     }
   };
 
-  const loadModels = async () => {
+  const loadModels = async (targetPage = modelPage) => {
     if (!selectedBrand) {
       setModels([]);
+      setModelCount(0);
       return;
     }
     setLoadingM(true);
     try {
-      const data = await modelsService.list({
+      const data = await modelsService.listPaginated({
         ordering: "name",
         brand: selectedBrand.id,
         search: modelSearch || undefined,
+        page: targetPage,
+        page_size: PAGE_SIZE,
       });
-      setModels(data);
+      setModels(data.results);
+      setModelCount(data.count);
+      setModelPage(targetPage);
     } catch (err) {
       setError(getApiErrorMessage(err, "No se pudieron cargar los modelos"));
     } finally {
@@ -113,14 +137,26 @@ export function MarcasModelosPanel({ onChanged }: Props) {
     }
   };
 
+  const loadAllBrands = async () => {
+    try {
+      setAllBrands(await brandsService.listAll({ ordering: "name" }));
+    } catch {
+      // No es crítico — el buscador de marcas de la izquierda sigue vivo.
+    }
+  };
+
   useEffect(() => {
-    const id = window.setTimeout(() => void loadBrands(), 250);
+    void loadAllBrands();
+  }, []);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => void loadBrands(1), 250);
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brandSearch]);
 
   useEffect(() => {
-    const id = window.setTimeout(() => void loadModels(), 250);
+    const id = window.setTimeout(() => void loadModels(1), 250);
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBrand?.id, modelSearch]);
@@ -152,7 +188,7 @@ export function MarcasModelosPanel({ onChanged }: Props) {
         await brandsService.create(brandForm);
       }
       closeBrandModal();
-      await loadBrands();
+      await Promise.all([loadBrands(), loadAllBrands()]);
       onChanged?.();
     } catch (err) {
       alert(getApiErrorMessage(err, "Error al guardar la marca"));
@@ -168,7 +204,7 @@ export function MarcasModelosPanel({ onChanged }: Props) {
       await brandsService.remove(brandToDelete.id);
       if (selectedBrand?.id === brandToDelete.id) setSelectedBrand(null);
       setBrandToDelete(null);
-      await loadBrands();
+      await Promise.all([loadBrands(), loadAllBrands()]);
       onChanged?.();
     } catch (err) {
       alert(getApiErrorMessage(err, "No se pudo eliminar la marca"));
@@ -181,7 +217,7 @@ export function MarcasModelosPanel({ onChanged }: Props) {
   const openCreateModel = () => {
     setModelForm({
       name: "",
-      brand: selectedBrand?.id ?? brands[0]?.id ?? 0,
+      brand: selectedBrand?.id ?? allBrands[0]?.id ?? 0,
       is_active: true,
     });
     setCreatingModel(true);
@@ -232,9 +268,12 @@ export function MarcasModelosPanel({ onChanged }: Props) {
   };
 
   const brandOptions = useMemo(
-    () => brands.map((b) => ({ value: String(b.id), label: b.name })),
-    [brands],
+    () => allBrands.map((b) => ({ value: String(b.id), label: b.name })),
+    [allBrands],
   );
+
+  const brandTotalPages = Math.max(1, Math.ceil(brandCount / PAGE_SIZE));
+  const modelTotalPages = Math.max(1, Math.ceil(modelCount / PAGE_SIZE));
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
@@ -248,7 +287,7 @@ export function MarcasModelosPanel({ onChanged }: Props) {
             <div>
               <p className="text-sm font-semibold text-app">Marcas</p>
               <p className="text-xs text-app-muted">
-                {brands.length} registradas
+                {brandCount} registradas
               </p>
             </div>
           </div>
@@ -344,6 +383,36 @@ export function MarcasModelosPanel({ onChanged }: Props) {
             </ul>
           )}
         </div>
+
+        {brandCount > PAGE_SIZE && (
+          <div className="flex items-center justify-between gap-2 border-t border-app px-3 py-2 text-xs text-app-muted">
+            <span>
+              {brandPage} / {brandTotalPages}
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                aria-label="Página anterior"
+                disabled={brandPage <= 1 || loadingB}
+                onClick={() => void loadBrands(Math.max(1, brandPage - 1))}
+                className="inline-flex h-7 w-7 items-center justify-center rounded text-app-muted hover:bg-app-muted hover:text-app disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <button
+                type="button"
+                aria-label="Página siguiente"
+                disabled={brandPage >= brandTotalPages || loadingB}
+                onClick={() =>
+                  void loadBrands(Math.min(brandTotalPages, brandPage + 1))
+                }
+                className="inline-flex h-7 w-7 items-center justify-center rounded text-app-muted hover:bg-app-muted hover:text-app disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Columna modelos */}
@@ -359,7 +428,7 @@ export function MarcasModelosPanel({ onChanged }: Props) {
               </p>
               <p className="text-xs text-app-muted">
                 {selectedBrand
-                  ? `${models.length} modelos`
+                  ? `${modelCount} modelos`
                   : "Selecciona una marca para ver sus modelos"}
               </p>
             </div>
@@ -369,7 +438,7 @@ export function MarcasModelosPanel({ onChanged }: Props) {
               size="sm"
               leftIcon={<Plus size={14} />}
               onClick={openCreateModel}
-              disabled={brands.length === 0}
+              disabled={allBrands.length === 0}
             >
               Nuevo
             </Button>
@@ -449,6 +518,36 @@ export function MarcasModelosPanel({ onChanged }: Props) {
             </ul>
           )}
         </div>
+
+        {modelCount > PAGE_SIZE && (
+          <div className="flex items-center justify-between gap-2 border-t border-app px-3 py-2 text-xs text-app-muted">
+            <span>
+              {modelPage} / {modelTotalPages}
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                aria-label="Página anterior"
+                disabled={modelPage <= 1 || loadingM}
+                onClick={() => void loadModels(Math.max(1, modelPage - 1))}
+                className="inline-flex h-7 w-7 items-center justify-center rounded text-app-muted hover:bg-app-muted hover:text-app disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <button
+                type="button"
+                aria-label="Página siguiente"
+                disabled={modelPage >= modelTotalPages || loadingM}
+                onClick={() =>
+                  void loadModels(Math.min(modelTotalPages, modelPage + 1))
+                }
+                className="inline-flex h-7 w-7 items-center justify-center rounded text-app-muted hover:bg-app-muted hover:text-app disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Modal marca */}
