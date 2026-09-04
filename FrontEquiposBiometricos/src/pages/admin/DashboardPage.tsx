@@ -147,8 +147,8 @@ export function DashboardPage() {
   const canViewMaintenance = can(role, "maintenance", "view");
 
   const myTasksCount =
-    (data?.my_tasks.schedules.length ?? 0) +
-    (data?.my_tasks.failures.length ?? 0);
+    (data?.my_tasks?.schedules?.length ?? 0) +
+    (data?.my_tasks?.failures?.length ?? 0);
 
   return (
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-6">
@@ -183,7 +183,7 @@ export function DashboardPage() {
       ) : data ? (
         <>
           {myTasksCount > 0 && (
-            <MyTasksSection schedules={data.my_tasks.schedules} />
+            <MyTasksSection schedules={data.my_tasks?.schedules ?? []} />
           )}
 
           <KpiRow
