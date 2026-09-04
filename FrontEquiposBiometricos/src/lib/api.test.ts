@@ -1,6 +1,6 @@
 import { AxiosError, AxiosHeaders } from "axios";
 import { describe, expect, it } from "vitest";
-import { getApiErrorMessage } from "./api";
+import { getApiErrorMessage, getApiFieldErrors } from "./api";
 
 function axiosErrorWithData(data: unknown, status = 400): AxiosError {
   return new AxiosError(
@@ -47,5 +47,33 @@ describe("getApiErrorMessage", () => {
   it("uses the custom fallback message when nothing else matches", () => {
     const error = axiosErrorWithData({});
     expect(getApiErrorMessage(error, "Fallback")).toBe("Request failed");
+  });
+});
+
+describe("getApiFieldErrors", () => {
+  it("maps a DRF 400 validation body to a flat { field: message } object", () => {
+    const error = axiosErrorWithData({
+      phone: ["Este campo es requerido."],
+      name: ["Ya existe una sede con este nombre."],
+    });
+    expect(getApiFieldErrors(error)).toEqual({
+      phone: "Este campo es requerido.",
+      name: "Ya existe una sede con este nombre.",
+    });
+  });
+
+  it("puts non_field_errors and detail under the empty key", () => {
+    expect(getApiFieldErrors(axiosErrorWithData({ non_field_errors: ["Conflicto."] }))).toEqual({
+      "": "Conflicto.",
+    });
+    expect(getApiFieldErrors(axiosErrorWithData({ detail: "No autorizado." }))).toEqual({
+      "": "No autorizado.",
+    });
+  });
+
+  it("returns {} for non-400 responses and non-axios errors", () => {
+    expect(getApiFieldErrors(axiosErrorWithData({ phone: ["x"] }, 500))).toEqual({});
+    expect(getApiFieldErrors(new Error("boom"))).toEqual({});
+    expect(getApiFieldErrors(axiosErrorWithData("texto plano"))).toEqual({});
   });
 });
