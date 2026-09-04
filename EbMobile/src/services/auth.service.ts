@@ -10,4 +10,14 @@ export const authService = {
     const res = await api.get<Usuario>("/users/me/");
     return res.data;
   },
+  /**
+   * Invalida el refresh token en el backend (blacklist) para que no se
+   * pueda seguir usando aunque alguien lo capture antes del logout. Se
+   * ignora cualquier error: el logout local (borrar SecureStore) debe
+   * funcionar igual aunque el request falle (p. ej. sin conexión).
+   */
+  async logout(refresh: string | null) {
+    if (!refresh) return;
+    await api.post("/auth/token/blacklist/", { refresh }).catch(() => undefined);
+  },
 };

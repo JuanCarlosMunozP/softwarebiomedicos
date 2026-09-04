@@ -90,6 +90,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    // Invalida el refresh token en el backend antes de borrarlo localmente
+    // (si el request falla, igual se limpia la sesión local).
+    await authService.logout(tokenStorage.getRefresh());
     await tokenStorage.clear();
     setUsuario(null);
   };
