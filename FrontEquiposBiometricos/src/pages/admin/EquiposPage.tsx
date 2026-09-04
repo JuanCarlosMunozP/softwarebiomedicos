@@ -812,7 +812,7 @@ export function EquiposPage() {
               {formError}
             </div>
           )}
-          <div className="text-sm font-semibold text-app">
+          <div className="sm:col-span-2">
             <h3 className="text-sm font-semibold text-app">
               Identificación del equipo
             </h3>
@@ -961,11 +961,11 @@ export function EquiposPage() {
             hint="Clasificación INVIMA / FDA del dispositivo médico."
           />
 
-          <div className="sm:col-psan-2 mt-2">
+          <div className="sm:col-span-2 mt-2">
             <h3 className="text-sm font-semibold text-app">
               Información y ubicación
             </h3>
-            <p className="text-xs-text-app-muted">
+            <p className="text-xs text-app-muted">
               Datos generales y ubicación física del equipo.
             </p>
           </div>
@@ -1200,7 +1200,7 @@ export function EquiposPage() {
           })
         }
         />
-        <div className="sm:col-span-2.mt-2">
+        <div className="sm:col-span-2 mt-2">
           <h3 className="text-sm font-semibold text-app">
             Calibración
           </h3>
@@ -1262,8 +1262,8 @@ export function EquiposPage() {
           })
         }
         />
-        <div className="sm:col-span-2.mt-2">
-          <h3 className="text-sm font-semiboold text-app">
+        <div className="sm:col-span-2 mt-2">
+          <h3 className="text-sm font-semibold text-app">
             Información regulatoria
           </h3>
         </div>
@@ -1317,7 +1317,7 @@ export function EquiposPage() {
             }))}
           />
 
-          <div className="sm:col-span-2.mt-2">
+          <div className="sm:col-span-2 mt-2">
             <h3 className="text-sm font-semibold text-app">
               Observaciones
             </h3>
