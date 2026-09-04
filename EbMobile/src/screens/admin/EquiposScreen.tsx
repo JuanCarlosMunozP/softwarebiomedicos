@@ -61,7 +61,10 @@ export function EquiposScreen() {
 
   const load = useCallback(async () => {
     try {
-      const eq = await equipmentService.list({
+      // listAll, no list: con más de una página de equipos (20), .list()
+      // devolvía solo la primera y el resto desaparecía de la lista sin
+      // ningún aviso.
+      const eq = await equipmentService.listAll({
         search: search || undefined,
         status: filterStatus ?? undefined,
         branch: filterBranch ?? undefined,
@@ -70,9 +73,10 @@ export function EquiposScreen() {
       setItems(eq);
       // Sedes y modelos son para los <Select> de crear/editar. El técnico no
       // puede listar sedes (403) pero tampoco puede crear equipos: si falla,
-      // la pantalla sigue viva con la lista.
+      // la pantalla sigue viva con la lista. Misma razón para listAll acá:
+      // el catálogo de modelos ya supera una página.
       branchesService.list({ is_active: true }).then(setBranches).catch(() => {});
-      modelsService.list({ is_active: true }).then(setModels).catch(() => {});
+      modelsService.listAll({ is_active: true }).then(setModels).catch(() => {});
     } catch (err) {
       Alert.alert("Error", getApiErrorMessage(err));
     }

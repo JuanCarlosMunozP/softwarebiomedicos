@@ -92,7 +92,9 @@ export function AgendamientosScreen() {
             filter === "all" ? undefined : filter === "completed",
           ordering: "-requested_date",
         }),
-        equipmentService.list({ ordering: "name" }),
+        // listAll: con más de una página de equipos, faltaban opciones en el
+        // <Select> de "Equipo" sin ningún aviso.
+        equipmentService.listAll({ ordering: "name" }),
       ]);
       setItems(list);
       setEquipos(eq);

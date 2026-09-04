@@ -42,6 +42,26 @@ export const equipmentService = {
     }
     return res.data;
   },
+  /**
+   * Trae TODOS los equipos recorriendo la paginación del backend (page_size
+   * por defecto es 20). Úsalo para el listado principal y para poblar los
+   * <Select> de "Equipo" en otras pantallas — con `list()` a secas, en
+   * cuanto el inventario supera una página, el resto queda invisible sin
+   * ningún aviso (no se puede ver ni seleccionar).
+   */
+  async listAll(params: Omit<EquipmentListParams, "page" | "page_size"> = {}) {
+    const all: Equipment[] = [];
+    for (let page = 1; page < 500; page += 1) {
+      const res = await api.get<Paginated<Equipment> | Equipment[]>(
+        "/equipment/",
+        { params: { ...params, page } },
+      );
+      if (Array.isArray(res.data)) return res.data;
+      all.push(...res.data.results);
+      if (!res.data.next) break;
+    }
+    return all;
+  },
   async retrieve(id: number) {
     const res = await api.get<Equipment>(`/equipment/${id}/`);
     return res.data;

@@ -26,6 +26,20 @@ export const failuresService = {
     );
     return unwrapList(res.data);
   },
+  /** Trae TODAS las fallas recorriendo la paginación — ver equipmentService.listAll. */
+  async listAll(params: FailuresListParams = {}) {
+    const all: FailureReport[] = [];
+    for (let page = 1; page < 500; page += 1) {
+      const res = await api.get<Paginated<FailureReport> | FailureReport[]>(
+        "/failures/",
+        { params: { ...params, page } },
+      );
+      if (Array.isArray(res.data)) return res.data;
+      all.push(...res.data.results);
+      if (!res.data.next) break;
+    }
+    return all;
+  },
   async retrieve(id: number) {
     const res = await api.get<FailureReport>(`/failures/${id}/`);
     return res.data;

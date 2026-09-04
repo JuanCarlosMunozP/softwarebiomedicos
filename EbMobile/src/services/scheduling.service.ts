@@ -33,6 +33,20 @@ export const schedulingService = {
     );
     return unwrapList(res.data);
   },
+  /** Trae TODAS las solicitudes recorriendo la paginación — ver equipmentService.listAll. */
+  async listAll(params: ScheduleListParams = {}) {
+    const all: ScheduledMaintenance[] = [];
+    for (let page = 1; page < 500; page += 1) {
+      const res = await api.get<Paginated<ScheduledMaintenance> | ScheduledMaintenance[]>(
+        "/scheduling/maintenances/",
+        { params: { ...params, page } },
+      );
+      if (Array.isArray(res.data)) return res.data;
+      all.push(...res.data.results);
+      if (!res.data.next) break;
+    }
+    return all;
+  },
   async retrieve(id: number) {
     const res = await api.get<ScheduledMaintenance>(
       `/scheduling/maintenances/${id}/`,

@@ -65,7 +65,9 @@ export function MantenimientosScreen() {
           kind: filterKind ?? undefined,
           ordering: "-date",
         }),
-        equipmentService.list({ ordering: "name" }),
+        // listAll: con más de una página de equipos, faltaban opciones en el
+        // <Select> de "Equipo" sin ningún aviso.
+        equipmentService.listAll({ ordering: "name" }),
       ]);
       setItems(m);
       setEquipos(eq);

@@ -59,7 +59,9 @@ export function FallasScreen() {
           resolved: filter === "all" ? undefined : filter === "resolved",
           ordering: "-reported_at",
         }),
-        equipmentService.list({ ordering: "name" }),
+        // listAll: con más de una página de equipos, faltaban opciones en el
+        // <Select> de "Equipo" sin ningún aviso.
+        equipmentService.listAll({ ordering: "name" }),
       ]);
       setItems(fs);
       setEquipos(eq);
