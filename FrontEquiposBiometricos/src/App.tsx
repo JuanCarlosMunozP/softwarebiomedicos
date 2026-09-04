@@ -4,6 +4,7 @@ import { NotificationProvider } from "@/context/NotificationContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { AdminLayout } from "@/components/layout/AdminLayout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 import { PUBLIC_REGISTRATION_ENABLED } from "@/lib/featureFlags";
 import { HomePage } from "@/pages/HomePage";
@@ -29,89 +30,107 @@ function App() {
       <AuthProvider>
         <NotificationProvider>
           <BrowserRouter>
-            <Routes>
-              {/* Páginas de autenticación sin layout */}
-              <Route path="/login" element={<LoginPage />} />
-              {/* Registro público deshabilitado por el momento: solo un
-                  administrador crea cuentas (Admin → Usuarios). Si se accede
-                  por URL directa, se redirige al login. */}
-              <Route
-                path="/registro"
-                element={
-                  PUBLIC_REGISTRATION_ENABLED ? (
-                    <RegistroPage />
-                  ) : (
-                    <Navigate to="/login" replace />
-                  )
-                }
-              />
-              <Route
-                path="/recuperar-password"
-                element={<RecuperarPasswordPage />}
-              />
+            {/* Último recurso: si revienta un layout, un provider de ruta o
+                una página de login (que no van dentro de MainLayout), evita
+                la pantalla en blanco total. */}
+            <ErrorBoundary scope="app">
+              <Routes>
+                {/* Páginas de autenticación sin layout */}
+                <Route path="/login" element={<LoginPage />} />
+                {/* Registro público deshabilitado por el momento: solo un
+                    administrador crea cuentas (Admin → Usuarios). Si se accede
+                    por URL directa, se redirige al login. */}
+                <Route
+                  path="/registro"
+                  element={
+                    PUBLIC_REGISTRATION_ENABLED ? (
+                      <RegistroPage />
+                    ) : (
+                      <Navigate to="/login" replace />
+                    )
+                  }
+                />
+                <Route
+                  path="/recuperar-password"
+                  element={<RecuperarPasswordPage />}
+                />
 
-              {/* Layout público — incluye también la 404 para que el header
-                  permita volver al inicio o al panel desde cualquier URL rota. */}
-              <Route element={<MainLayout />}>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/404" element={<NotFoundPage />} />
-              </Route>
+                {/* Layout público — incluye también la 404 para que el header
+                    permita volver al inicio o al panel desde cualquier URL rota. */}
+                <Route element={<MainLayout />}>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/404" element={<NotFoundPage />} />
+                </Route>
 
-              {/* Layout interno común a todos los roles autenticados.
-                  Cada vista filtra contenido y acciones por permisos. */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/admin" element={<AdminLayout />}>
-                  <Route index element={<DashboardPage />} />
-                  <Route path="sedes" element={<SedesPage />} />
-                  <Route path="equipos" element={<EquiposPage />} />
-                  <Route path="equipos/etiquetas" element={<EtiquetasQrPage />} />
-                  <Route path="equipos/:id" element={<EquipoDetallePage />} />
-                  <Route path="agendamientos" element={<AgendamientosPage />} />
-                  <Route path="fallas" element={<FallasPage />} />
-                  <Route path="perfil" element={<PerfilPage />} />
+                {/* Layout interno común a todos los roles autenticados.
+                    Cada vista filtra contenido y acciones por permisos. */}
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/admin" element={<AdminLayout />}>
+                    <Route index element={<DashboardPage />} />
+                    <Route path="sedes" element={<SedesPage />} />
+                    <Route path="equipos" element={<EquiposPage />} />
+                    <Route
+                      path="equipos/etiquetas"
+                      element={<EtiquetasQrPage />}
+                    />
+                    <Route path="equipos/:id" element={<EquipoDetallePage />} />
+                    <Route
+                      path="agendamientos"
+                      element={<AgendamientosPage />}
+                    />
+                    <Route path="fallas" element={<FallasPage />} />
+                    <Route path="perfil" element={<PerfilPage />} />
 
-                  {/* Historial de mantenimientos: todos menos el técnico. */}
-                  <Route
-                    element={
-                      <ProtectedRoute
-                        roles={[
-                          "superadmin",
-                          "admin",
-                          "coordinador",
-                          "ingeniero",
-                        ]}
+                    {/* Historial de mantenimientos: todos menos el técnico. */}
+                    <Route
+                      element={
+                        <ProtectedRoute
+                          roles={[
+                            "superadmin",
+                            "admin",
+                            "coordinador",
+                            "ingeniero",
+                          ]}
+                        />
+                      }
+                    >
+                      <Route
+                        path="mantenimientos"
+                        element={<MantenimientosPage />}
                       />
-                    }
-                  >
-                    <Route
-                      path="mantenimientos"
-                      element={<MantenimientosPage />}
-                    />
-                  </Route>
+                    </Route>
 
-                  {/* Órdenes de trabajo: solo quien ejecuta el trabajo. */}
-                  <Route
-                    element={<ProtectedRoute roles={["ingeniero", "tecnico"]} />}
-                  >
+                    {/* Órdenes de trabajo: solo quien ejecuta el trabajo. */}
                     <Route
-                      path="ordenes-trabajo"
-                      element={<OrdenesTrabajoPage />}
-                    />
-                  </Route>
+                      element={
+                        <ProtectedRoute roles={["ingeniero", "tecnico"]} />
+                      }
+                    >
+                      <Route
+                        path="ordenes-trabajo"
+                        element={<OrdenesTrabajoPage />}
+                      />
+                    </Route>
 
-                  <Route
-                    element={<ProtectedRoute roles={["superadmin", "admin"]} />}
-                  >
-                    <Route path="usuarios" element={<UsuariosPage />} />
+                    <Route
+                      element={
+                        <ProtectedRoute roles={["superadmin", "admin"]} />
+                      }
+                    >
+                      <Route path="usuarios" element={<UsuariosPage />} />
+                    </Route>
                   </Route>
                 </Route>
-              </Route>
 
-              {/* Rutas /tecnico/* siguen llegando: redirigimos al panel unificado */}
-              <Route path="/tecnico/*" element={<Navigate to="/admin" replace />} />
+                {/* Rutas /tecnico/* siguen llegando: redirigimos al panel unificado */}
+                <Route
+                  path="/tecnico/*"
+                  element={<Navigate to="/admin" replace />}
+                />
 
-              <Route path="*" element={<Navigate to="/404" replace />} />
-            </Routes>
+                <Route path="*" element={<Navigate to="/404" replace />} />
+              </Routes>
+            </ErrorBoundary>
           </BrowserRouter>
         </NotificationProvider>
       </AuthProvider>
