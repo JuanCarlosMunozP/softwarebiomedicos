@@ -50,22 +50,23 @@ export function Footer() {
 
         <div>
           <h4 className="text-sm font-semibold uppercase tracking-wider text-app">
-            Enlaces
+            Soporte
           </h4>
           <ul className="mt-4 space-y-2 text-sm text-app-muted">
             <li>
-              <a href="#" className="hover:text-[var(--color-primary)]">
-                Política de privacidad
+              <a
+                href="mailto:softwarecccnp@gmail.com?subject=Soporte%20-%20Equipos%20Biom%C3%A9dicos"
+                className="hover:text-[var(--color-primary)]"
+              >
+                Escribir a soporte técnico
               </a>
             </li>
             <li>
-              <a href="#" className="hover:text-[var(--color-primary)]">
-                Términos de uso
-              </a>
-            </li>
-            <li>
-              <a href="#" className="hover:text-[var(--color-primary)]">
-                Soporte técnico
+              <a
+                href="tel:+573188869612"
+                className="hover:text-[var(--color-primary)]"
+              >
+                Llamar a soporte
               </a>
             </li>
           </ul>

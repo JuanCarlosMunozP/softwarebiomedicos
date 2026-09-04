@@ -67,7 +67,25 @@ function App() {
                 <Route element={<ProtectedRoute />}>
                   <Route path="/admin" element={<AdminLayout />}>
                     <Route index element={<DashboardPage />} />
-                    <Route path="sedes" element={<SedesPage />} />
+
+                    {/* Sedes: solo quien puede verlas en el backend. El
+                        técnico no tiene el recurso "branches" → se le
+                        redirige al panel en vez de mostrarle un error 403. */}
+                    <Route
+                      element={
+                        <ProtectedRoute
+                          roles={[
+                            "superadmin",
+                            "admin",
+                            "coordinador",
+                            "ingeniero",
+                          ]}
+                        />
+                      }
+                    >
+                      <Route path="sedes" element={<SedesPage />} />
+                    </Route>
+
                     <Route path="equipos" element={<EquiposPage />} />
                     <Route
                       path="equipos/etiquetas"
