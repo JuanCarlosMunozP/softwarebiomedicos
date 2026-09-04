@@ -9,7 +9,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useAuth } from "@/context/AuthContext";
 import { branchesService } from "@/services/branches.service";
 import { can } from "@/lib/permissions";
-import { getApiErrorMessage } from "@/lib/api";
+import { getApiErrorMessage, getApiFieldErrors } from "@/lib/api";
 import type { Branch, BranchInput } from "@/types/branch";
 
 const empty: BranchInput = {
@@ -20,6 +20,25 @@ const empty: BranchInput = {
   email: "",
   is_active: true,
 };
+
+// Mismo formato que valida el backend (apps/branches/models.py): opcional "+",
+// luego 7-20 dígitos / espacios / guiones / paréntesis.
+const PHONE_RE = /^\+?[0-9\s\-()]{7,20}$/;
+
+/** Valida en el cliente lo mismo que el backend, para no gastar un viaje al
+ *  servidor y decir exactamente qué campo falla. */
+function validateBranch(form: BranchInput): Record<string, string> {
+  const errs: Record<string, string> = {};
+  if (!form.name.trim()) errs.name = "El nombre es obligatorio.";
+  if (!form.address.trim()) errs.address = "La dirección es obligatoria.";
+  if (!form.city.trim()) errs.city = "La ciudad es obligatoria.";
+  if (!form.phone?.trim()) {
+    errs.phone = "El teléfono es obligatorio.";
+  } else if (!PHONE_RE.test(form.phone.trim())) {
+    errs.phone = "Formato no válido. Ej.: +57 300 123 4567";
+  }
+  return errs;
+}
 
 export function SedesPage() {
   const { usuario } = useAuth();
@@ -33,6 +52,7 @@ export function SedesPage() {
   const [editing, setEditing] = useState<Branch | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<BranchInput>(empty);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
   const [toDelete, setToDelete] = useState<Branch | null>(null);
@@ -63,8 +83,20 @@ export function SedesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Actualiza el formulario y limpia el error del/los campo(s) tocado(s).
+  const update = (patch: Partial<BranchInput>) => {
+    setForm((f) => ({ ...f, ...patch }));
+    setFieldErrors((fe) => {
+      if (Object.keys(fe).length === 0) return fe;
+      const next = { ...fe };
+      for (const k of Object.keys(patch)) delete next[k];
+      return next;
+    });
+  };
+
   const openCreate = () => {
     setForm(empty);
+    setFieldErrors({});
     setCreating(true);
   };
 
@@ -77,6 +109,7 @@ export function SedesPage() {
       email: b.email ?? "",
       is_active: b.is_active,
     });
+    setFieldErrors({});
     setEditing(b);
   };
 
@@ -84,10 +117,18 @@ export function SedesPage() {
     setCreating(false);
     setEditing(null);
     setForm(empty);
+    setFieldErrors({});
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const clientErrors = validateBranch(form);
+    if (Object.keys(clientErrors).length > 0) {
+      setFieldErrors(clientErrors);
+      return;
+    }
+
     setSaving(true);
     try {
       if (editing) {
@@ -98,7 +139,15 @@ export function SedesPage() {
       closeModal();
       await load();
     } catch (err) {
-      alert(getApiErrorMessage(err, "Error al guardar"));
+      // Si el backend devolvió errores por campo (formato de teléfono, nombre
+      // duplicado…), se muestran debajo del input correspondiente en vez de
+      // un alert sin contexto.
+      const apiErrors = getApiFieldErrors(err);
+      if (Object.keys(apiErrors).length > 0) {
+        setFieldErrors(apiErrors);
+      } else {
+        alert(getApiErrorMessage(err, "Error al guardar"));
+      }
     } finally {
       setSaving(false);
     }
@@ -244,37 +293,53 @@ export function SedesPage() {
         onClose={closeModal}
         title={editing ? "Editar sede" : "Nueva sede"}
       >
-        <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+        <form onSubmit={submit} noValidate className="grid gap-4 sm:grid-cols-2">
+          {fieldErrors[""] && (
+            <div
+              role="alert"
+              className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 sm:col-span-2 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
+            >
+              {fieldErrors[""]}
+            </div>
+          )}
           <Input
             label="Nombre"
             value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            onChange={(e) => update({ name: e.target.value })}
+            error={fieldErrors.name}
             required
             className="sm:col-span-2"
           />
           <Input
             label="Dirección"
             value={form.address}
-            onChange={(e) => setForm({ ...form, address: e.target.value })}
+            onChange={(e) => update({ address: e.target.value })}
+            error={fieldErrors.address}
             required
             className="sm:col-span-2"
           />
           <Input
             label="Ciudad"
             value={form.city}
-            onChange={(e) => setForm({ ...form, city: e.target.value })}
+            onChange={(e) => update({ city: e.target.value })}
+            error={fieldErrors.city}
             required
           />
           <Input
             label="Teléfono"
             value={form.phone ?? ""}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            onChange={(e) => update({ phone: e.target.value })}
+            error={fieldErrors.phone}
+            hint="Obligatorio. Ej.: +57 300 123 4567"
+            inputMode="tel"
+            required
           />
           <Input
-            label="Correo"
+            label="Correo (opcional)"
             type="email"
             value={form.email ?? ""}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            onChange={(e) => update({ email: e.target.value })}
+            error={fieldErrors.email}
             className="sm:col-span-2"
           />
           <label className="flex items-center gap-2 text-sm text-app sm:col-span-2">

@@ -173,3 +173,30 @@ export function getApiErrorMessage(error: unknown, fallback = "Ocurrió un error
   if (error instanceof Error) return error.message;
   return fallback;
 }
+
+/**
+ * Convierte una respuesta 400 de validación de DRF (`{ campo: ["mensaje"] }`)
+ * en un mapa plano `{ campo: "mensaje" }` para pintar el error debajo de cada
+ * input del formulario en vez de un `alert()` sin contexto.
+ *
+ * Los errores generales (`non_field_errors`, `detail`) quedan bajo la clave
+ * vacía `""`. Devuelve `{}` si no es un 400 con forma de validación.
+ */
+export function getApiFieldErrors(error: unknown): Record<string, string> {
+  if (!axios.isAxiosError(error)) return {};
+  if (error.response?.status !== 400) return {};
+  const data = error.response?.data;
+  if (!data || typeof data !== "object" || Array.isArray(data)) return {};
+
+  const out: Record<string, string> = {};
+  for (const [field, value] of Object.entries(data as Record<string, unknown>)) {
+    const message = Array.isArray(value)
+      ? value.find((v): v is string => typeof v === "string")
+      : typeof value === "string"
+        ? value
+        : undefined;
+    if (message === undefined) continue;
+    out[field === "non_field_errors" || field === "detail" ? "" : field] = message;
+  }
+  return out;
+}
