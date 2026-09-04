@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { Key, Pencil, Plus, Trash2, UserCog } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Key,
+  Pencil,
+  Plus,
+  Trash2,
+  UserCog,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -15,6 +23,7 @@ import type { Rol, Usuario } from "@/types/auth";
 import type { CreateUserInput } from "@/types/user";
 
 const ALL_ROLES: Rol[] = ["superadmin", "admin", "coordinador", "ingeniero", "tecnico"];
+const PAGE_SIZE = 20;
 
 interface FormState {
   username: string;
@@ -43,6 +52,8 @@ export function UsuariosPage() {
   const role = usuario?.role;
 
   const [items, setItems] = useState<Usuario[]>([]);
+  const [count, setCount] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -109,16 +120,19 @@ export function UsuariosPage() {
     [assignableRoles],
   );
 
-  const load = async () => {
+  const load = async (targetPage = page) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await usersService.list({
+      const data = await usersService.listPaginated({
         ordering: "username",
         search: search || undefined,
         role: roleFilter || undefined,
+        page: targetPage,
+        page_size: PAGE_SIZE,
       });
-      setItems(data);
+      setItems(data.results);
+      setCount(data.count);
     } catch (err) {
       setError(getApiErrorMessage(err, "No se pudieron cargar los usuarios"));
     } finally {
@@ -126,13 +140,18 @@ export function UsuariosPage() {
     }
   };
 
+  // Volver a la página 1 cuando cambian los filtros.
+  useEffect(() => {
+    setPage(1);
+  }, [search, roleFilter]);
+
   useEffect(() => {
     const id = window.setTimeout(() => {
-      void load();
+      void load(page);
     }, 300);
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, roleFilter]);
+  }, [search, roleFilter, page]);
 
   const openCreate = () => {
     setForm({
@@ -232,6 +251,10 @@ export function UsuariosPage() {
       setPwdSaving(false);
     }
   };
+
+  const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+  const start = count === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const end = Math.min(page * PAGE_SIZE, count);
 
   return (
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-6">
@@ -407,6 +430,37 @@ export function UsuariosPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-app pt-3 text-xs text-app-muted">
+          <p>
+            {count === 0
+              ? "Sin resultados"
+              : `Mostrando ${start}–${end} de ${count}`}
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="secondary"
+              leftIcon={<ChevronLeft size={14} />}
+              disabled={page <= 1 || loading}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Anterior
+            </Button>
+            <span className="px-2 text-app">
+              {page} / {totalPages}
+            </span>
+            <Button
+              size="sm"
+              variant="secondary"
+              rightIcon={<ChevronRight size={14} />}
+              disabled={page >= totalPages || loading}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Siguiente
+            </Button>
+          </div>
         </div>
       </Card>
 

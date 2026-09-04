@@ -8,6 +8,8 @@ export interface UsersListParams {
   role?: string;
   is_active?: boolean;
   search?: string;
+  page?: number;
+  page_size?: number;
 }
 
 function unwrapList<T>(data: Paginated<T> | T[]): T[] {
@@ -19,6 +21,19 @@ export const usersService = {
   async list(params: UsersListParams = {}) {
     const res = await api.get<Paginated<Usuario> | Usuario[]>("/users/", { params });
     return unwrapList(res.data);
+  },
+  /** Igual que list(), pero conserva count/next/previous para paginar en la UI. */
+  async listPaginated(params: UsersListParams = {}) {
+    const res = await api.get<Paginated<Usuario> | Usuario[]>("/users/", { params });
+    if (Array.isArray(res.data)) {
+      return {
+        count: res.data.length,
+        next: null as string | null,
+        previous: null as string | null,
+        results: res.data,
+      };
+    }
+    return res.data;
   },
   async retrieve(id: number) {
     const res = await api.get<Usuario>(`/users/${id}/`);
