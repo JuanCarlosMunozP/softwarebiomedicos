@@ -66,6 +66,9 @@ export function MantenimientosPage() {
 
   const [items, setItems] = useState<MaintenanceRecord[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
+  // Si la carga (silenciosa) de equipos falla, lo avisamos en el <Select> del
+  // formulario en vez de dejar un desplegable vacío sin explicación.
+  const [equipmentError, setEquipmentError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -146,7 +149,13 @@ export function MantenimientosPage() {
   useEffect(() => {
     void Promise.all([
       load(),
-      equipmentService.list({ ordering: "name" }).then(setEquipment).catch(() => null),
+      equipmentService
+        .list({ ordering: "name" })
+        .then((data) => {
+          setEquipment(data);
+          setEquipmentError(false);
+        })
+        .catch(() => setEquipmentError(true)),
       schedulingService
         .list({ is_completed: false, ordering: "scheduled_date" })
         .then(setPendingSchedules)
@@ -500,6 +509,16 @@ export function MantenimientosPage() {
             placeholder="Selecciona un equipo"
             required
             className="sm:col-span-2"
+            error={
+              equipmentOptions.length === 0 && equipmentError
+                ? "No se pudieron cargar los equipos. Recarga la página e inténtalo de nuevo."
+                : undefined
+            }
+            hint={
+              equipmentOptions.length === 0 && !equipmentError
+                ? "Aún no hay equipos registrados en el sistema."
+                : undefined
+            }
           />
           <Select
             label="Cumple agendamiento (opcional)"
