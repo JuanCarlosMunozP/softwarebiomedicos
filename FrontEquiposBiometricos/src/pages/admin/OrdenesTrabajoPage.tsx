@@ -89,6 +89,9 @@ export function OrdenesTrabajoPage() {
 
   const [items, setItems] = useState<WorkOrder[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
+  // Si la carga (silenciosa) de equipos falla, lo avisamos en el <Select> del
+  // formulario en vez de dejar un desplegable vacío sin explicación.
+  const [equipmentError, setEquipmentError] = useState(false);
   const [technicians, setTechnicians] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -153,8 +156,11 @@ export function OrdenesTrabajoPage() {
       load(),
       equipmentService
         .list({ ordering: "name" })
-        .then(setEquipment)
-        .catch(() => null),
+        .then((data) => {
+          setEquipment(data);
+          setEquipmentError(false);
+        })
+        .catch(() => setEquipmentError(true)),
       usersService
         .list({ is_active: true })
         .then(setTechnicians)
@@ -438,6 +444,16 @@ export function OrdenesTrabajoPage() {
             placeholder="Selecciona un equipo"
             required
             className="sm:col-span-2"
+            error={
+              equipmentOptions.length === 0 && equipmentError
+                ? "No se pudieron cargar los equipos. Recarga la página e inténtalo de nuevo."
+                : undefined
+            }
+            hint={
+              equipmentOptions.length === 0 && !equipmentError
+                ? "Aún no hay equipos registrados en el sistema."
+                : undefined
+            }
           />
           <Input
             label="Número de orden"
