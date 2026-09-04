@@ -16,6 +16,12 @@ import { getApiErrorMessage } from "@/lib/api";
 import { branchesService } from "@/services/branches.service";
 import type { Branch, BranchInput } from "@/types/branch";
 
+// Mismo formato que valida el backend (apps/branches/models.py): opcional
+// "+", luego 7-20 dígitos / espacios / guiones / paréntesis. El teléfono es
+// obligatorio ahí (solo el email es opcional) — si se manda vacío, el
+// backend responde 400 "Este campo es requerido." sin decir cuál era.
+const PHONE_RE = /^\+?[0-9\s\-()]{7,20}$/;
+
 export function SedesScreen() {
   const { usuario } = useAuth();
   const { colors } = useTheme();
@@ -74,6 +80,14 @@ export function SedesScreen() {
   const submit = async () => {
     if (!form.name || !form.address || !form.city) {
       setFormError("Nombre, dirección y ciudad son requeridos.");
+      return;
+    }
+    if (!form.phone?.trim()) {
+      setFormError("El teléfono es obligatorio.");
+      return;
+    }
+    if (!PHONE_RE.test(form.phone.trim())) {
+      setFormError("El teléfono no tiene un formato válido. Ej.: +57 300 123 4567");
       return;
     }
     setSaving(true);
@@ -216,10 +230,11 @@ export function SedesScreen() {
             onChangeText={(v) => setForm({ ...form, city: v })}
           />
           <Input
-            label="Teléfono"
+            label="Teléfono *"
             value={form.phone ?? ""}
             onChangeText={(v) => setForm({ ...form, phone: v })}
             keyboardType="phone-pad"
+            hint="Ej.: +57 300 123 4567"
           />
           <Input
             label="Email"
