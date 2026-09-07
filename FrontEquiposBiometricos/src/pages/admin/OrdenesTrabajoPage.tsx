@@ -7,6 +7,7 @@ import {
   Plus,
   Trash2,
   ListChecks,
+  Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -111,6 +112,12 @@ export function OrdenesTrabajoPage() {
 
   const [toDelete, setToDelete] = useState<WorkOrder | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // "Realizar mantenimiento": el responsable cierra su orden y queda el
+  // registro en la hoja de vida del equipo.
+  const [completing, setCompleting] = useState<WorkOrder | null>(null);
+  const [completeObs, setCompleteObs] = useState("");
+  const [completeSaving, setCompleteSaving] = useState(false);
 
   const [detail, setDetail] = useState<WorkOrderDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -244,6 +251,29 @@ export function OrdenesTrabajoPage() {
       alert(getApiErrorMessage(err, "No se pudo eliminar"));
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const openComplete = (w: WorkOrder) => {
+    setCompleteObs("");
+    setCompleting(w);
+  };
+
+  const submitComplete = async () => {
+    if (!completing) return;
+    setCompleteSaving(true);
+    try {
+      await workOrdersService.complete(completing.id, {
+        observations: completeObs.trim() || undefined,
+      });
+      setCompleting(null);
+      setCompleteObs("");
+      setDetail(null);
+      await load();
+    } catch (err) {
+      alert(getApiErrorMessage(err, "No se pudo registrar el mantenimiento"));
+    } finally {
+      setCompleteSaving(false);
     }
   };
 
@@ -405,9 +435,21 @@ export function OrdenesTrabajoPage() {
                       </Badge>
                     </td>
                     <td className="py-3">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        {canEdit &&
+                          (w.status === "PENDING" ||
+                            w.status === "IN_PROGRESS") && (
+                            <Button
+                              size="sm"
+                              leftIcon={<Wrench size={14} />}
+                              onClick={() => openComplete(w)}
+                            >
+                              Realizar mantenimiento
+                            </Button>
+                          )}
                         <Button
                           size="sm"
+                          variant="secondary"
                           leftIcon={<ListChecks size={14} />}
                           onClick={() => void openDetail(w)}
                         >
@@ -604,7 +646,75 @@ export function OrdenesTrabajoPage() {
             loading={detailLoading}
             canEdit={canEdit}
             onChanged={reloadDetail}
+            onRealizarMantenimiento={
+              canEdit &&
+              (detail.status === "PENDING" || detail.status === "IN_PROGRESS")
+                ? () => {
+                    const w = detail;
+                    setDetail(null);
+                    openComplete(w);
+                  }
+                : undefined
+            }
           />
+        )}
+      </Modal>
+
+      <Modal
+        open={!!completing}
+        onClose={() => setCompleting(null)}
+        title={
+          completing ? `Realizar mantenimiento — ${completing.number}` : ""
+        }
+        size="lg"
+      >
+        {completing && (
+          <div className="flex flex-col gap-4">
+            <div className="grid gap-1 rounded-lg border border-app bg-app-muted p-3 text-sm">
+              <p>
+                <span className="text-app-muted">Equipo: </span>
+                {completing.equipment_name ?? `Equipo #${completing.equipment}`}
+              </p>
+              <p>
+                <span className="text-app-muted">Tarea: </span>
+                {completing.description}
+              </p>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-app">
+                Observaciones / trabajo realizado (opcional)
+              </label>
+              <textarea
+                value={completeObs}
+                onChange={(e) => setCompleteObs(e.target.value)}
+                rows={4}
+                placeholder="Hallazgos, repuestos cambiados, recomendaciones…"
+                className="w-full rounded-lg border border-app bg-surface px-3 py-2.5 text-sm text-app outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+              />
+            </div>
+            <p className="text-xs text-app-muted">
+              Al confirmar, la orden queda como <strong>Terminada</strong> y el
+              mantenimiento se registra en la hoja de vida del equipo. Los
+              repuestos, mediciones y evidencias se agregan desde{" "}
+              <strong>Detalle</strong>, antes o después.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => setCompleting(null)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                leftIcon={<Wrench size={16} />}
+                loading={completeSaving}
+                onClick={() => void submitComplete()}
+              >
+                Confirmar mantenimiento
+              </Button>
+            </div>
+          </div>
         )}
       </Modal>
     </div>
@@ -620,11 +730,14 @@ function WorkOrderDetailView({
   loading,
   canEdit,
   onChanged,
+  onRealizarMantenimiento,
 }: {
   detail: WorkOrderDetail;
   loading: boolean;
   canEdit: boolean;
   onChanged: () => Promise<void>;
+  /** Si se define, se muestra el botón para cerrar la orden desde el detalle. */
+  onRealizarMantenimiento?: () => void;
 }) {
   return (
     <div className="flex flex-col gap-6">
@@ -652,6 +765,22 @@ function WorkOrderDetailView({
           {detail.description}
         </div>
       </div>
+
+      {onRealizarMantenimiento && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 p-3">
+          <p className="text-sm text-app-muted">
+            Cuando termines el trabajo, márcalo como realizado para dejarlo en la
+            hoja de vida del equipo.
+          </p>
+          <Button
+            size="sm"
+            leftIcon={<Wrench size={14} />}
+            onClick={onRealizarMantenimiento}
+          >
+            Realizar mantenimiento
+          </Button>
+        </div>
+      )}
 
       {loading && (
         <p className="text-sm text-app-muted">Cargando elementos...</p>

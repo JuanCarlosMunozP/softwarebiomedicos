@@ -43,4 +43,15 @@ export const workOrdersService = {
     );
     return res.data;
   },
+  /**
+   * El responsable marca la orden como realizada: pasa a "Terminada" y el
+   * mantenimiento queda en la hoja de vida del equipo. `observations` opcional.
+   */
+  async complete(id: number, payload: { observations?: string } = {}) {
+    const res = await api.post<WorkOrder>(
+      `/equipment/work-orders/${id}/complete/`,
+      payload,
+    );
+    return res.data;
+  },
 };

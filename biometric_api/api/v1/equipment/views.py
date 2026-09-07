@@ -1,8 +1,9 @@
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -19,6 +20,7 @@ from apps.equipment.models import (
     WorkOrderMeasurement,
     WorkOrderSignature,
     WorkOrderSparePart,
+    WorkOrderStatus,
 )
 from apps.equipment.services import generate_qr_for_equipment
 from apps.users.models import User
@@ -47,6 +49,22 @@ def _only_own_work_orders(user) -> bool:
     return bool(
         user and user.is_authenticated and getattr(user, "role", None) in _FIELD_ROLES
     )
+
+
+def _maintenance_record_for(work_order: EquipmentWorkOrder):
+    """El registro de mantenimiento que esta orden dejó (o cerró) en el
+    historial del equipo, sin importar su origen: enlace directo
+    (`maintenance_record`) o vía la solicitud de origen (`schedule`)."""
+    if work_order.maintenance_record_id:
+        return work_order.maintenance_record
+    if work_order.schedule_id:
+        # Import local: apps.maintenance.models ya importa apps.equipment.models.
+        from apps.maintenance.models import MaintenanceRecord
+
+        return MaintenanceRecord.objects.filter(
+            scheduled_maintenance_id=work_order.schedule_id
+        ).first()
+    return None
 
 
 class EquipmentViewSet(AuditLogMixin, viewsets.ModelViewSet):
@@ -289,6 +307,42 @@ class EquipmentWorkOrderViewSet(AuditLogMixin, viewsets.ModelViewSet):
             pk=self.kwargs["pk"],
         )
         self.check_object_permissions(request, work_order)
+        return Response(self.get_serializer(work_order).data)
+
+    @action(detail=True, methods=["post"], url_path="complete")
+    def complete(self, request, pk: int = None):
+        """El responsable marca su orden como realizada.
+
+        Pasa a ``FINISHED`` con fecha de fin, y las señales de
+        ``apps.maintenance`` / ``apps.scheduling`` dejan el mantenimiento en el
+        historial del equipo (y cierran la solicitud de origen, si la hubo).
+        ``get_queryset`` ya restringe a los roles de campo sus propias órdenes,
+        así que un técnico solo puede realizar las que tiene asignadas.
+
+        Body opcional: ``observations`` — hallazgos / trabajo hecho /
+        recomendaciones; queda en el registro de mantenimiento.
+        """
+        work_order = self.get_object()
+        if work_order.status == WorkOrderStatus.CANCELLED:
+            raise ValidationError(
+                {"detail": _("La orden está cancelada; no se puede realizar.")}
+            )
+
+        observations = str(request.data.get("observations") or "").strip()
+
+        if work_order.status != WorkOrderStatus.FINISHED:
+            work_order.status = WorkOrderStatus.FINISHED
+            if work_order.end_date is None:
+                work_order.end_date = timezone.now()
+            work_order.save(update_fields=["status", "end_date"])
+            work_order.refresh_from_db()
+
+        if observations:
+            record = _maintenance_record_for(work_order)
+            if record is not None:
+                record.observations = observations
+                record.save(update_fields=["observations", "updated_at"])
+
         return Response(self.get_serializer(work_order).data)
 
 
