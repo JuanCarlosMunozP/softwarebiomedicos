@@ -1,4 +1,3 @@
-from django.db.models import Q
 from rest_framework import viewsets
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
@@ -42,20 +41,16 @@ class MaintenanceRecordViewSet(AuditLogMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        # Técnico e ingeniero solo ven los mantenimientos que tienen asignados,
-        # y de esos, solo los ya realizados: si el registro tiene una orden de
-        # trabajo abierta todavía es una tarea (vive en "Órdenes de trabajo").
-        # Gestión (superadmin/admin/coordinador) ve todos, incluidos los que
-        # están en curso.
+        # El técnico solo ve los mantenimientos que tiene asignados, y de esos,
+        # solo los ya realizados: si el registro tiene una orden de trabajo
+        # abierta todavía es una tarea (vive en "Órdenes de trabajo"). Gestión
+        # (superadmin/admin/coordinador) ve todos, incluidos los que están en
+        # curso. El ingeniero no entra a este recurso (ver ROLE_MATRIX).
         user = self.request.user
         if not user.is_authenticated:
             return qs
         if user.role == User.Role.TECNICO:
-            qs = qs.filter(assigned_technician=user)
-        elif user.role == User.Role.INGENIERO:
-            qs = qs.filter(
-                Q(assigned_engineer=user) | Q(assigned_technician=user)
+            return qs.filter(assigned_technician=user).exclude(
+                work_order__status__in=self._OPEN_WO_STATUSES
             )
-        else:
-            return qs
-        return qs.exclude(work_order__status__in=self._OPEN_WO_STATUSES)
+        return qs

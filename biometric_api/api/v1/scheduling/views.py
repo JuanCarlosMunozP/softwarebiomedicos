@@ -1,4 +1,3 @@
-from django.db.models import Q
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -37,20 +36,15 @@ class MaintenanceScheduleViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        # Técnico e ingeniero solo ven las solicitudes que tienen asignadas
-        # (cada uno en su FK). El ingeniero además ve las que él mismo creó.
-        # Gestión (superadmin/admin/coordinador) ve todas.
+        # El técnico solo ve las solicitudes que tiene asignadas. Gestión
+        # (superadmin/admin/coordinador) ve todas. El ingeniero no entra a
+        # este recurso (ver ROLE_MATRIX): su trabajo asignado le llega por
+        # "Órdenes de trabajo".
         user = self.request.user
         if not user.is_authenticated:
             return qs
         if user.role == User.Role.TECNICO:
             qs = qs.filter(assigned_technician=user)
-        elif user.role == User.Role.INGENIERO:
-            qs = qs.filter(
-                Q(assigned_engineer=user)
-                | Q(assigned_technician=user)
-                | Q(requested_by=user)
-            )
         return qs
 
     @action(detail=True, methods=["post"], url_path="complete")

@@ -182,7 +182,7 @@ export function DashboardPage() {
         <p className="py-12 text-center text-app-muted">Cargando dashboard…</p>
       ) : data ? (
         <>
-          {myTasksCount > 0 && (
+          {myTasksCount > 0 && canViewScheduling && (
             <MyTasksSection schedules={data.my_tasks?.schedules ?? []} />
           )}
 

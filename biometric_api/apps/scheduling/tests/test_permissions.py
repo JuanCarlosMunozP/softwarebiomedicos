@@ -45,25 +45,23 @@ class TestSchedulingRolePermissions:
             status.HTTP_403_FORBIDDEN
         )
 
-    def test_ingeniero_can_create_and_edit(self, api_client, equipment):
+    def test_ingeniero_cannot_view_create_edit_or_delete(self, api_client, schedule):
+        # Las solicitudes son de gestión (admin/coordinador). El ingeniero
+        # trabaja lo que le asignen desde "Órdenes de trabajo".
         api_client.force_authenticate(user=IngenieroFactory())
-        created = api_client.post(
+        assert api_client.get(LIST_URL).status_code == status.HTTP_403_FORBIDDEN
+        assert api_client.post(
             LIST_URL,
             {
-                "equipment": equipment.id,
+                "equipment": schedule.equipment_id,
                 "kind": ScheduledMaintenanceKind.PREVENTIVE,
                 "scheduled_date": (date.today() + timedelta(days=5)).isoformat(),
             },
             format="json",
-        )
-        assert created.status_code == status.HTTP_201_CREATED
-        edited = api_client.patch(
-            detail_url(created.json()["id"]), {"notes": "ok"}, format="json"
-        )
-        assert edited.status_code == status.HTTP_200_OK
-
-    def test_ingeniero_cannot_delete(self, api_client, schedule):
-        api_client.force_authenticate(user=IngenieroFactory())
+        ).status_code == status.HTTP_403_FORBIDDEN
+        assert api_client.patch(
+            detail_url(schedule.id), {"notes": "ok"}, format="json"
+        ).status_code == status.HTTP_403_FORBIDDEN
         assert api_client.delete(detail_url(schedule.id)).status_code == (
             status.HTTP_403_FORBIDDEN
         )

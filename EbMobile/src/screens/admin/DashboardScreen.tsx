@@ -35,10 +35,12 @@ export function DashboardScreen() {
       // listAll (no list): con más equipos/fallas/solicitudes que una página
       // (20), .list() los trunca en silencio y los contadores quedan mal —
       // aquí es justo donde más se nota, son las cifras que se muestran primero.
+      // Cada métrica atrapa su propio error: el ingeniero ya no tiene acceso
+      // a "scheduling" (403), y eso no debe apagar también equipos/fallas.
       const [equipos, fallasAbiertas, agendaPendiente] = await Promise.all([
-        equipmentService.listAll({ ordering: "-created_at" }),
-        failuresService.listAll({ resolved: false }),
-        schedulingService.listAll({ is_completed: false }),
+        equipmentService.listAll({ ordering: "-created_at" }).catch(() => []),
+        failuresService.listAll({ resolved: false }).catch(() => []),
+        schedulingService.listAll({ is_completed: false }).catch(() => []),
       ]);
       const operativos = equipos.filter((e) => e.status === "ACTIVE").length;
       setStats({

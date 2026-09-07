@@ -250,37 +250,17 @@ class TestScheduleListScopedByRole:
         assert response.status_code == 200
         assert response.json()["count"] == 3
 
-    def test_ingeniero_sees_own_assignments_and_own_requests(
-        self, api_client, ingeniero, tecnico, equipment
+    def test_ingeniero_cannot_view_or_create(
+        self, api_client, ingeniero, equipment
     ):
-        from apps.users.tests.factories import IngenieroFactory
-
-        otro_ing = IngenieroFactory()
+        # Las solicitudes son de gestión (admin/coordinador); el ingeniero
+        # recibe su trabajo asignado por "Órdenes de trabajo", no por aquí.
         MaintenanceScheduleFactory(
             equipment=equipment, assigned_engineer=ingeniero
         )
-        MaintenanceScheduleFactory(
-            equipment=equipment, requested_by=ingeniero, assigned_technician=None
-        )
-        # Ajenas: de otro ingeniero, de un técnico, y sin asignar.
-        MaintenanceScheduleFactory(
-            equipment=equipment, assigned_engineer=otro_ing
-        )
-        MaintenanceScheduleFactory(
-            equipment=equipment, assigned_technician=tecnico
-        )
-        MaintenanceScheduleFactory(equipment=equipment, assigned_technician=None)
-
         api_client.force_authenticate(user=ingeniero)
-        response = api_client.get(LIST_URL)
 
-        assert response.status_code == 200
-        assert response.json()["count"] == 2
-
-    def test_ingeniero_created_request_stays_visible(
-        self, api_client, ingeniero, equipment
-    ):
-        api_client.force_authenticate(user=ingeniero)
+        assert api_client.get(LIST_URL).status_code == 403
         created = api_client.post(
             LIST_URL,
             {
@@ -290,8 +270,7 @@ class TestScheduleListScopedByRole:
             },
             format="json",
         )
-        assert created.status_code == 201
-        assert api_client.get(LIST_URL).json()["count"] == 1
+        assert created.status_code == 403
 
 
 class TestScheduleRetrieve:
