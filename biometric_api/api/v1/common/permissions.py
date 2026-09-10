@@ -30,10 +30,7 @@ ROLE_MATRIX: dict[str, dict[str, frozenset[str]]] = {
     Role.ADMIN: {
         "branches": _ALL,
         "equipment": _ALL,
-        # Registrar / editar / borrar mantenimientos en el historial es
-        # exclusivo del superadmin. El resto de la gestión solo lo consulta
-        # (hoja de vida del equipo, KPIs).
-        "maintenance": frozenset({VIEW}),
+        "maintenance": _ALL,
         "scheduling": _ALL,
         "failures": _ALL,
         "work_orders": _ALL,
@@ -41,7 +38,7 @@ ROLE_MATRIX: dict[str, dict[str, frozenset[str]]] = {
     Role.COORDINADOR: {
         "branches": frozenset({VIEW}),
         "equipment": frozenset({VIEW, CREATE, EDIT}),
-        "maintenance": frozenset({VIEW}),
+        "maintenance": _ALL,
         "scheduling": _ALL,
         "failures": frozenset({VIEW, CREATE, EDIT}),
         "work_orders": _ALL,
@@ -49,15 +46,14 @@ ROLE_MATRIX: dict[str, dict[str, frozenset[str]]] = {
     Role.INGENIERO: {
         "branches": frozenset({VIEW}),
         "equipment": frozenset({VIEW}),
-        # Sin "maintenance" ni "scheduling": el ingeniero no toca el historial
-        # ni las solicitudes; ejecuta lo que le asignen desde "Órdenes de
-        # trabajo" (ahí tiene el botón "Realizar mantenimiento").
+        "maintenance": frozenset({VIEW, CREATE, EDIT}),
+        "scheduling": frozenset({VIEW, CREATE, EDIT}),
         "failures": frozenset({VIEW, CREATE, EDIT}),
         "work_orders": frozenset({VIEW, CREATE, EDIT}),
     },
     Role.TECNICO: {
         "equipment": frozenset({VIEW}),
-        "maintenance": frozenset({VIEW}),
+        "maintenance": frozenset({VIEW, CREATE}),
         "scheduling": frozenset({VIEW}),
         "failures": frozenset({VIEW, CREATE}),
         # El técnico ejecuta la orden: la crea, la edita y le agrega

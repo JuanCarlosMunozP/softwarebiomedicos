@@ -26,10 +26,6 @@ def wo_details_action(pk):
     return reverse("v1:equipment:equipment-work-order-details", args=[pk])
 
 
-def wo_complete_action(pk):
-    return reverse("v1:equipment:equipment-work-order-complete", args=[pk])
-
-
 def _wo_payload(equipment, **overrides):
     data = {
         "equipment": equipment.id,
@@ -185,102 +181,6 @@ class TestWorkOrderPermissions:
         assert api_client.delete(wo_detail(wo.id)).status_code == (
             status.HTTP_403_FORBIDDEN
         )
-
-
-class TestWorkOrderComplete:
-    """`complete`: el responsable cierra su orden y queda el mantenimiento en
-    la hoja de vida del equipo."""
-
-    def _wo(self, equipment, number, technician=None, **extra):
-        extra.setdefault("status", "PENDING")
-        return EquipmentWorkOrder.objects.create(
-            equipment=equipment,
-            number=number,
-            service_type="PREVENTIVE",
-            start_date=timezone.now(),
-            description="Preventivo trimestral.",
-            technician=technician,
-            **extra,
-        )
-
-    def test_standalone_order_completes_and_logs_history(self, api_client, equipment):
-        from apps.maintenance.models import MaintenanceRecord
-
-        tec = TecnicoFactory()
-        wo = self._wo(equipment, "OT-COMP-1", technician=tec)
-        api_client.force_authenticate(user=tec)
-
-        resp = api_client.post(
-            wo_complete_action(wo.id),
-            {"observations": "Se cambió el filtro y se calibró."},
-            format="json",
-        )
-
-        assert resp.status_code == 200, resp.json()
-        assert resp.json()["status"] == "FINISHED"
-        assert resp.json()["end_date"] is not None
-
-        wo.refresh_from_db()
-        record = MaintenanceRecord.objects.get(work_order=wo)
-        assert record.observations == "Se cambió el filtro y se calibró."
-        assert record.assigned_technician_id == tec.id
-
-        # Ya cerrada, aparece en el historial del equipo.
-        hist = api_client.get(
-            reverse("v1:equipment:equipment-history", args=[equipment.id])
-        )
-        assert hist.status_code == 200
-        assert any(r["id"] == record.id for r in hist.json()["results"])
-
-    def test_complete_from_schedule_closes_schedule(self, api_client, equipment):
-        from apps.maintenance.models import MaintenanceRecord
-        from apps.scheduling.tests.factories import MaintenanceScheduleFactory
-
-        ing = IngenieroFactory()
-        schedule = MaintenanceScheduleFactory(
-            equipment=equipment, assigned_engineer=ing
-        )
-        # La señal creó la orden al asignar responsable.
-        wo = EquipmentWorkOrder.objects.get(schedule=schedule)
-        assert wo.technician_id == ing.id
-
-        api_client.force_authenticate(user=ing)
-        resp = api_client.post(
-            wo_complete_action(wo.id),
-            {"observations": "Equipo en óptimas condiciones."},
-            format="json",
-        )
-        assert resp.status_code == 200, resp.json()
-
-        schedule.refresh_from_db()
-        assert schedule.is_completed is True
-        record = MaintenanceRecord.objects.get(scheduled_maintenance=schedule)
-        assert record.observations == "Equipo en óptimas condiciones."
-
-    def test_complete_rejects_cancelled_order(self, api_client, equipment):
-        tec = TecnicoFactory()
-        wo = self._wo(equipment, "OT-CANC", technician=tec, status="CANCELLED")
-        api_client.force_authenticate(user=tec)
-
-        resp = api_client.post(wo_complete_action(wo.id), {}, format="json")
-        assert resp.status_code == 400
-
-    def test_complete_on_finished_order_is_ok(self, api_client, equipment):
-        tec = TecnicoFactory()
-        wo = self._wo(equipment, "OT-DONE", technician=tec)
-        api_client.force_authenticate(user=tec)
-
-        assert api_client.post(wo_complete_action(wo.id), {}, format="json").status_code == 200
-        # Segunda vez: sigue respondiendo 200, sin romper.
-        assert api_client.post(wo_complete_action(wo.id), {}, format="json").status_code == 200
-
-    def test_field_role_cannot_complete_others_order(self, api_client, equipment):
-        wo = self._wo(equipment, "OT-AJENA-C", technician=TecnicoFactory())
-        api_client.force_authenticate(user=IngenieroFactory())
-
-        assert api_client.post(
-            wo_complete_action(wo.id), {}, format="json"
-        ).status_code == 404
 
 
 class TestWorkOrderScopedByRole:

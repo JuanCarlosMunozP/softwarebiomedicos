@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, FlatList, RefreshControl, Text, View } from "react-native";
-import { FileText, Plus, Wrench } from "lucide-react-native";
+import { FileText, Plus } from "lucide-react-native";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -89,8 +89,6 @@ export function OrdenesTrabajoScreen() {
   const [detail, setDetail] = useState<WorkOrderDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
-  const [obs, setObs] = useState("");
-  const [completing, setCompleting] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -152,7 +150,6 @@ export function OrdenesTrabajoScreen() {
   };
 
   const openDetail = async (w: WorkOrder) => {
-    setObs("");
     setDetail(w as WorkOrderDetail);
     setDetailLoading(true);
     try {
@@ -176,27 +173,6 @@ export function OrdenesTrabajoScreen() {
       Alert.alert("Error", getApiErrorMessage(err));
     } finally {
       setStatusSaving(false);
-    }
-  };
-
-  const realizarMantenimiento = async () => {
-    if (!detail) return;
-    setCompleting(true);
-    try {
-      await workOrdersService.complete(detail.id, {
-        observations: obs.trim() || undefined,
-      });
-      setDetail(null);
-      setObs("");
-      await load();
-      Alert.alert(
-        "Mantenimiento registrado",
-        "La orden quedó como Terminada y el mantenimiento está en la hoja de vida del equipo.",
-      );
-    } catch (err) {
-      Alert.alert("Error", getApiErrorMessage(err));
-    } finally {
-      setCompleting(false);
     }
   };
 
@@ -342,32 +318,6 @@ export function OrdenesTrabajoScreen() {
             <Text className="text-sm text-app-text-muted dark:text-app-dark-text-muted">
               {detail.description}
             </Text>
-            {canEdit &&
-              (detail.status === "PENDING" ||
-                detail.status === "IN_PROGRESS") && (
-                <View className="gap-2 rounded-lg border border-primary/40 bg-primary/5 p-3">
-                  <Input
-                    label="Observaciones / trabajo realizado (opcional)"
-                    value={obs}
-                    onChangeText={setObs}
-                    multiline
-                    numberOfLines={3}
-                    className="h-20 py-2"
-                  />
-                  <Button
-                    onPress={realizarMantenimiento}
-                    loading={completing}
-                    leftIcon={<Wrench size={16} color="#fff" />}
-                    fullWidth
-                  >
-                    Realizar mantenimiento
-                  </Button>
-                  <Text className="text-xs text-app-text-muted dark:text-app-dark-text-muted">
-                    Queda como Terminada y se registra en la hoja de vida del
-                    equipo.
-                  </Text>
-                </View>
-              )}
             {canEdit && (
               <Select
                 label="Estado"

@@ -48,9 +48,8 @@ const NAV_ITEMS: NavItem[] = [
     key: "Mantenimientos",
     label: "Mantenimientos",
     icon: (c) => <Wrench size={18} color={c} />,
-    // Registrar/editar el historial es exclusivo del superadmin. El resto
-    // trabaja desde "Órdenes de trabajo".
-    visible: (r) => r === "superadmin",
+    // No lo ve el técnico (trabaja desde "Órdenes de trabajo").
+    visible: (r) => r !== "tecnico" && can(r, "maintenance", "view"),
   },
   {
     key: "OrdenesTrabajo",

@@ -19,8 +19,6 @@ import { Badge } from "@/components/ui/Badge";
 import { equipmentService } from "@/services/equipment.service";
 import { maintenanceService } from "@/services/maintenance.service";
 import { schedulingService } from "@/services/scheduling.service";
-import { useAuth } from "@/context/AuthContext";
-import { can } from "@/lib/permissions";
 import { assignedRoleLabel, assignedUserName } from "@/lib/users";
 import type { Equipment, EquipmentStatus } from "@/types/equipment";
 import type {
@@ -137,13 +135,6 @@ export function EquipoFichaContent({
   onEdit,
   onDelete,
 }: ContentProps) {
-  const { usuario } = useAuth();
-  const role = usuario?.role;
-  // El ingeniero no ve el historial de mantenimientos ni las solicitudes: su
-  // trabajo vive en "Órdenes de trabajo".
-  const canVerHistorial = can(role, "maintenance", "view");
-  const canVerProgramados = can(role, "scheduling", "view");
-
   const [tab, setTab] = useState<Tab>("info");
   const [history, setHistory] = useState<MaintenanceRecord[]>([]);
   const [scheduled, setScheduled] = useState<ScheduledMaintenance[]>([]);
@@ -164,17 +155,17 @@ export function EquipoFichaContent({
   }, [equipment]);
 
   useEffect(() => {
-    if (!eq || !canVerHistorial) return;
+    if (!eq) return;
     setLoadingH(true);
     maintenanceService
       .list({ equipment: eq.id, ordering: "-date" })
       .then(setHistory)
       .catch(() => setHistory([]))
       .finally(() => setLoadingH(false));
-  }, [eq, canVerHistorial]);
+  }, [eq]);
 
   useEffect(() => {
-    if (!eq || !canVerProgramados) return;
+    if (!eq) return;
     setLoadingS(true);
     schedulingService
       .list({
@@ -185,7 +176,7 @@ export function EquipoFichaContent({
       .then(setScheduled)
       .catch(() => setScheduled([]))
       .finally(() => setLoadingS(false));
-  }, [eq, scheduledKind, canVerProgramados]);
+  }, [eq, scheduledKind]);
 
   if (!eq) return null;
 
@@ -328,52 +319,28 @@ export function EquipoFichaContent({
           <TabButton active={tab === "info"} onClick={() => setTab("info")}>
             Información
           </TabButton>
-          {canVerHistorial && (
-            <TabButton
-              active={tab === "historial"}
-              onClick={() => setTab("historial")}
-            >
-              <Wrench size={14} className="mr-1.5 inline" />
-              Mantenimientos realizados
-            </TabButton>
-          )}
-          {canVerProgramados && (
-            <TabButton
-              active={tab === "programados"}
-              onClick={() => setTab("programados")}
-            >
-              <CalendarClock size={14} className="mr-1.5 inline" />
-              Programados
-            </TabButton>
-          )}
+          <TabButton active={tab === "historial"} onClick={() => setTab("historial")}>
+            <Wrench size={14} className="mr-1.5 inline" />
+            Mantenimientos realizados
+          </TabButton>
+          <TabButton active={tab === "programados"} onClick={() => setTab("programados")}>
+            <CalendarClock size={14} className="mr-1.5 inline" />
+            Programados
+          </TabButton>
         </div>
 
         {/* Tab content */}
         {tab === "info" && (
           <div className="flex flex-col gap-4 text-sm">
-            {(canVerHistorial || canVerProgramados) && (
-              <p className="text-app-muted">
-                Este equipo tiene actualmente
-                {canVerHistorial && (
-                  <>
-                    {" "}
-                    <strong className="text-app">{history.length}</strong>{" "}
-                    mantenimientos registrados
-                  </>
-                )}
-                {canVerHistorial && canVerProgramados && " y"}
-                {canVerProgramados && (
-                  <>
-                    {" "}
-                    <strong className="text-app">
-                      {scheduled.filter((s) => !s.is_completed).length}
-                    </strong>{" "}
-                    solicitudes pendientes
-                  </>
-                )}
-                .
-              </p>
-            )}
+            <p className="text-app-muted">
+              Este equipo tiene actualmente{" "}
+              <strong className="text-app">{history.length}</strong> mantenimientos
+              registrados y{" "}
+              <strong className="text-app">
+                {scheduled.filter((s) => !s.is_completed).length}
+              </strong>{" "}
+              solicitudes pendientes.
+            </p>
 
             <div>
               <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-app-muted">
@@ -423,7 +390,7 @@ export function EquipoFichaContent({
           </div>
         )}
 
-        {tab === "historial" && canVerHistorial && (
+        {tab === "historial" && (
           <div className="flex flex-col gap-2">
             {loadingH ? (
               <p className="py-6 text-center text-sm text-app-muted">Cargando...</p>
@@ -494,7 +461,7 @@ export function EquipoFichaContent({
           </div>
         )}
 
-        {tab === "programados" && canVerProgramados && (
+        {tab === "programados" && (
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-app-muted">Filtrar por tipo:</span>

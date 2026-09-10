@@ -173,15 +173,30 @@ class TestMaintenanceListScopedByRole:
         assert response.status_code == 200
         assert response.json()["count"] == 3
 
-    def test_ingeniero_has_no_access_to_maintenance_history(
-        self, api_client, ingeniero, equipment
+    def test_ingeniero_only_sees_own_finished_maintenances(
+        self, api_client, ingeniero, tecnico, equipment
     ):
-        # El ingeniero no entra al recurso "maintenance": su trabajo vive en
-        # "Órdenes de trabajo".
-        MaintenanceRecordFactory(equipment=equipment, assigned_engineer=ingeniero)
+        from apps.users.tests.factories import IngenieroFactory
+
+        r1 = MaintenanceRecordFactory(
+            equipment=equipment, assigned_engineer=ingeniero
+        )
+        r2 = MaintenanceRecordFactory(
+            equipment=equipment, assigned_technician=ingeniero
+        )
+        _finish_wo(r1)
+        _finish_wo(r2)
+        MaintenanceRecordFactory(
+            equipment=equipment, assigned_engineer=IngenieroFactory()
+        )
+        MaintenanceRecordFactory(equipment=equipment, assigned_technician=tecnico)
+        MaintenanceRecordFactory(equipment=equipment)
 
         api_client.force_authenticate(user=ingeniero)
-        assert api_client.get(LIST_URL).status_code == 403
+        response = api_client.get(LIST_URL)
+
+        assert response.status_code == 200
+        assert response.json()["count"] == 2
 
 
 class TestMaintenanceList:

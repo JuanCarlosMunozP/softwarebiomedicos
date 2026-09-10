@@ -27,9 +27,7 @@ const matrix: Matrix = {
     users: ["view", "create", "edit", "delete"],
     branches: ["view", "create", "edit", "delete"],
     equipment: ["view", "create", "edit", "delete"],
-    // Registrar/editar/borrar en el historial de mantenimientos es exclusivo
-    // del superadmin; el resto de la gestión solo lo consulta.
-    maintenance: ["view"],
+    maintenance: ["view", "create", "edit", "delete"],
     scheduling: ["view", "create", "edit", "delete"],
     failures: ["view", "create", "edit", "delete"],
     work_orders: ["view", "create", "edit", "delete"],
@@ -37,7 +35,7 @@ const matrix: Matrix = {
   coordinador: {
     branches: ["view"],
     equipment: ["view", "create", "edit"],
-    maintenance: ["view"],
+    maintenance: ["view", "create", "edit", "delete"],
     scheduling: ["view", "create", "edit", "delete"],
     failures: ["view", "create", "edit"],
     work_orders: ["view", "create", "edit", "delete"],
@@ -45,14 +43,14 @@ const matrix: Matrix = {
   ingeniero: {
     branches: ["view"],
     equipment: ["view"],
-    // Sin "maintenance" ni "scheduling": el ingeniero trabaja solo desde
-    // "Órdenes de trabajo" (botón "Realizar mantenimiento").
+    maintenance: ["view", "create", "edit"],
+    scheduling: ["view", "create", "edit"],
     failures: ["view", "create", "edit"],
     work_orders: ["view", "create", "edit"],
   },
   tecnico: {
     equipment: ["view"],
-    maintenance: ["view"],
+    maintenance: ["view", "create"],
     scheduling: ["view"],
     failures: ["view", "create"],
     work_orders: ["view", "create", "edit"],

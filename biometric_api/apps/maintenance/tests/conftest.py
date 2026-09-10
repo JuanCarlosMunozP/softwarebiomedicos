@@ -3,13 +3,7 @@ from rest_framework.test import APIClient
 
 from apps.branches.tests.factories import BranchFactory
 from apps.equipment.tests.factories import EquipmentFactory
-from apps.users.tests.factories import (
-    AdminFactory,
-    CoordinadorFactory,
-    IngenieroFactory,
-    SuperadminFactory,
-    TecnicoFactory,
-)
+from apps.users.tests.factories import AdminFactory, IngenieroFactory, TecnicoFactory
 
 from .factories import MaintenanceRecordFactory
 
@@ -33,24 +27,13 @@ def api_client():
 
 
 @pytest.fixture
-def superadmin_user(db):
-    return SuperadminFactory()
-
-
-@pytest.fixture
 def admin_user(db):
     return AdminFactory()
 
 
 @pytest.fixture
-def coordinador_user(db):
-    return CoordinadorFactory()
-
-
-@pytest.fixture
-def auth_client(api_client, superadmin_user):
-    # Registrar/editar/borrar mantenimientos es exclusivo del superadmin.
-    api_client.force_authenticate(user=superadmin_user)
+def auth_client(api_client, admin_user):
+    api_client.force_authenticate(user=admin_user)
     return api_client
 
 

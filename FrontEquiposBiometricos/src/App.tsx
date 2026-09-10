@@ -92,28 +92,25 @@ function App() {
                       element={<EtiquetasQrPage />}
                     />
                     <Route path="equipos/:id" element={<EquipoDetallePage />} />
-                    {/* Solicitudes ("Agendamientos"): es gestión (admin/
-                        coordinador) y quien las ejecuta ya las ve en "Órdenes
-                        de trabajo" — el ingeniero no entra aquí. */}
                     <Route
-                      element={
-                        <ProtectedRoute
-                          roles={["superadmin", "admin", "coordinador", "tecnico"]}
-                        />
-                      }
-                    >
-                      <Route
-                        path="agendamientos"
-                        element={<AgendamientosPage />}
-                      />
-                    </Route>
+                      path="agendamientos"
+                      element={<AgendamientosPage />}
+                    />
                     <Route path="fallas" element={<FallasPage />} />
                     <Route path="perfil" element={<PerfilPage />} />
 
-                    {/* Historial de mantenimientos: registrar/editar es
-                        exclusivo del superadmin. */}
+                    {/* Historial de mantenimientos: todos menos el técnico. */}
                     <Route
-                      element={<ProtectedRoute roles={["superadmin"]} />}
+                      element={
+                        <ProtectedRoute
+                          roles={[
+                            "superadmin",
+                            "admin",
+                            "coordinador",
+                            "ingeniero",
+                          ]}
+                        />
+                      }
                     >
                       <Route
                         path="mantenimientos"
