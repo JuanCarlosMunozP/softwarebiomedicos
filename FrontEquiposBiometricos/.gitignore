@@ -19,6 +19,8 @@ dist-ssr
 .env.*
 !.env.example
 
+base_datos_biomedicos_limpio.*.csv
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
