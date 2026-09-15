@@ -16,7 +16,10 @@ def send_schedule_notification(self, schedule_id: int) -> str:
     try:
         schedule = (
             MaintenanceSchedule.objects.select_related(
-                "equipment", "equipment__branch"
+                "equipment",
+                "equipment__branch",
+                "assigned_engineer",
+                "assigned_technician",
             ).get(pk=schedule_id)
         )
     except MaintenanceSchedule.DoesNotExist:
@@ -28,6 +31,10 @@ def send_schedule_notification(self, schedule_id: int) -> str:
     recipients = list(getattr(settings, "MAINTENANCE_NOTIFICATION_EMAILS", []) or [])
     if branch.email:
         recipients.append(branch.email)
+    if schedule.assigned_engineer and schedule.assigned_engineer.email:
+        recipients.append(schedule.assigned_engineer.email)
+    if schedule.assigned_technician and schedule.assigned_technician.email:
+        recipients.append(schedule.assigned_technician.email)
     recipients = list({r for r in recipients if r})
     if not recipients:
         return "no_recipients"

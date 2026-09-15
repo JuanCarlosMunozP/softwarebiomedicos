@@ -75,3 +75,20 @@ class TestSendScheduleNotification:
         result = send_schedule_notification(99999)
         assert result == "schedule_not_found"
         assert MaintenanceSchedule.objects.count() == 0
+
+    def test_includes_assigned_engineer_email(self, settings, equipment, ingeniero):
+        settings.MAINTENANCE_NOTIFICATION_EMAILS = []
+        equipment.branch.email = ""
+        equipment.branch.save(update_fields=["email"])
+        ingeniero.email = "ingeniero@clinic.test"
+        ingeniero.save(update_fields=["email"])
+        schedule = MaintenanceScheduleFactory(
+            equipment=equipment,
+            assigned_engineer=ingeniero,
+        )
+        mail.outbox = []
+
+        result = send_schedule_notification(schedule.pk)
+
+        assert result == "sent"
+        assert "ingeniero@clinic.test" in mail.outbox[0].to

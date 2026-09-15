@@ -15,7 +15,17 @@ class Migration(migrations.Migration):
             name='kind',
             field=models.CharField(choices=[('PREVENTIVE', 'Mantenimiento preventivo'), ('CORRECTIVE', 'Mantenimiento correctivo'), ('REPAIR', 'Reparación mayor'), ('CALIBRATION', 'Calibración'), ('INSPECTION', 'Inspección')], db_index=True, max_length=20, verbose_name='Tipo'),
         ),
-        migrations.DeleteModel(
-            name='EquipmentMaintenanceSchedule',
+        # La tabla pudo haberse eliminado ya con un nombre de migración viejo
+        # (p. ej. maintenance.0003_alter_maintenancerecord_kind_and_more).
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.DeleteModel(name="EquipmentMaintenanceSchedule"),
+            ],
+            database_operations=[
+                migrations.RunSQL(
+                    sql='DROP TABLE IF EXISTS "maintenance_equipmentmaintenanceschedule" CASCADE;',
+                    reverse_sql=migrations.RunSQL.noop,
+                ),
+            ],
         ),
     ]

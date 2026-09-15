@@ -17,7 +17,8 @@ class User(AbstractUser):
         ADMIN = "admin", _("Administrador")
         COORDINADOR = "coordinador", _("Coordinador")
         INGENIERO = "ingeniero", _("Ingeniero biomédico")
-        TECNICO = "tecnico", _("Técnico")
+        TECNICO = "tecnico", _("Usuario operativo")
+        USUARIO = "usuario", _("Usuario")
 
     email = models.EmailField(_("Correo electrónico"), unique=True)
     first_name = models.CharField(_("Nombres"), max_length=150)
@@ -33,6 +34,12 @@ class User(AbstractUser):
         max_length=30,
         blank=True,
         validators=[phone_validator],
+    )
+    area = models.CharField(
+        _("Área"),
+        max_length=120,
+        blank=True,
+        help_text=_("Área de servicio del usuario operativo (ej. Radiología). Vacío para el resto de roles."),
     )
 
     REQUIRED_FIELDS = ["email", "first_name", "last_name", "role"]

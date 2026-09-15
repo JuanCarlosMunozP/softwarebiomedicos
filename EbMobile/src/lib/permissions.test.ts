@@ -18,6 +18,16 @@ describe("can", () => {
     expect(can("tecnico", "equipment", "view")).toBe(true);
   });
 
+  it("tecnico can view and create scheduling requests", () => {
+    expect(can("tecnico", "scheduling", "view")).toBe(true);
+    expect(can("tecnico", "scheduling", "create")).toBe(true);
+  });
+
+  it("usuario can view scheduling but not failures", () => {
+    expect(can("usuario", "scheduling", "view")).toBe(true);
+    expect(can("usuario", "failures", "view")).toBe(false);
+  });
+
   it("returns false for a resource not present in the role's matrix entry", () => {
     // tecnico no tiene entrada "users" en absoluto en la matriz.
     expect(can("tecnico", "users", "view")).toBe(false);
@@ -28,6 +38,19 @@ describe("can", () => {
     expect(can("coordinador", "equipment", "edit")).toBe(true);
     expect(can("coordinador", "equipment", "delete")).toBe(false);
   });
+
+  it("ingeniero can view and edit work orders but not delete them", () => {
+    expect(can("ingeniero", "work_orders", "view")).toBe(true);
+    expect(can("ingeniero", "work_orders", "edit")).toBe(true);
+    expect(can("ingeniero", "work_orders", "delete")).toBe(false);
+  });
+
+  it("ingeniero can view solicitudes but not create them", () => {
+    expect(can("ingeniero", "scheduling", "view")).toBe(true);
+    expect(can("ingeniero", "scheduling", "create")).toBe(false);
+    expect(can("ingeniero", "scheduling", "edit")).toBe(false);
+    expect(can("ingeniero", "scheduling", "delete")).toBe(false);
+  });
 });
 
 describe("canAssignRole", () => {
@@ -37,7 +60,7 @@ describe("canAssignRole", () => {
 
   it("superadmin can assign any role, including admin and superadmin", () => {
     expect(canAssignRole("superadmin", "admin")).toBe(true);
-    expect(canAssignRole("superadmin", "superadmin")).toBe(true);
+    expect(canAssignRole("superadmin", "superadmin")).toBe(false);
   });
 
   it("admin can assign coordinador/ingeniero/tecnico", () => {

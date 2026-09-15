@@ -15,6 +15,7 @@ from apps.maintenance.models import MaintenanceKind
 from apps.maintenance.tests.factories import MaintenanceRecordFactory
 from apps.scheduling.models import ScheduledMaintenanceKind
 from apps.scheduling.tests.factories import MaintenanceScheduleFactory
+from apps.users.tests.factories import TecnicoFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -295,6 +296,128 @@ class TestTecnicoScopedKpis:
 
         body = auth_client.get(SUMMARY_URL).json()
         assert body["kpis"]["maintenance"]["this_month_count"] == 2
+
+
+class TestOperativoAreaOps:
+    def test_dashboard_shows_only_own_reports(self, api_client, tecnico, equipment):
+        tecnico.area = "Radiología"
+        tecnico.save(update_fields=["area"])
+        equipment.area = "Radiología"
+        equipment.save(update_fields=["area"])
+
+        peer = TecnicoFactory(area="Radiología")
+        other_eq = EquipmentFactory(branch=equipment.branch, area="UCI")
+
+        mine = FailureRecordFactory(
+            equipment=equipment,
+            reported_by=tecnico,
+            description="No enciende",
+        )
+        FailureRecordFactory(equipment=equipment, reported_by=peer)
+        FailureRecordFactory(equipment=other_eq, reported_by=tecnico)
+
+        api_client.force_authenticate(user=tecnico)
+        body = api_client.get(SUMMARY_URL).json()
+        ops = body["area_ops"]
+        assert ops["source"] == "failures"
+        assert ops["area"] == "Radiología"
+        assert ops["kpis"]["total"] == 1
+        assert ops["kpis"]["open"] == 1
+        assert [r["id"] for r in ops["recent"]] == [mine.id]
+        assert ops["recent"][0]["opportunity_hours"] is None
+        assert ops["recent"][0]["resolution_notes"] == ""
+
+
+class TestUsuarioRequestsOps:
+    def test_dashboard_shows_only_own_solicitudes(self, api_client, equipment):
+        from apps.users.tests.factories import UsuarioFactory
+
+        user = UsuarioFactory()
+        other = UsuarioFactory()
+        today = timezone.localdate()
+        mine_open = MaintenanceScheduleFactory(
+            equipment=equipment,
+            requested_by=user,
+            requested_date=today,
+            is_completed=False,
+            assigned_technician=None,
+        )
+        mine_done = MaintenanceScheduleFactory(
+            equipment=equipment,
+            requested_by=user,
+            requested_date=today,
+            is_completed=True,
+            assigned_technician=None,
+        )
+        MaintenanceScheduleFactory(
+            equipment=equipment,
+            requested_by=other,
+            requested_date=today,
+            assigned_technician=None,
+        )
+
+        api_client.force_authenticate(user=user)
+        body = api_client.get(SUMMARY_URL).json()
+        ops = body["area_ops"]
+        assert ops["source"] == "schedules"
+        assert ops["kpis"]["total"] == 2
+        assert ops["kpis"]["open"] == 1
+        assert ops["kpis"]["resolved"] == 1
+        assert set(r["id"] for r in ops["recent"]) == {mine_open.id, mine_done.id}
+        assert len(ops["series"]) == 2
+        assert {row["resolved"] for row in ops["series"]} == {True, False}
+
+
+class TestEngineerTasks:
+    def test_kpis_count_only_own_work_orders(
+        self, api_client, ingeniero, tecnico, equipment
+    ):
+        from apps.equipment.models import EquipmentWorkOrder, WorkOrderStatus
+
+        now = timezone.now()
+
+        def make(number, technician, status=WorkOrderStatus.PENDING):
+            return EquipmentWorkOrder.objects.create(
+                equipment=equipment,
+                number=number,
+                service_type="PREVENTIVE",
+                start_date=now,
+                description="x",
+                technician=technician,
+                status=status,
+            )
+
+        make("OT-PEND", ingeniero)
+        make("OT-PROG", ingeniero, WorkOrderStatus.IN_PROGRESS)
+        make("OT-OK", ingeniero, WorkOrderStatus.FINISHED)
+        make("OT-CANCEL", ingeniero, WorkOrderStatus.CANCELLED)
+        make("OT-AJENA", tecnico)
+
+        api_client.force_authenticate(user=ingeniero)
+        body = api_client.get(SUMMARY_URL).json()
+        tasks = body["engineer_tasks"]
+        assert tasks["kpis"] == {
+            "assigned": 3,
+            "pending": 1,
+            "in_progress": 1,
+            "resolved": 1,
+        }
+        assert {r["number"] for r in tasks["recent"]} == {"OT-PEND", "OT-PROG"}
+
+    def test_other_roles_get_null(self, auth_client, ingeniero, equipment):
+        from apps.equipment.models import EquipmentWorkOrder, WorkOrderStatus
+
+        EquipmentWorkOrder.objects.create(
+            equipment=equipment,
+            number="OT-ING",
+            service_type="CORRECTIVE",
+            start_date=timezone.now(),
+            description="x",
+            technician=ingeniero,
+            status=WorkOrderStatus.PENDING,
+        )
+        body = auth_client.get(SUMMARY_URL).json()
+        assert body["engineer_tasks"] is None
 
 
 @pytest.fixture

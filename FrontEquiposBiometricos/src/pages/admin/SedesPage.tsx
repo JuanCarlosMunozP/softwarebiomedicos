@@ -193,7 +193,7 @@ export function SedesPage() {
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-app sm:text-3xl">Sedes</h1>
+          <h1 className="text-2xl font-bold text-app">Sedes</h1>
           <p className="text-sm text-app-muted">
             Administra las sedes (centros) de la institución.
           </p>

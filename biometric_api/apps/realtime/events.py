@@ -6,6 +6,7 @@ un no-op silencioso — nunca debe tumbar la lógica de negocio.
 """
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from asgiref.sync import async_to_sync
@@ -13,13 +14,21 @@ from channels.layers import get_channel_layer
 
 from .consumers import NOTIFICATIONS_GROUP
 
+logger = logging.getLogger(__name__)
+
 
 def broadcast_notification(payload: dict[str, Any]) -> None:
     """Envía `payload` (ya serializable a JSON) a todos los clientes conectados."""
     layer = get_channel_layer()
     if layer is None:
         return
-    async_to_sync(layer.group_send)(
-        NOTIFICATIONS_GROUP,
-        {"type": "notification.message", "payload": payload},
-    )
+    try:
+        async_to_sync(layer.group_send)(
+            NOTIFICATIONS_GROUP,
+            {"type": "notification.message", "payload": payload},
+        )
+    except Exception:
+        logger.exception(
+            "No se pudo publicar la notificación (channel layer/Redis). "
+            "La operación de negocio continúa."
+        )

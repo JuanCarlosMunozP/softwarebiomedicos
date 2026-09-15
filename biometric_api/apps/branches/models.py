@@ -34,6 +34,9 @@ class Branch(models.Model):
     email = models.EmailField(
         _("Correo electrónico"),
         blank=True,
+        null=True,
+        unique=True,
+        help_text=_("Opcional. Si se indica, no puede repetirse en otra sede."),
     )
     is_active = models.BooleanField(
         _("Activa"),
@@ -62,3 +65,9 @@ class Branch(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+    def save(self, *args, **kwargs):
+        # Unique(email) en Postgres: "" cuenta como valor; varios NULL sí.
+        if self.email == "":
+            self.email = None
+        super().save(*args, **kwargs)

@@ -40,6 +40,28 @@ class TestUserPermissions:
         client = auth_client(tecnico)
         assert client.get(LIST_URL).status_code == 403
 
+    def test_ingeniero_can_list_assignable_staff(
+        self, auth_client, ingeniero, tecnico, admin
+    ):
+        client = auth_client(ingeniero)
+        response = client.get(LIST_URL, {"is_active": True})
+        assert response.status_code == 200
+        roles = {u["role"] for u in response.json()["results"]}
+        assert roles <= {"ingeniero", "tecnico"}
+        assert "admin" not in roles
+        assert admin.username not in {u["username"] for u in response.json()["results"]}
+
+    def test_coordinador_can_list_assignable_staff(
+        self, auth_client, coordinador, ingeniero, tecnico
+    ):
+        client = auth_client(coordinador)
+        response = client.get(LIST_URL)
+        assert response.status_code == 200
+        ids = {u["id"] for u in response.json()["results"]}
+        assert ingeniero.id in ids
+        assert tecnico.id in ids
+        assert coordinador.id not in ids
+
     def test_admin_can_list(self, auth_client, admin):
         client = auth_client(admin)
         assert client.get(LIST_URL).status_code == 200

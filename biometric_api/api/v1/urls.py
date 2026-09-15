@@ -15,12 +15,14 @@ from api.v1.common.views import (
     CookieTokenLogoutView,
     CookieTokenObtainPairView,
     CookieTokenRefreshView,
+    HealthView,
     ThrottledTokenObtainPairView,
 )
 
 app_name = "v1"
 
 urlpatterns = [
+    path("health/", HealthView.as_view(), name="health"),
     # JWT auth "clásico": tokens en el body. Para clientes sin cookies del
     # navegador (app móvil, Postman, scripts).
     path("auth/token/", ThrottledTokenObtainPairView.as_view(), name="token-obtain"),

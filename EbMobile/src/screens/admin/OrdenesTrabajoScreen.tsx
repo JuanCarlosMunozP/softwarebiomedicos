@@ -19,6 +19,7 @@ import { assignableUserOptions } from "@/lib/users";
 import { usersService } from "@/services/users.service";
 import type { Equipment } from "@/types/equipment";
 import type { Usuario } from "@/types/auth";
+import type { FailureSeverity } from "@/types/failure";
 import type {
   WorkOrder,
   WorkOrderDetail,
@@ -40,6 +41,13 @@ const STATUS_OPTS: SelectOption<WorkOrderStatus>[] = [
   { label: "En proceso", value: "IN_PROGRESS" },
   { label: "Terminada", value: "FINISHED" },
   { label: "Cancelada", value: "CANCELLED" },
+];
+
+const SEVERITY_OPTS: SelectOption<FailureSeverity>[] = [
+  { label: "Baja", value: "LOW" },
+  { label: "Media", value: "MEDIUM" },
+  { label: "Alta", value: "HIGH" },
+  { label: "Crítica", value: "CRITICAL" },
 ];
 
 function statusTone(
@@ -72,6 +80,7 @@ export function OrdenesTrabajoScreen() {
   const { usuario } = useAuth();
   const { colors } = useTheme();
   const role = usuario?.role;
+  const isEngineer = role === "ingeniero";
   const canCreate = can(role, "work_orders", "create");
   const canEdit = can(role, "work_orders", "edit");
 
@@ -89,6 +98,14 @@ export function OrdenesTrabajoScreen() {
   const [detail, setDetail] = useState<WorkOrderDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
+  const [completing, setCompleting] = useState<WorkOrder | null>(null);
+  const [completeObs, setCompleteObs] = useState("");
+  const [completeFailDesc, setCompleteFailDesc] = useState("");
+  const [completeFailSev, setCompleteFailSev] =
+    useState<FailureSeverity>("MEDIUM");
+  const [completeSaving, setCompleteSaving] = useState(false);
+  const [completeStatus, setCompleteStatus] =
+    useState<WorkOrderStatus>("IN_PROGRESS");
 
   const load = useCallback(async () => {
     try {
@@ -164,6 +181,17 @@ export function OrdenesTrabajoScreen() {
 
   const changeStatus = async (status: WorkOrderStatus) => {
     if (!detail) return;
+    if (isEngineer && status === "FINISHED") {
+      setCompleting(detail);
+      setCompleteFailDesc(detail.description ?? "");
+      setCompleteFailSev("MEDIUM");
+      setCompleteObs("");
+      setCompleteStatus(
+        detail.status === "PENDING" ? "IN_PROGRESS" : detail.status,
+      );
+      setDetail(null);
+      return;
+    }
     setStatusSaving(true);
     try {
       await workOrdersService.update(detail.id, { status });
@@ -176,9 +204,57 @@ export function OrdenesTrabajoScreen() {
     }
   };
 
+  const submitComplete = async () => {
+    if (!completing) return;
+    const notes = completeObs.trim();
+    if (!notes) {
+      Alert.alert("Falta la nota", "La nota de resolución es obligatoria.");
+      return;
+    }
+    if (
+      isEngineer &&
+      completing.status === "PENDING" &&
+      completeStatus === "FINISHED"
+    ) {
+      Alert.alert(
+        "No se puede finalizar de una",
+        "Primero pasa la orden a En proceso.",
+      );
+      return;
+    }
+    setCompleteSaving(true);
+    try {
+      if (completeStatus === "FINISHED") {
+        await workOrdersService.complete(completing.id, {
+          observations: notes,
+          status: "FINISHED",
+          failure_description: completeFailDesc.trim() || completing.description,
+          failure_severity: completeFailSev,
+          failure_resolution_notes: notes,
+        });
+      } else {
+        await workOrdersService.complete(completing.id, {
+          observations: notes,
+          status: completeStatus,
+        });
+      }
+      setCompleting(null);
+      await load();
+    } catch (err) {
+      Alert.alert("Error", getApiErrorMessage(err, "No se pudo registrar el mantenimiento"));
+    } finally {
+      setCompleteSaving(false);
+    }
+  };
+
   return (
     <ScreenContainer scroll={false} contentClassName="gap-3">
       <View className="gap-3 px-4 pt-4">
+        {isEngineer && (
+          <Text className="text-sm text-app-text-muted dark:text-app-dark-text-muted">
+            Órdenes que te asignaron. Ábrelas para realizar el mantenimiento.
+          </Text>
+        )}
         <Select
           value={statusFilter}
           onChange={(v) => setStatusFilter(v || null)}
@@ -215,8 +291,12 @@ export function OrdenesTrabajoScreen() {
         ListEmptyComponent={
           <EmptyState
             icon={<FileText size={28} color={colors.textMuted} />}
-            title="Sin órdenes"
-            description="No hay órdenes de trabajo con este filtro."
+            title={isEngineer ? "Sin tareas asignadas" : "Sin órdenes"}
+            description={
+              isEngineer
+                ? "No tienes órdenes de trabajo con este filtro."
+                : "No hay órdenes de trabajo con este filtro."
+            }
           />
         }
         renderItem={({ item }) => (
@@ -225,6 +305,14 @@ export function OrdenesTrabajoScreen() {
             subtitle={`${item.equipment_asset_tag ?? ""} ${item.equipment_name ?? ""}`.trim()}
             meta={`${new Date(item.start_date).toLocaleDateString()} · ${
               item.technician_name ?? "Sin asignar"
+            }${
+              item.status === "FINISHED"
+                ? ` · Fin ${
+                    item.end_date
+                      ? new Date(item.end_date).toLocaleString()
+                      : "—"
+                  }`
+                : ""
             }`}
             trailing={
               <Badge tone={statusTone(item.status)}>
@@ -313,12 +401,35 @@ export function OrdenesTrabajoScreen() {
         {detail && (
           <View className="gap-3">
             <Text className="text-sm text-app-text dark:text-app-dark-text">
-              {detail.equipment_asset_tag} · {detail.equipment_name}
+              Número: {detail.number}
+            </Text>
+            <Text className="text-sm text-app-text dark:text-app-dark-text">
+              Equipo: {detail.equipment_asset_tag} · {detail.equipment_name}
+            </Text>
+            <Text className="text-sm text-app-text dark:text-app-dark-text">
+              Tipo: {detail.service_type_display ?? detail.service_type}
+            </Text>
+            <Text className="text-sm text-app-text dark:text-app-dark-text">
+              Estado: {detail.status_display ?? detail.status}
+            </Text>
+            <Text className="text-sm text-app-text dark:text-app-dark-text">
+              Inicio: {new Date(detail.start_date).toLocaleString()}
+            </Text>
+            {(detail.status === "FINISHED" || detail.end_date) && (
+              <Text className="text-sm text-app-text dark:text-app-dark-text">
+                Fecha fin:{" "}
+                {detail.end_date
+                  ? new Date(detail.end_date).toLocaleString()
+                  : "—"}
+              </Text>
+            )}
+            <Text className="text-sm text-app-text dark:text-app-dark-text">
+              Asignado: {detail.technician_name ?? "Sin asignar"}
             </Text>
             <Text className="text-sm text-app-text-muted dark:text-app-dark-text-muted">
-              {detail.description}
+              Descripción: {detail.description}
             </Text>
-            {canEdit && (
+            {canEdit && detail.status !== "FINISHED" && (
               <Select
                 label="Estado"
                 value={detail.status}
@@ -326,6 +437,16 @@ export function OrdenesTrabajoScreen() {
                 onChange={(v) => changeStatus(v)}
               />
             )}
+            {isEngineer &&
+              (detail.status === "PENDING" ||
+                detail.status === "IN_PROGRESS") && (
+                <Button
+                  onPress={() => changeStatus("FINISHED")}
+                  loading={statusSaving}
+                >
+                  Realizar mantenimiento
+                </Button>
+              )}
             {statusSaving && (
               <Text className="text-xs text-app-text-muted dark:text-app-dark-text-muted">
                 Guardando...
@@ -355,6 +476,78 @@ export function OrdenesTrabajoScreen() {
                 </Text>
               </View>
             )}
+          </View>
+        )}
+      </Modal>
+
+      <Modal
+        visible={!!completing}
+        onClose={() => setCompleting(null)}
+        title={
+          completing
+            ? `Realizar mantenimiento — ${completing.number}`
+            : ""
+        }
+        footer={
+          <>
+            <Button variant="secondary" onPress={() => setCompleting(null)}>
+              Cancelar
+            </Button>
+            <Button onPress={() => void submitComplete()} loading={completeSaving}>
+              {completeStatus === "FINISHED"
+                ? "Enviar"
+                : "Realizar mantenimiento"}
+            </Button>
+          </>
+        }
+      >
+        {completing && (
+          <View className="gap-3">
+            <Text className="text-sm text-app-text dark:text-app-dark-text">
+              {completing.equipment_asset_tag} · {completing.equipment_name}
+            </Text>
+            <Text className="text-sm font-medium text-app-text dark:text-app-dark-text">
+              Reporte de falla
+            </Text>
+            <Select
+              label="Severidad"
+              value={completeFailSev}
+              options={SEVERITY_OPTS}
+              onChange={(v) => setCompleteFailSev(v)}
+            />
+            <Input
+              label="Descripción de la falla"
+              value={completeFailDesc}
+              editable={false}
+              multiline
+              numberOfLines={3}
+              className="h-24 py-2"
+            />
+            <Input
+              label="Nota de resolución *"
+              value={completeObs}
+              onChangeText={setCompleteObs}
+              multiline
+              numberOfLines={3}
+              className="h-24 py-2"
+            />
+            <Select
+              label="Estado del mantenimiento"
+              value={completeStatus}
+              options={
+                completing.status === "IN_PROGRESS" || !isEngineer
+                  ? [
+                      { label: "Pendiente", value: "PENDING" },
+                      { label: "En proceso", value: "IN_PROGRESS" },
+                      { label: "Finalizar", value: "FINISHED" },
+                    ]
+                  : [
+                      { label: "Pendiente", value: "PENDING" },
+                      { label: "En proceso", value: "IN_PROGRESS" },
+                    ]
+              }
+              onChange={(v) => setCompleteStatus(v)}
+            />
           </View>
         )}
       </Modal>

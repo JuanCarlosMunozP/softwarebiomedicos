@@ -7,6 +7,7 @@ import {
   Plus,
   Trash2,
   ListChecks,
+  Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -23,6 +24,7 @@ import { can } from "@/lib/permissions";
 import { getApiErrorMessage } from "@/lib/api";
 import type { Equipment } from "@/types/equipment";
 import type { Usuario } from "@/types/auth";
+import type { FailureSeverity } from "@/types/failure";
 import type {
   WorkOrder,
   WorkOrderDetail,
@@ -56,6 +58,67 @@ const STATUS_TONE: Record<
   CANCELLED: "danger",
 };
 
+const FAIL_SEV_LABEL: Record<FailureSeverity, string> = {
+  LOW: "Baja",
+  MEDIUM: "Media",
+  HIGH: "Alta",
+  CRITICAL: "Crítica",
+};
+
+function formatDateTime(iso?: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString();
+}
+
+function WorkOrderInfo({ w }: { w: WorkOrder }) {
+  return (
+    <div className="grid gap-2 rounded-lg border border-app bg-app-muted p-3 text-sm sm:grid-cols-2">
+      <p className="sm:col-span-2 text-xs font-medium uppercase tracking-wide text-app-muted">
+        Datos de la orden
+      </p>
+      <div>
+        <span className="text-app-muted">Número: </span>
+        {w.number}
+      </div>
+      <div>
+        <span className="text-app-muted">Equipo: </span>
+        {w.equipment_name ?? `Equipo #${w.equipment}`}{" "}
+        {w.equipment_asset_tag && (
+          <span className="font-mono text-xs">{w.equipment_asset_tag}</span>
+        )}
+      </div>
+      <div>
+        <span className="text-app-muted">Tipo: </span>
+        {w.service_type_display ?? TYPE_LABEL[w.service_type]}
+      </div>
+      <div>
+        <span className="text-app-muted">Estado: </span>
+        {w.status_display ?? STATUS_LABEL[w.status]}
+      </div>
+      <div>
+        <span className="text-app-muted">Inicio: </span>
+        {formatDateTime(w.start_date)}
+      </div>
+      {(w.status === "FINISHED" || w.end_date) && (
+        <div>
+          <span className="text-app-muted">Fecha fin: </span>
+          {formatDateTime(w.end_date)}
+        </div>
+      )}
+      <div>
+        <span className="text-app-muted">Asignado: </span>
+        {w.technician_name ?? "Sin asignar"}
+      </div>
+      <div className="sm:col-span-2">
+        <span className="text-app-muted">Descripción: </span>
+        {w.description || "—"}
+      </div>
+    </div>
+  );
+}
+
 const EVIDENCE_LABEL = {
   PHOTO: "Fotografía",
   VIDEO: "Video",
@@ -86,6 +149,7 @@ const emptyForm: WorkOrderInput = {
 export function OrdenesTrabajoPage() {
   const { usuario } = useAuth();
   const role = usuario?.role;
+  const isEngineer = role === "ingeniero";
   const canCreate = can(role, "work_orders", "create");
   const canEdit = can(role, "work_orders", "edit");
   const canDelete = can(role, "work_orders", "delete");
@@ -111,6 +175,17 @@ export function OrdenesTrabajoPage() {
 
   const [toDelete, setToDelete] = useState<WorkOrder | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // "Realizar mantenimiento": el responsable cierra su orden y queda el
+  // registro en la hoja de vida del equipo.
+  const [completing, setCompleting] = useState<WorkOrder | null>(null);
+  const [completeObs, setCompleteObs] = useState("");
+  const [completeFailDesc, setCompleteFailDesc] = useState("");
+  const [completeFailSev, setCompleteFailSev] =
+    useState<FailureSeverity>("MEDIUM");
+  const [completeSaving, setCompleteSaving] = useState(false);
+  const [completeStatus, setCompleteStatus] =
+    useState<WorkOrderStatus>("IN_PROGRESS");
 
   const [detail, setDetail] = useState<WorkOrderDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -247,11 +322,82 @@ export function OrdenesTrabajoPage() {
     }
   };
 
-  const openDetail = async (w: WorkOrder) => {
-    setDetailLoading(true);
-    setDetail({ ...(w as WorkOrderDetail) });
+  const openComplete = (w: WorkOrder) => {
+    setCompleteObs("");
+    setCompleteFailDesc(w.description ?? "");
+    setCompleteFailSev("MEDIUM");
+    setCompleteStatus(
+      w.status === "PENDING" ? "IN_PROGRESS" : w.status,
+    );
+    setCompleting(w);
+  };
+
+  const maintenanceStatusOptions = (current: WorkOrderStatus) => {
+    const opts: { value: WorkOrderStatus; label: string }[] = [
+      { value: "PENDING", label: "Pendiente" },
+      { value: "IN_PROGRESS", label: "En proceso" },
+    ];
+    if (current === "IN_PROGRESS" || !isEngineer) {
+      opts.push({ value: "FINISHED", label: "Finalizar" });
+    }
+    return opts;
+  };
+
+  const submitComplete = async () => {
+    if (!completing) return;
+    const notes = completeObs.trim();
+    if (!notes) {
+      alert("La nota de resolución es obligatoria.");
+      return;
+    }
+    if (
+      isEngineer &&
+      completing.status === "PENDING" &&
+      completeStatus === "FINISHED"
+    ) {
+      alert(
+        "Primero pasa la orden a En proceso. No se puede finalizar de una.",
+      );
+      return;
+    }
+    setCompleteSaving(true);
     try {
-      setDetail(await workOrdersService.details(w.id));
+      if (completeStatus === "FINISHED") {
+        await workOrdersService.complete(completing.id, {
+          observations: notes,
+          status: "FINISHED",
+          ...(isEngineer
+            ? {
+                failure_description: completeFailDesc.trim() || completing.description,
+                failure_severity: completeFailSev,
+                failure_resolution_notes: notes,
+              }
+            : {}),
+        });
+      } else {
+        await workOrdersService.complete(completing.id, {
+          observations: notes,
+          status: completeStatus,
+        });
+      }
+      setCompleting(null);
+      setCompleteObs("");
+      setCompleteFailDesc("");
+      setDetail(null);
+      await load();
+    } catch (err) {
+      alert(getApiErrorMessage(err, "No se pudo registrar el mantenimiento"));
+    } finally {
+      setCompleteSaving(false);
+    }
+  };
+
+  const openDetail = async (w: WorkOrder) => {
+    setDetail(null);
+    setDetailLoading(true);
+    try {
+      const full = await workOrdersService.details(w.id);
+      setDetail(full);
     } catch (err) {
       alert(getApiErrorMessage(err, "No se pudo cargar el detalle"));
       setDetail(null);
@@ -274,12 +420,13 @@ export function OrdenesTrabajoPage() {
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-app sm:text-3xl">
-            Órdenes de trabajo
+          <h1 className="text-2xl font-bold text-app">
+            {isEngineer ? "Tareas asignadas" : "Órdenes de trabajo"}
           </h1>
           <p className="text-sm text-app-muted">
-            Registro de intervenciones en equipos: repuestos, mediciones,
-            evidencias, firmas y costos.
+            {isEngineer
+              ? "Órdenes de trabajo que te asignaron. Realiza el mantenimiento para cerrarlas."
+              : "Registro de intervenciones en equipos: repuestos, mediciones, evidencias, firmas y costos."}
           </p>
         </div>
         {canCreate && (
@@ -339,6 +486,7 @@ export function OrdenesTrabajoPage() {
                 <th>Equipo</th>
                 <th>Tipo</th>
                 <th>Inicio</th>
+                <th>{isEngineer ? "Fecha fin" : "Fecha de realización"}</th>
                 <th>Técnico</th>
                 <th>Estado</th>
                 <th className="pr-0 text-right">Acciones</th>
@@ -347,13 +495,13 @@ export function OrdenesTrabajoPage() {
             <tbody className="divide-y divide-[var(--border)] [&>tr>td]:pr-6 [&>tr>td]:align-top">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-app-muted">
+                  <td colSpan={8} className="py-8 text-center text-app-muted">
                     Cargando...
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-app-muted">
+                  <td colSpan={8} className="py-8 text-center text-app-muted">
                     Sin órdenes de trabajo.
                   </td>
                 </tr>
@@ -367,14 +515,6 @@ export function OrdenesTrabajoPage() {
                         </span>
                         <div>
                           <span className="font-medium">{w.number}</span>
-                          {w.schedule_info && (
-                            <p className="text-xs text-app-muted">
-                              De solicitud
-                              {w.schedule_info.scheduled_date
-                                ? ` · programada ${w.schedule_info.scheduled_date}`
-                                : ""}
-                            </p>
-                          )}
                         </div>
                       </div>
                     </td>
@@ -394,6 +534,11 @@ export function OrdenesTrabajoPage() {
                     <td className="py-3 text-app-muted whitespace-nowrap">
                       {new Date(w.start_date).toLocaleDateString()}
                     </td>
+                    <td className="py-3 text-app-muted whitespace-nowrap">
+                      {w.status === "FINISHED" || w.end_date
+                        ? formatDateTime(w.end_date)
+                        : "—"}
+                    </td>
                     <td className="py-3 text-app-muted">
                       {w.technician_name ?? (
                         <span className="text-xs italic">Sin asignar</span>
@@ -405,15 +550,27 @@ export function OrdenesTrabajoPage() {
                       </Badge>
                     </td>
                     <td className="py-3">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        {canEdit &&
+                          (w.status === "PENDING" ||
+                            w.status === "IN_PROGRESS") && (
+                            <Button
+                              size="sm"
+                              leftIcon={<Wrench size={14} />}
+                              onClick={() => openComplete(w)}
+                            >
+                              Realizar mantenimiento
+                            </Button>
+                          )}
                         <Button
                           size="sm"
+                          variant="secondary"
                           leftIcon={<ListChecks size={14} />}
                           onClick={() => void openDetail(w)}
                         >
                           Detalle
                         </Button>
-                        {canEdit && (
+                        {canEdit && !isEngineer && (
                           <Button
                             size="sm"
                             variant="secondary"
@@ -602,9 +759,128 @@ export function OrdenesTrabajoPage() {
             key={detail.id}
             detail={detail}
             loading={detailLoading}
-            canEdit={canEdit}
+            canEdit={canEdit && detail.status !== "FINISHED"}
             onChanged={reloadDetail}
+            onRealizarMantenimiento={
+              canEdit &&
+              (detail.status === "PENDING" || detail.status === "IN_PROGRESS")
+                ? () => {
+                    const w = detail;
+                    setDetail(null);
+                    openComplete(w);
+                  }
+                : undefined
+            }
           />
+        )}
+      </Modal>
+
+      <Modal
+        open={!!completing}
+        onClose={() => setCompleting(null)}
+        title={
+          completing ? `Realizar mantenimiento — ${completing.number}` : ""
+        }
+        size="lg"
+      >
+        {completing && (
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={(ev) => {
+              ev.preventDefault();
+              void submitComplete();
+            }}
+          >
+            <WorkOrderInfo w={completing} />
+            {isEngineer && (
+              <div className="grid gap-3 rounded-lg border border-app p-3">
+                <p className="text-sm font-medium text-app">
+                  Reporte de falla
+                </p>
+                <Select
+                  label="Severidad"
+                  value={completeFailSev}
+                  onChange={(e) =>
+                    setCompleteFailSev(e.target.value as FailureSeverity)
+                  }
+                  options={Object.entries(FAIL_SEV_LABEL).map(
+                    ([value, label]) => ({ value, label }),
+                  )}
+                />
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-app">
+                    Descripción de la falla
+                  </label>
+                  <textarea
+                    value={completeFailDesc}
+                    readOnly
+                    disabled
+                    rows={3}
+                    className="w-full cursor-not-allowed rounded-lg border border-app bg-app-muted px-3 py-2.5 text-sm text-app-muted"
+                  />
+                </div>
+              </div>
+            )}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-app">
+                {isEngineer
+                  ? "Nota de resolución / trabajo realizado *"
+                  : "Observaciones / trabajo realizado *"}
+              </label>
+              <textarea
+                value={completeObs}
+                onChange={(e) => setCompleteObs(e.target.value)}
+                rows={4}
+                required
+                placeholder="Hallazgos, repuestos cambiados, recomendaciones…"
+                className="w-full rounded-lg border border-app bg-surface px-3 py-2.5 text-sm text-app outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+              />
+            </div>
+            <Select
+              label="Estado del mantenimiento"
+              value={completeStatus}
+              onChange={(e) =>
+                setCompleteStatus(e.target.value as WorkOrderStatus)
+              }
+              options={maintenanceStatusOptions(completing.status)}
+            />
+            <p className="text-xs text-app-muted">
+              {completeStatus === "FINISHED" ? (
+                <>
+                  Al finalizar, la orden queda como <strong>Terminada</strong> y
+                  el mantenimiento se registra en la hoja de vida del equipo
+                  {isEngineer
+                    ? ". El reporte de falla queda registrado y resuelto."
+                    : "."}
+                </>
+              ) : (
+                <>
+                  Con estado <strong>Pendiente</strong> o{" "}
+                  <strong>En proceso</strong> se mantiene el botón{" "}
+                  <strong>Realizar mantenimiento</strong>. El ingeniero no puede
+                  finalizar de una.
+                </>
+              )}
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => setCompleting(null)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                leftIcon={<Wrench size={16} />}
+                loading={completeSaving}
+              >
+                {completeStatus === "FINISHED"
+                  ? "Enviar"
+                  : "Realizar mantenimiento"}
+              </Button>
+            </div>
+          </form>
         )}
       </Modal>
     </div>
@@ -620,38 +896,34 @@ function WorkOrderDetailView({
   loading,
   canEdit,
   onChanged,
+  onRealizarMantenimiento,
 }: {
   detail: WorkOrderDetail;
   loading: boolean;
   canEdit: boolean;
   onChanged: () => Promise<void>;
+  /** Si se define, se muestra el botón para cerrar la orden desde el detalle. */
+  onRealizarMantenimiento?: () => void;
 }) {
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-2 rounded-lg border border-app bg-app-muted p-3 text-sm sm:grid-cols-2">
-        <div>
-          <span className="text-app-muted">Equipo: </span>
-          {detail.equipment_name} <span className="font-mono text-xs">
-            {detail.equipment_asset_tag}
-          </span>
+      <WorkOrderInfo w={detail} />
+
+      {onRealizarMantenimiento && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 p-3">
+          <p className="text-sm text-app-muted">
+            Cuando termines el trabajo, márcalo como realizado para dejarlo en la
+            hoja de vida del equipo.
+          </p>
+          <Button
+            size="sm"
+            leftIcon={<Wrench size={14} />}
+            onClick={onRealizarMantenimiento}
+          >
+            Realizar mantenimiento
+          </Button>
         </div>
-        <div>
-          <span className="text-app-muted">Tipo: </span>
-          {detail.service_type_display ?? detail.service_type}
-        </div>
-        <div>
-          <span className="text-app-muted">Estado: </span>
-          {detail.status_display ?? detail.status}
-        </div>
-        <div>
-          <span className="text-app-muted">Técnico: </span>
-          {detail.technician_name ?? "Sin asignar"}
-        </div>
-        <div className="sm:col-span-2">
-          <span className="text-app-muted">Descripción: </span>
-          {detail.description}
-        </div>
-      </div>
+      )}
 
       {loading && (
         <p className="text-sm text-app-muted">Cargando elementos...</p>
@@ -659,7 +931,7 @@ function WorkOrderDetailView({
 
       <ChildSection
         title="Repuestos"
-        rows={detail.spare_parts}
+        rows={detail.spare_parts ?? []}
         columns={["Nombre", "Ref.", "Cant.", "C. unit.", "Total"]}
         renderRow={(r) => [r.name, r.reference, r.quantity, r.unit_cost, r.total_cost]}
         canEdit={canEdit}
@@ -681,7 +953,7 @@ function WorkOrderDetailView({
 
       <ChildSection
         title="Mediciones"
-        rows={detail.measurements}
+        rows={detail.measurements ?? []}
         columns={["Parámetro", "Esperado", "Medido", "Unidad", "OK"]}
         renderRow={(r) => [
           r.parameter,
@@ -719,7 +991,7 @@ function WorkOrderDetailView({
 
       <ChildSection
         title="Evidencias"
-        rows={detail.evidences}
+        rows={detail.evidences ?? []}
         columns={["Tipo", "Descripción"]}
         renderRow={(r) => [
           EVIDENCE_LABEL[r.evidence_type] ?? r.evidence_type,
@@ -751,7 +1023,7 @@ function WorkOrderDetailView({
 
       <ChildSection
         title="Firmas"
-        rows={detail.signatures}
+        rows={detail.signatures ?? []}
         columns={["Rol", "Firmó", "Fecha"]}
         renderRow={(r) => [
           SIGNATURE_LABEL[r.role] ?? r.role,
@@ -795,6 +1067,16 @@ interface FieldDef {
   options?: { value: string; label: string }[];
 }
 
+function draftDefaults(fields: FieldDef[]): Record<string, string> {
+  const draft: Record<string, string> = {};
+  for (const f of fields) {
+    if (f.type === "select" && f.options?.[0]) {
+      draft[f.name] = f.options[0].value;
+    }
+  }
+  return draft;
+}
+
 function ChildSection<T extends { id: number }>({
   title,
   rows,
@@ -807,7 +1089,7 @@ function ChildSection<T extends { id: number }>({
   onChanged,
 }: {
   title: string;
-  rows: T[];
+  rows: T[] | undefined;
   columns: string[];
   renderRow: (r: T) => (string | number)[];
   canEdit: boolean;
@@ -816,6 +1098,7 @@ function ChildSection<T extends { id: number }>({
   onRemove: (id: number) => Promise<unknown>;
   onChanged: () => Promise<void>;
 }) {
+  const list = rows ?? [];
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -823,7 +1106,7 @@ function ChildSection<T extends { id: number }>({
   const submitAdd = async () => {
     setBusy(true);
     try {
-      await onAdd(draft);
+      await onAdd({ ...draftDefaults(fields), ...draft });
       setDraft({});
       setAdding(false);
       await onChanged();
@@ -851,21 +1134,24 @@ function ChildSection<T extends { id: number }>({
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-app">
           {title}{" "}
-          <span className="font-normal text-app-muted">({rows.length})</span>
+          <span className="font-normal text-app-muted">({list.length})</span>
         </h3>
         {canEdit && !adding && (
           <Button
             size="sm"
             variant="secondary"
             leftIcon={<Plus size={14} />}
-            onClick={() => setAdding(true)}
+            onClick={() => {
+              setDraft(draftDefaults(fields));
+              setAdding(true);
+            }}
           >
             Agregar
           </Button>
         )}
       </div>
 
-      {rows.length > 0 && (
+      {list.length > 0 && (
         <div className="overflow-x-auto rounded-lg border border-app">
           <table className="w-full text-sm">
             <thead>
@@ -877,7 +1163,7 @@ function ChildSection<T extends { id: number }>({
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
-              {rows.map((r) => (
+              {list.map((r) => (
                 <tr key={r.id} className="text-app [&>td]:px-3 [&>td]:py-2">
                   {renderRow(r).map((cell, i) => (
                     <td key={i}>{cell}</td>
@@ -958,29 +1244,45 @@ function CostSection({
   onChanged: () => Promise<void>;
 }) {
   const c = detail.cost;
-  const [form, setForm] = useState(() => ({
+  const sparePartsTotal = (detail.spare_parts ?? []).reduce(
+    (sum, part) => sum + Number(part.total_cost || 0),
+    0,
+  );
+  const [form, setForm] = useState({
     labor_cost: c?.labor_cost ?? "0",
-    spare_parts_cost: c?.spare_parts_cost ?? "0",
     transport_cost: c?.transport_cost ?? "0",
     other_cost: c?.other_cost ?? "0",
-  }));
+  });
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setForm({
+      labor_cost: c?.labor_cost ?? "0",
+      transport_cost: c?.transport_cost ?? "0",
+      other_cost: c?.other_cost ?? "0",
+    });
+  }, [c?.id, c?.labor_cost, c?.transport_cost, c?.other_cost]);
 
   const total =
     Number(form.labor_cost || 0) +
-    Number(form.spare_parts_cost || 0) +
+    sparePartsTotal +
     Number(form.transport_cost || 0) +
     Number(form.other_cost || 0);
 
   const save = async () => {
     setBusy(true);
     try {
+      const payload = {
+        labor_cost: form.labor_cost,
+        transport_cost: form.transport_cost,
+        other_cost: form.other_cost,
+      };
       if (c) {
-        await workOrdersService.cost.update(c.id, form);
+        await workOrdersService.cost.update(c.id, payload);
       } else {
         await workOrdersService.cost.create({
           work_order: detail.id,
-          ...form,
+          ...payload,
         });
       }
       await onChanged();
@@ -995,28 +1297,42 @@ function CostSection({
     <section className="flex flex-col gap-2">
       <h3 className="text-sm font-semibold text-app">Costos</h3>
       <div className="grid gap-2 rounded-lg border border-app bg-app-muted p-3 sm:grid-cols-4">
-        {(
-          [
-            ["labor_cost", "Mano de obra"],
-            ["spare_parts_cost", "Repuestos"],
-            ["transport_cost", "Transporte"],
-            ["other_cost", "Otros"],
-          ] as const
-        ).map(([key, label]) => (
-          <Input
-            key={key}
-            label={label}
-            type="number"
-            step="0.01"
-            value={form[key]}
-            onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-            disabled={!canEdit}
-          />
-        ))}
+        <Input
+          label="Mano de obra"
+          type="number"
+          step="0.01"
+          value={form.labor_cost}
+          onChange={(e) => setForm({ ...form, labor_cost: e.target.value })}
+          disabled={!canEdit}
+        />
+        <Input
+          label="Repuestos"
+          type="number"
+          step="0.01"
+          value={sparePartsTotal.toFixed(2)}
+          disabled
+          hint="Suma automática de las líneas de repuestos."
+        />
+        <Input
+          label="Transporte"
+          type="number"
+          step="0.01"
+          value={form.transport_cost}
+          onChange={(e) => setForm({ ...form, transport_cost: e.target.value })}
+          disabled={!canEdit}
+        />
+        <Input
+          label="Otros"
+          type="number"
+          step="0.01"
+          value={form.other_cost}
+          onChange={(e) => setForm({ ...form, other_cost: e.target.value })}
+          disabled={!canEdit}
+        />
         <div className="flex items-end text-sm sm:col-span-2">
           <span className="text-app-muted">Total:&nbsp;</span>
           <span className="font-semibold text-app">
-            ${total.toLocaleString()}
+            ${total.toLocaleString("es-CO", { minimumFractionDigits: 2 })}
           </span>
         </div>
         {canEdit && (

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, FlatList, RefreshControl, Text, View } from "react-native";
 import {
-  Bell,
   Check,
   ClipboardCheck,
   Pencil,
@@ -43,6 +42,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 interface FormState {
   equipment: number;
   kind: ScheduleKind;
+  requested_date: string;
   scheduled_date: string;
   notes: string;
   assigned_technician: number | null;
@@ -53,6 +53,7 @@ function emptyForm(): FormState {
   return {
     equipment: 0,
     kind: "PREVENTIVE",
+    requested_date: today(),
     scheduled_date: "",
     notes: "",
     assigned_technician: null,
@@ -67,6 +68,9 @@ export function AgendamientosScreen() {
   const canCreate = can(role, "scheduling", "create");
   const canEdit = can(role, "scheduling", "edit");
   const canDelete = can(role, "scheduling", "delete");
+  const showRequestingArea = role === "superadmin" || role === "ingeniero";
+  const isCoordinatorOrSuperadmin =
+    role === "coordinador" || role === "superadmin";
 
   const [items, setItems] = useState<ScheduledMaintenance[]>([]);
   const [equipos, setEquipos] = useState<Equipment[]>([]);
@@ -78,6 +82,7 @@ export function AgendamientosScreen() {
   const [editing, setEditing] = useState<ScheduledMaintenance | "new" | null>(
     null,
   );
+  const [viewing, setViewing] = useState<ScheduledMaintenance | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
@@ -132,7 +137,11 @@ export function AgendamientosScreen() {
     form.assigned_technician ?? form.assigned_engineer ?? null;
 
   const openCreate = () => {
-    setForm(emptyForm());
+    setForm({
+      ...emptyForm(),
+      equipment: equipos[0]?.id ?? 0,
+      requested_date: today(),
+    });
     setFormError(null);
     setEditing("new");
   };
@@ -141,6 +150,7 @@ export function AgendamientosScreen() {
     setForm({
       equipment: s.equipment,
       kind: s.kind,
+      requested_date: s.requested_date,
       scheduled_date: s.scheduled_date ?? "",
       notes: s.notes ?? "",
       assigned_technician: s.assigned_technician ?? null,
@@ -162,12 +172,11 @@ export function AgendamientosScreen() {
         await schedulingService.create({
           equipment: form.equipment,
           kind: form.kind,
+          requested_date: form.requested_date || today(),
           notes: form.notes,
         });
       } else if (editing) {
         await schedulingService.update(editing.id, {
-          equipment: form.equipment,
-          kind: form.kind,
           scheduled_date: form.scheduled_date || null,
           notes: form.notes,
           assigned_technician: form.assigned_technician,
@@ -187,15 +196,6 @@ export function AgendamientosScreen() {
     try {
       await schedulingService.complete(it.id);
       await load();
-    } catch (err) {
-      Alert.alert("Error", getApiErrorMessage(err));
-    }
-  };
-
-  const notify = async (it: ScheduledMaintenance) => {
-    try {
-      const r = await schedulingService.notify(it.id);
-      Alert.alert("Notificación enviada", r.detail ?? "Listo");
     } catch (err) {
       Alert.alert("Error", getApiErrorMessage(err));
     }
@@ -262,55 +262,59 @@ export function AgendamientosScreen() {
           const showEdit = !item.is_completed && canEdit;
           const showDelete = canDelete;
           const hasActions = showActive || showEdit || showDelete;
-          const solicitadaPor =
+          const solicitante =
             item.requested_by_detail?.full_name ||
             item.requested_by_detail?.username;
           const responsable =
             assignedUserName(item.assigned_technician_detail) ??
             assignedUserName(item.assigned_engineer_detail);
+          const woStatus = item.work_order?.status;
+          const estado =
+            item.is_completed || woStatus === "FINISHED"
+              ? "Cumplida"
+              : woStatus === "IN_PROGRESS"
+                ? "En proceso"
+                : "Pendiente";
           return (
             <ListItem
               title={`${item.equipment_asset_tag ?? ""} · ${item.equipment_name ?? ""}`.trim() ||
                 "Equipo"}
-              subtitle={item.notes ?? "Sin notas"}
+              subtitle={solicitante}
               meta={[
-                `Solicitada ${item.requested_date}`,
-                item.scheduled_date
-                  ? `Programada ${item.scheduled_date}`
-                  : "Por programar",
+                item.requested_date,
+                showRequestingArea && item.requesting_area
+                  ? `Área: ${item.requesting_area}`
+                  : null,
                 responsable ? `Resp.: ${responsable}` : null,
-                solicitadaPor ? `por ${solicitadaPor}` : null,
               ]
                 .filter(Boolean)
                 .join(" · ")}
+              onPress={() => setViewing(item)}
               trailing={
-                <Badge tone={item.is_completed ? "success" : "warning"}>
-                  {item.is_completed ? "Completada" : "Pendiente"}
-                </Badge>
+              <Badge
+                tone={
+                  item.is_completed
+                    ? "success"
+                    : woStatus === "IN_PROGRESS"
+                      ? "info"
+                      : "warning"
+                }
+              >
+                {estado}
+              </Badge>
               }
               actions={
                 hasActions ? (
                   <>
                     {showActive && (
-                      <>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onPress={() => notify(item)}
-                          leftIcon={<Bell size={14} color={colors.text} />}
-                          className="flex-1"
-                        >
-                          Notificar
-                        </Button>
-                        <Button
-                          size="sm"
-                          onPress={() => complete(item)}
-                          leftIcon={<Check size={14} color="#fff" />}
-                          className="flex-1"
-                        >
-                          Completar
-                        </Button>
-                      </>
+                      <Button
+                        size="sm"
+                        onPress={() => complete(item)}
+                        leftIcon={<Check size={14} color="#fff" />}
+                        className="flex-1"
+                      >
+                        Completar
+                      </Button>
                     )}
                     {showEdit && (
                       <Button
@@ -343,6 +347,74 @@ export function AgendamientosScreen() {
       />
 
       <Modal
+        visible={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Detalle de la solicitud"
+        footer={
+          <Button variant="secondary" onPress={() => setViewing(null)}>
+            Cerrar
+          </Button>
+        }
+      >
+        {viewing && (
+          <View className="gap-3">
+            <View>
+              <Text className="text-xs font-medium uppercase text-app-text-muted dark:text-app-dark-text-muted">
+                Equipo
+              </Text>
+              <Text className="mt-0.5 text-sm text-app-text dark:text-app-dark-text">
+                {`${viewing.equipment_name ?? "Equipo"}${
+                  viewing.equipment_asset_tag
+                    ? ` (${viewing.equipment_asset_tag})`
+                    : ""
+                }`}
+              </Text>
+            </View>
+            <View>
+              <Text className="text-xs font-medium uppercase text-app-text-muted dark:text-app-dark-text-muted">
+                Solicitante
+              </Text>
+              <Text className="mt-0.5 text-sm text-app-text dark:text-app-dark-text">
+                {viewing.requested_by_detail?.full_name ||
+                  viewing.requested_by_detail?.username ||
+                  "—"}
+              </Text>
+            </View>
+            {showRequestingArea && (
+              <View>
+                <Text className="text-xs font-medium uppercase text-app-text-muted dark:text-app-dark-text-muted">
+                  Área solicitante
+                </Text>
+                <Text className="mt-0.5 text-sm text-app-text dark:text-app-dark-text">
+                  {viewing.requesting_area ?? "—"}
+                </Text>
+              </View>
+            )}
+            <View>
+              <Text className="text-xs font-medium uppercase text-app-text-muted dark:text-app-dark-text-muted">
+                Descripción
+              </Text>
+              <Text className="mt-0.5 text-sm text-app-text dark:text-app-dark-text">
+                {viewing.notes?.trim() ? viewing.notes : "Sin descripción"}
+              </Text>
+            </View>
+            {viewing.work_order?.status === "FINISHED" && (
+              <View>
+                <Text className="text-xs font-medium uppercase text-app-text-muted dark:text-app-dark-text-muted">
+                  Fecha fin
+                </Text>
+                <Text className="mt-0.5 text-sm text-app-text dark:text-app-dark-text">
+                  {viewing.work_order.end_date
+                    ? new Date(viewing.work_order.end_date).toLocaleString()
+                    : "—"}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+      </Modal>
+
+      <Modal
         visible={!!editing}
         onClose={() => setEditing(null)}
         title={editing === "new" ? "Nueva solicitud" : "Programar solicitud"}
@@ -361,26 +433,73 @@ export function AgendamientosScreen() {
           {formError && (
             <Text className="text-sm text-red-600">{formError}</Text>
           )}
-          <Select
-            label="Equipo *"
-            value={form.equipment || null}
-            options={eqOpts}
-            onChange={(v) => setForm({ ...form, equipment: v })}
-          />
-          <Select
-            label="Tipo *"
-            value={form.kind}
-            options={KIND_OPTS}
-            onChange={(v) => setForm({ ...form, kind: v })}
-          />
           {editing === "new" ? (
-            <Input
-              label="Fecha de solicitud"
-              value={today()}
-              editable={false}
-            />
+            <>
+              {isCoordinatorOrSuperadmin ? (
+                <>
+                  <Input
+                    label="Equipo"
+                    value={
+                      eqOpts.find((o) => o.value === form.equipment)?.label ??
+                      ""
+                    }
+                    editable={false}
+                  />
+                  <Input
+                    label="Tipo"
+                    value={
+                      KIND_OPTS.find((o) => o.value === form.kind)?.label ??
+                      form.kind
+                    }
+                    editable={false}
+                  />
+                </>
+              ) : (
+                <>
+                  <Select
+                    label="Equipo *"
+                    value={form.equipment || null}
+                    options={eqOpts}
+                    onChange={(v) => setForm({ ...form, equipment: v })}
+                  />
+                  <Select
+                    label="Tipo *"
+                    value={form.kind}
+                    options={KIND_OPTS}
+                    onChange={(v) => setForm({ ...form, kind: v })}
+                  />
+                </>
+              )}
+              <Input
+                label="Fecha de solicitud"
+                value={form.requested_date}
+                onChangeText={(v) => setForm({ ...form, requested_date: v })}
+              />
+            </>
           ) : (
             <>
+              <Input
+                label="Equipo"
+                value={
+                  editing && editing !== "new"
+                    ? editing.equipment_name
+                      ? `${editing.equipment_name}${
+                          editing.equipment_asset_tag
+                            ? ` (${editing.equipment_asset_tag})`
+                            : ""
+                        }`
+                      : `Equipo #${editing.equipment}`
+                    : ""
+                }
+                editable={false}
+              />
+              <Input
+                label="Tipo"
+                value={
+                  KIND_OPTS.find((o) => o.value === form.kind)?.label ?? form.kind
+                }
+                editable={false}
+              />
               <Input
                 label="Fecha programada (YYYY-MM-DD)"
                 value={form.scheduled_date}

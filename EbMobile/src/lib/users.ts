@@ -1,4 +1,24 @@
 import type { AssignedUser, Usuario } from "@/types/auth";
+import { ROLE_LABEL } from "@/lib/permissions";
+
+function compact(value: string): string {
+  return value.replace(/\s+/g, "").toLowerCase();
+}
+
+/** Nombre para UI. Si nombre+apellido son el rol partido, se muestra entero. */
+export function fullNameOf(u: Usuario): string {
+  const first = u.first_name?.trim() ?? "";
+  const last = u.last_name?.trim() ?? "";
+  const joined = [first, last].filter(Boolean).join(" ");
+  const glued = compact(`${first}${last}`);
+  const roleLabel = ROLE_LABEL[u.role];
+  if (glued && roleLabel) {
+    if (glued === compact(roleLabel) || glued === compact(u.role)) {
+      return roleLabel;
+    }
+  }
+  return joined || u.username;
+}
 
 /** Nombre mostrable de un usuario asignado anidado (`*_detail`) del backend. */
 export function assignedUserName(u?: AssignedUser | null): string | null {
@@ -27,8 +47,8 @@ export function assignableUserOptions(users: Usuario[]) {
   return users
     .filter((u) => u.is_active && (u.role === "tecnico" || u.role === "ingeniero"))
     .map((u) => ({
-      label: `${`${u.first_name} ${u.last_name}`.trim() || u.username} · ${
-        u.role === "ingeniero" ? "Ingeniero" : "Técnico"
+      label: `${fullNameOf(u)} · ${
+        u.role === "ingeniero" ? "Ingeniero" : "Usuario operativo"
       }`,
       value: u.id,
     }));

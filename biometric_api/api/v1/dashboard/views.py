@@ -16,7 +16,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.equipment.models import Equipment, EquipmentStatus
+from apps.equipment.models import (
+    Equipment,
+    EquipmentStatus,
+    EquipmentWorkOrder,
+    WorkOrderStatus,
+)
 from apps.failures.models import FailureRecord, FailureSeverity
 from apps.maintenance.models import MaintenanceKind, MaintenanceRecord
 from apps.scheduling.models import MaintenanceSchedule
@@ -24,12 +29,9 @@ from apps.users.models import User
 
 
 def _assignment_scope(user) -> Q | None:
-    """Para el rol técnico, restringe las métricas de trabajo (solicitudes y
-    mantenimientos) a lo que tiene asignado. Para el resto de roles devuelve
-    None: ven los agregados de toda la clínica (equipos, fallas, MTBF son
-    salud general de la institución, sin responsable)."""
+    """Para el operativo (técnico), restringe métricas a lo asignado a él."""
     if getattr(user, "role", None) == User.Role.TECNICO:
-        return Q(assigned_technician=user)
+        return Q(assigned_technician=user) | Q(assigned_engineer=user)
     return None
 
 _MAINTENANCE_KINDS = [
@@ -236,6 +238,225 @@ def _my_schedules(user, today: date) -> list[dict]:
     ]
 
 
+def _weekly_reports(user, today: date) -> dict:
+    """Mantenimientos del operativo en la semana calendario, agrupados por área."""
+    week_start = today - timedelta(days=today.weekday())
+    qs = (
+        MaintenanceRecord.objects.filter(
+            date__gte=week_start,
+            date__lte=today,
+        )
+        .filter(Q(assigned_technician=user) | Q(assigned_engineer=user))
+        .select_related("equipment")
+        .order_by("-date")
+    )
+    by_area: dict[str, int] = {}
+    records = []
+    for rec in qs:
+        area = (getattr(rec.equipment, "area", None) or "").strip() or "Sin área"
+        by_area[area] = by_area.get(area, 0) + 1
+        records.append(
+            {
+                "id": rec.id,
+                "date": rec.date.isoformat(),
+                "kind": rec.kind,
+                "equipment_name": rec.equipment.name,
+                "equipment_asset_tag": rec.equipment.asset_tag,
+                "area": area,
+            }
+        )
+    return {
+        "week_start": week_start.isoformat(),
+        "week_end": today.isoformat(),
+        "by_area": [{"area": k, "count": v} for k, v in sorted(by_area.items())],
+        "records": records,
+    }
+
+
+def _opportunity_hours(rec: FailureRecord) -> float | None:
+    if not rec.resolved or not rec.resolved_at or not rec.reported_at:
+        return None
+    seconds = (rec.resolved_at - rec.reported_at).total_seconds()
+    if seconds < 0:
+        return None
+    return round(seconds / 3600, 1)
+
+
+def _area_ops_dashboard(user, today: date) -> dict | None:
+    """Dashboard personal: fallas del operativo o solicitudes del usuario."""
+    from api.v1.common.area_scope import operativo_area
+
+    role = getattr(user, "role", None)
+    if role == User.Role.USUARIO:
+        return _usuario_requests_dashboard(user, today)
+    if role != User.Role.TECNICO:
+        return None
+    area = operativo_area(user) or ""
+    qs = FailureRecord.objects.select_related("equipment").filter(reported_by=user)
+    if area:
+        qs = qs.filter(equipment__area__iexact=area)
+    else:
+        qs = qs.none()
+    week_start = today - timedelta(days=today.weekday())
+    week_qs = qs.filter(reported_at__date__gte=week_start, reported_at__date__lte=today)
+    by_status = [
+        {"status": "open", "count": qs.filter(resolved=False).count()},
+        {"status": "resolved", "count": qs.filter(resolved=True).count()},
+    ]
+    this_week_by_day = []
+    cursor = week_start
+    while cursor <= today:
+        this_week_by_day.append(
+            {
+                "date": cursor.isoformat(),
+                "count": week_qs.filter(reported_at__date=cursor).count(),
+            }
+        )
+        cursor += timedelta(days=1)
+    recent = [
+        {
+            "id": rec.id,
+            "equipment_name": rec.equipment.name,
+            "equipment_asset_tag": rec.equipment.asset_tag,
+            "area": (rec.equipment.area or "").strip() or "Sin área",
+            "severity": rec.severity,
+            "resolved": rec.resolved,
+            "reported_at": rec.reported_at.isoformat(),
+            "resolution_notes": rec.resolution_notes or "",
+            "opportunity_hours": _opportunity_hours(rec),
+        }
+        for rec in qs.order_by("-reported_at")[:25]
+    ]
+    return {
+        "source": "failures",
+        "area": area,
+        "kpis": {
+            "total": qs.count(),
+            "open": qs.filter(resolved=False).count(),
+            "resolved": qs.filter(resolved=True).count(),
+            "this_week": week_qs.count(),
+            "this_week_open": week_qs.filter(resolved=False).count(),
+            "this_week_resolved": week_qs.filter(resolved=True).count(),
+        },
+        "by_status": by_status,
+        "this_week_by_day": this_week_by_day,
+        "recent": recent,
+    }
+
+
+_OPEN_WO = (WorkOrderStatus.PENDING, WorkOrderStatus.IN_PROGRESS)
+
+
+def _engineer_tasks_dashboard(user) -> dict | None:
+    """KPIs y cola de órdenes de trabajo asignadas al ingeniero biomédico."""
+    if getattr(user, "role", None) != User.Role.INGENIERO:
+        return None
+    qs = EquipmentWorkOrder.objects.filter(technician=user).select_related(
+        "equipment"
+    )
+    pending_qs = qs.filter(status__in=_OPEN_WO)
+    pending_only = qs.filter(status=WorkOrderStatus.PENDING)
+    in_progress_qs = qs.filter(status=WorkOrderStatus.IN_PROGRESS)
+    recent = [
+        {
+            "id": wo.id,
+            "number": wo.number,
+            "equipment_name": wo.equipment.name,
+            "equipment_asset_tag": wo.equipment.asset_tag,
+            "service_type": wo.service_type,
+            "status": wo.status,
+            "start_date": wo.start_date.isoformat(),
+            "description": wo.description,
+        }
+        for wo in pending_qs.order_by("start_date", "id")[:25]
+    ]
+    return {
+        "kpis": {
+            "assigned": qs.exclude(status=WorkOrderStatus.CANCELLED).count(),
+            "pending": pending_only.count(),
+            "in_progress": in_progress_qs.count(),
+            "resolved": qs.filter(status=WorkOrderStatus.FINISHED).count(),
+        },
+        "recent": recent,
+    }
+
+
+def _usuario_requests_dashboard(user, today: date) -> dict:
+    """Solicitudes que el usuario creó, para monitorear en el dashboard."""
+    qs = MaintenanceSchedule.objects.select_related("equipment").filter(
+        requested_by=user
+    )
+    week_start = today - timedelta(days=today.weekday())
+    week_qs = qs.filter(
+        requested_date__gte=week_start, requested_date__lte=today
+    )
+    by_status = [
+        {"status": "open", "count": qs.filter(is_completed=False).count()},
+        {"status": "resolved", "count": qs.filter(is_completed=True).count()},
+    ]
+    recent = [
+        {
+            "id": rec.id,
+            "equipment_name": rec.equipment.name,
+            "equipment_asset_tag": rec.equipment.asset_tag,
+            "area": (getattr(rec.equipment, "area", None) or "").strip()
+            or "Sin área",
+            "severity": "MEDIUM",
+            "resolved": rec.is_completed,
+            "reported_at": rec.requested_date.isoformat(),
+            "resolution_notes": rec.notes or "",
+            "opportunity_hours": None,
+        }
+        for rec in qs.order_by("-requested_date", "-id")[:200]
+    ]
+    series = [
+        {"date": d.isoformat(), "resolved": done}
+        for d, done in qs.values_list("requested_date", "is_completed")
+    ]
+    return {
+        "source": "schedules",
+        "area": "",
+        "kpis": {
+            "total": qs.count(),
+            "open": qs.filter(is_completed=False).count(),
+            "resolved": qs.filter(is_completed=True).count(),
+            "this_week": week_qs.count(),
+            "this_week_open": week_qs.filter(is_completed=False).count(),
+            "this_week_resolved": week_qs.filter(is_completed=True).count(),
+        },
+        "by_status": by_status,
+        "this_week_by_day": [],
+        "series": series,
+        "recent": recent,
+    }
+
+
+def _schedule_series(today: date) -> list[dict]:
+    """Puntos de solicitudes para el dashboard del coordinador."""
+    window_start = today - timedelta(days=730)
+    return [
+        {
+            "date": d.isoformat(),
+            "kind": kind,
+            "resolved": done,
+        }
+        for d, kind, done in MaintenanceSchedule.objects.filter(
+            requested_date__gte=window_start
+        ).values_list("requested_date", "kind", "is_completed")
+    ]
+
+
+def _maintenance_cost_series(today: date) -> list[dict]:
+    """Costos de mantenimiento para el gráfico del coordinador."""
+    window_start = today - timedelta(days=730)
+    return [
+        {"date": d.isoformat(), "cost": str(c or 0)}
+        for d, c in MaintenanceRecord.objects.filter(
+            date__gte=window_start
+        ).values_list("date", "cost")
+    ]
+
+
 class DashboardSummaryView(APIView):
     """Snapshot agregado para el dashboard. Sin cache en v1."""
 
@@ -258,6 +479,16 @@ class DashboardSummaryView(APIView):
             },
             "time_series": {
                 "maintenance_by_month": _maintenance_time_series(today, scope),
+                "schedules": (
+                    _schedule_series(today)
+                    if getattr(request.user, "role", None) == User.Role.COORDINADOR
+                    else []
+                ),
+                "maintenance_costs": (
+                    _maintenance_cost_series(today)
+                    if getattr(request.user, "role", None) == User.Role.COORDINADOR
+                    else []
+                ),
             },
             "lists": {
                 "overdue_schedules": _overdue_schedules(today, scope),
@@ -269,6 +500,13 @@ class DashboardSummaryView(APIView):
                 # para futuro sin obligar al frontend a defenderse contra ausencia.
                 "failures": [],
             },
+            "my_week": (
+                _weekly_reports(request.user, today)
+                if getattr(request.user, "role", None) == User.Role.TECNICO
+                else None
+            ),
+            "area_ops": _area_ops_dashboard(request.user, today),
+            "engineer_tasks": _engineer_tasks_dashboard(request.user),
         }
         return Response(payload)
 

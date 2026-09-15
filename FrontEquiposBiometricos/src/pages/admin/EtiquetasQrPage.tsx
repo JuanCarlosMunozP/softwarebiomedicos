@@ -16,6 +16,7 @@ import { can } from "@/lib/permissions";
 import { equipmentService } from "@/services/equipment.service";
 import { branchesService } from "@/services/branches.service";
 import { getApiErrorMessage } from "@/lib/api";
+import { resolveMediaUrl } from "@/lib/media";
 import type { Equipment } from "@/types/equipment";
 import type { Branch } from "@/types/branch";
 
@@ -53,8 +54,9 @@ function buildPrintHtml(items: Equipment[], columns: number): string {
       const modelo = [eq.brand_name, eq.equipment_model_name]
         .filter(Boolean)
         .join(" ");
-      const qr = eq.qr_code_url
-        ? `<img src="${escapeHtml(eq.qr_code_url)}" alt="QR ${escapeHtml(eq.asset_tag)}" />`
+      const qrUrl = resolveMediaUrl(eq.qr_code_url);
+      const qr = qrUrl
+        ? `<img src="${escapeHtml(qrUrl)}" alt="QR ${escapeHtml(eq.asset_tag)}" />`
         : `<div class="noqr">Sin QR</div>`;
       return `
         <div class="label">
@@ -74,9 +76,12 @@ function buildPrintHtml(items: Equipment[], columns: number): string {
 <head>
 <meta charset="utf-8" />
 <title>Etiquetas QR de equipos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet" />
 <style>
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { margin: 0; font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   .sheet {
     display: grid;
     grid-template-columns: repeat(${columns}, 1fr);
@@ -102,7 +107,7 @@ function buildPrintHtml(items: Equipment[], columns: number): string {
   }
   .meta { min-width: 0; }
   .name { margin: 0; font-size: ${columns >= 4 ? 10 : 12}px; font-weight: 700; line-height: 1.2; }
-  .tag { margin: 2px 0 0; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: ${columns >= 4 ? 12 : 15}px; font-weight: 700; }
+  .tag { margin: 2px 0 0; font-size: ${columns >= 4 ? 12 : 15}px; font-weight: 700; }
   .sub { margin: 1px 0 0; font-size: ${columns >= 4 ? 8 : 9}px; color: #444; line-height: 1.2; }
   @page { margin: 8mm; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
@@ -274,7 +279,7 @@ export function EtiquetasQrPage() {
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-app sm:text-3xl">Etiquetas QR</h1>
+          <h1 className="text-2xl font-bold text-app">Etiquetas QR</h1>
           <p className="text-sm text-app-muted">
             Genera e imprime los códigos QR de los equipos. Al escanearlos se
             abre la hoja de vida del equipo (previo inicio de sesión).
@@ -377,17 +382,20 @@ export function EtiquetasQrPage() {
                   onChange={() => toggle(eq.id)}
                 />
                 <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg border border-app bg-white p-1">
-                  {eq.qr_code_url ? (
+                  {(() => {
+                    const qrSrc = resolveMediaUrl(eq.qr_code_url);
+                    return qrSrc ? (
                     <img
-                      src={eq.qr_code_url}
+                      src={qrSrc}
                       alt={`QR ${eq.asset_tag}`}
                       className="h-full w-full object-contain"
                     />
-                  ) : (
+                    ) : (
                     <span className="text-center text-[10px] text-app-muted">
                       Sin QR
                     </span>
-                  )}
+                    );
+                  })()}
                 </div>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-app">

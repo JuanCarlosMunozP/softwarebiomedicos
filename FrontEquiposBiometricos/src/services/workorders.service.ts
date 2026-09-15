@@ -9,6 +9,7 @@ import type {
   WorkOrderMeasurement,
   WorkOrderSignature,
   WorkOrderSparePart,
+  WorkOrderStatus,
 } from "@/types/workorder";
 
 function unwrap<T>(data: Paginated<T> | T[]): T[] {
@@ -69,6 +70,22 @@ export const workOrdersService = {
   },
   async remove(id: number) {
     await api.delete(`/equipment/work-orders/${id}/`);
+  },
+  async complete(
+    id: number,
+    body: {
+      observations?: string;
+      status?: WorkOrderStatus;
+      failure_description?: string;
+      failure_severity?: string;
+      failure_resolution_notes?: string;
+    } = {},
+  ) {
+    const res = await api.post<WorkOrder>(
+      `/equipment/work-orders/${id}/complete/`,
+      body,
+    );
+    return res.data;
   },
 
   // --- elementos de una orden ---

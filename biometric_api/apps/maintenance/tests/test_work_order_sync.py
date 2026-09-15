@@ -28,6 +28,7 @@ def test_assigned_record_creates_work_order(equipment, ingeniero):
     assert wo.technician_id == ingeniero.id
     assert wo.status == "PENDING"
     assert wo.service_type == "INSPECTION"
+    assert wo.cancel_reason == ""
 
 
 def test_reassigning_record_moves_the_work_order(equipment, ingeniero, tecnico):

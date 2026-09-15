@@ -66,7 +66,7 @@ function genId(): string {
 }
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const { usuario } = useAuth();
+  const { usuario, loading } = useAuth();
   const [toasts, setToasts] = useState<ToastData[]>([]);
 
   const dismiss = useCallback((id: string) => {
@@ -81,9 +81,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Ciclo de vida del socket atado al usuario autenticado.
+  // Ciclo de vida del socket atado a una sesión ya hidratada. No abrir
+  // durante `loading`: el perfil en localStorage no implica cookie JWT.
   useEffect(() => {
-    if (!usuario) {
+    if (loading || !usuario) {
       notificationsSocket.disconnect();
       return;
     }
@@ -94,7 +95,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     return () => {
       unsubscribe();
     };
-  }, [usuario, notify]);
+  }, [usuario, loading, notify]);
 
   // Al desmontar el provider (logout, navegación a /), cerramos el canal.
   useEffect(() => {

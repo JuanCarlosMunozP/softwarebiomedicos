@@ -22,6 +22,9 @@ import type {
   FailureSeverity,
 } from "@/types/failure";
 import type { Equipment } from "@/types/equipment";
+import { useNavigation } from "@react-navigation/native";
+import type { DrawerNavigationProp } from "@react-navigation/drawer";
+import type { AppDrawerParamList } from "@/navigation/types";
 
 const SEVERITY_OPTS: SelectOption<FailureSeverity>[] = [
   { label: "Baja", value: "LOW" },
@@ -33,6 +36,7 @@ const SEVERITY_OPTS: SelectOption<FailureSeverity>[] = [
 export function FallasScreen() {
   const { usuario } = useAuth();
   const { colors } = useTheme();
+  const navigation = useNavigation<DrawerNavigationProp<AppDrawerParamList>>();
   const role = usuario?.role;
   const canCreate = can(role, "failures", "create");
   const canEdit = can(role, "failures", "edit");
@@ -130,6 +134,10 @@ export function FallasScreen() {
       await failuresService.resolve(resolving.id, resolutionNotes || undefined);
       setResolving(null);
       setResolutionNotes("");
+      if (role === "ingeniero") {
+        navigation.navigate("Dashboard");
+        return;
+      }
       await load();
     } catch (err) {
       Alert.alert("Error", getApiErrorMessage(err));

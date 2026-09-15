@@ -209,7 +209,7 @@ export function TechnicianSelect({
                       @{u.username} · {u.email}
                     </span>
                   </span>
-                  <span className="rounded-full border border-app bg-app-muted px-2 py-0.5 text-[10px] uppercase tracking-wider text-app-muted">
+                  <span className="rounded-full border border-app bg-app-muted px-2 py-0.5 text-xs uppercase tracking-wider text-app-muted">
                     {ROLE_LABEL[u.role]}
                   </span>
                 </button>

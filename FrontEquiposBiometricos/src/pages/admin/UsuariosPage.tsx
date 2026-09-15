@@ -17,12 +17,12 @@ import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useAuth } from "@/context/AuthContext";
 import { usersService } from "@/services/users.service";
-import { ROLE_LABEL, can, canAssignRole } from "@/lib/permissions";
+import { ROLE_LABEL, ASSIGNABLE_ROLES, can, canAssignRole } from "@/lib/permissions";
 import { getApiErrorMessage } from "@/lib/api";
+import { fullNameOf } from "@/lib/users";
 import type { Rol, Usuario } from "@/types/auth";
 import type { CreateUserInput } from "@/types/user";
 
-const ALL_ROLES: Rol[] = ["superadmin", "admin", "coordinador", "ingeniero", "tecnico"];
 const PAGE_SIZE = 20;
 
 interface FormState {
@@ -32,6 +32,7 @@ interface FormState {
   last_name: string;
   role: Rol;
   phone: string;
+  area: string;
   password: string;
   is_active: boolean;
 }
@@ -43,6 +44,7 @@ const empty: FormState = {
   last_name: "",
   role: "tecnico",
   phone: "",
+  area: "",
   password: "",
   is_active: true,
 };
@@ -111,7 +113,7 @@ export function UsuariosPage() {
   const canDelete = can(role, "users", "delete");
 
   const assignableRoles = useMemo<Rol[]>(
-    () => ALL_ROLES.filter((r) => canAssignRole(role, r)),
+    () => ASSIGNABLE_ROLES.filter((r) => canAssignRole(role, r)),
     [role],
   );
 
@@ -169,6 +171,7 @@ export function UsuariosPage() {
       last_name: u.last_name,
       role: u.role,
       phone: u.phone ?? "",
+      area: u.area ?? "",
       password: "",
       is_active: u.is_active,
     });
@@ -197,6 +200,7 @@ export function UsuariosPage() {
           last_name: form.last_name,
           role: form.role,
           phone: form.phone || undefined,
+          area: form.role === "tecnico" ? form.area.trim() : "",
           is_active: form.is_active,
         });
       } else {
@@ -207,6 +211,7 @@ export function UsuariosPage() {
           last_name: form.last_name,
           role: form.role,
           phone: form.phone || undefined,
+          area: form.role === "tecnico" ? form.area.trim() : "",
           password: form.password,
         };
         await usersService.create(payload);
@@ -260,7 +265,7 @@ export function UsuariosPage() {
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-app sm:text-3xl">Usuarios</h1>
+          <h1 className="text-2xl font-bold text-app">Usuarios</h1>
           <p className="text-sm text-app-muted">
             Administra los usuarios del sistema y sus roles.
           </p>
@@ -283,7 +288,7 @@ export function UsuariosPage() {
             placeholder="Todos los roles"
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            options={ALL_ROLES.map((r) => ({ value: r, label: ROLE_LABEL[r] }))}
+            options={ASSIGNABLE_ROLES.map((r) => ({ value: r, label: ROLE_LABEL[r] }))}
           />
         </div>
 
@@ -335,8 +340,7 @@ export function UsuariosPage() {
                           </span>
                           <div>
                             <p className="font-medium">
-                              {[u.first_name, u.last_name].filter(Boolean).join(" ") ||
-                                u.username}
+                              {fullNameOf(u)}
                             </p>
                             <p className="text-xs text-app-muted">
                               @{u.username} · {u.email}
@@ -513,6 +517,15 @@ export function UsuariosPage() {
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
           />
+          {form.role === "tecnico" && (
+            <Input
+              label="Área"
+              value={form.area}
+              onChange={(e) => setForm({ ...form, area: e.target.value })}
+              required
+              hint="Ej. Radiología. El usuario operativo solo ve equipos de esta área y los reportes que él genera."
+            />
+          )}
           {!editing && (
             <Input
               label="Contraseña inicial"

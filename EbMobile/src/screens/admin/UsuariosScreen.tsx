@@ -12,7 +12,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { ROLE_LABEL, can, canAssignRole } from "@/lib/permissions";
+import { ROLE_LABEL, ASSIGNABLE_ROLES, can, canAssignRole } from "@/lib/permissions";
 import { getApiErrorMessage } from "@/lib/api";
 import { usersService } from "@/services/users.service";
 import type { Usuario, Rol } from "@/types/auth";
@@ -54,11 +54,9 @@ export function UsuariosScreen() {
     setRefreshing(false);
   };
 
-  const ROLE_OPTS: SelectOption<Rol>[] = (
-    ["superadmin", "admin", "coordinador", "ingeniero", "tecnico"] as Rol[]
-  )
-    .filter((r) => canAssignRole(myRole, r))
-    .map((r) => ({ label: ROLE_LABEL[r], value: r }));
+  const ROLE_OPTS: SelectOption<Rol>[] = ASSIGNABLE_ROLES.filter((r) =>
+    canAssignRole(myRole, r),
+  ).map((r) => ({ label: ROLE_LABEL[r], value: r }));
 
   const openNew = () => {
     setForm(emptyForm());

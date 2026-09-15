@@ -1,8 +1,26 @@
 import type { AssignedUser, Usuario } from "@/types/auth";
+import { ROLE_LABEL } from "@/lib/permissions";
 
+function compact(value: string): string {
+  return value.replace(/\s+/g, "").toLowerCase();
+}
+
+/**
+ * Nombre para UI. Si nombre+apellido son el rol partido
+ * ("Coordi"+"Nador" → Coordinador), se muestra la etiqueta del rol entera.
+ */
 export function fullNameOf(u: Usuario): string {
-  const n = `${u.first_name} ${u.last_name}`.trim();
-  return n || u.username;
+  const first = u.first_name?.trim() ?? "";
+  const last = u.last_name?.trim() ?? "";
+  const joined = [first, last].filter(Boolean).join(" ");
+  const glued = compact(`${first}${last}`);
+  const roleLabel = ROLE_LABEL[u.role];
+  if (glued && roleLabel) {
+    if (glued === compact(roleLabel) || glued === compact(u.role)) {
+      return roleLabel;
+    }
+  }
+  return joined || u.username;
 }
 
 /**
@@ -29,7 +47,7 @@ export function assignedFirstName(u?: AssignedUser | null): string | null {
  * cualquiera de los roles que ejecutan mantenimientos.
  */
 export function assignedRoleLabel(u?: AssignedUser | null): string {
-  return u?.role_display?.trim() || "Responsable";
+  return u?.role_display?.trim() || "Asignado";
 }
 
 /**

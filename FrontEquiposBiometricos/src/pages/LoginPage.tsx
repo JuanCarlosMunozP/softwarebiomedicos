@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { getApiErrorMessage } from "@/lib/api";
+import { panelHome } from "@/lib/permissions";
 import { PUBLIC_REGISTRATION_ENABLED } from "@/lib/featureFlags";
 
 const features = [
@@ -38,10 +39,10 @@ export function LoginPage() {
   const fromState = (location.state as { from?: string } | null)?.from;
   const fromQuery = new URLSearchParams(location.search).get("next");
   const target = fromState ?? fromQuery ?? "";
-  const redirectTo =
+  const explicitRedirect =
     typeof target === "string" && target.startsWith("/") && !target.startsWith("//")
       ? target
-      : "/admin";
+      : null;
 
   const [formData, setFormData] = useState({ username: "", password: "" });
   const [error, setError] = useState<string | null>(null);
@@ -57,8 +58,8 @@ export function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      await login(formData);
-      navigate(redirectTo, { replace: true });
+      const u = await login(formData);
+      navigate(explicitRedirect ?? panelHome(u.role), { replace: true });
     } catch (err) {
       setError(getApiErrorMessage(err, "Credenciales inválidas"));
     } finally {
@@ -70,33 +71,41 @@ export function LoginPage() {
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
       {/* PANEL IZQUIERDO — Branding (oculto en móvil) */}
       <aside className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-[#d71920] via-[#b2141a] to-[#7a0d12] p-12 text-white lg:flex">
-        <div className="relative z-10 max-w-lg">
-          <div className="inline-block rounded-xl bg-white p-4 shadow-lg">
+        <div className="relative z-10 max-w-lg pr-4">
+          <div className="inline-flex items-center gap-4 rounded-xl bg-white px-4 py-3 shadow-lg">
             <img
               src="/icons/logo-clinica.png"
               alt="Clínica Pabón"
               className="h-20 w-auto"
             />
+            <span className="h-16 w-px shrink-0 bg-gray-200" aria-hidden />
+            <img
+              src="/icons/logo-centro-pabon.png"
+              alt="Centro de Cuidados Cardioneurovasculares Pabón S.A.S."
+              className="h-20 w-auto"
+            />
           </div>
 
-          <h1 className="mt-10 text-4xl font-bold leading-tight">
-            Gestión de Equipos <br /> Biomédicos
+          <h1 className="mt-8 text-[11px] font-medium uppercase tracking-[0.22em] text-white/80">
+            Gestión de equipos biomédicos
           </h1>
-          <p className="mt-4 text-white/90">
-            Plataforma interna de Clínica Pabón para controlar el inventario, el
-            mantenimiento y la trazabilidad de todos los equipos biomédicos de
-            la institución.
+          <p className="mt-4 text-[2.75rem] font-bold italic leading-[1.1] tracking-tight text-white">
+            Trabajamos con el corazón
           </p>
 
-          <ul className="mt-10 space-y-4">
+          <ul className="mt-6 max-w-xs space-y-2.5">
             {features.map((f) => (
-              <li key={f.title} className="flex gap-3">
-                <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-bold">
+              <li key={f.title} className="flex gap-2.5">
+                <span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/20 text-[9px] font-medium">
                   ✓
                 </span>
                 <div>
-                  <p className="font-semibold">{f.title}</p>
-                  <p className="text-sm text-white/80">{f.desc}</p>
+                  <p className="text-[13px] font-medium tracking-wide text-white">
+                    {f.title}
+                  </p>
+                  <p className="mt-0.5 text-[11px] font-normal leading-relaxed tracking-wide text-white/75">
+                    {f.desc}
+                  </p>
                 </div>
               </li>
             ))}
@@ -109,7 +118,7 @@ export function LoginPage() {
         </p>
 
         <img
-          src="/images/paboncito.png"
+          src="/images/paboncitobiomedico.png"
           alt=""
           aria-hidden
           className="pointer-events-none absolute -bottom-4 -right-4 h-80 w-80 select-none object-contain opacity-95 drop-shadow-2xl"

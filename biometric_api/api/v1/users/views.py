@@ -9,7 +9,7 @@ from apps.audit.utils import AuditAction, log_audit_event
 from apps.users.models import User
 
 from .filters import UserFilter
-from .permissions import IsAdminRole
+from .permissions import CanListAssignableUsers, IsAdminRole
 from .serializers import (
     PasswordChangeSerializer,
     UserCreateSerializer,
@@ -48,7 +48,24 @@ class UserViewSet(viewsets.ModelViewSet):
             return [IsAuthenticated()]
         if self.action in ("retrieve", "update", "partial_update", "set_password"):
             return [IsAuthenticated()]
+        if self.action == "list":
+            return [IsAuthenticated(), CanListAssignableUsers()]
         return [IsAuthenticated(), IsAdminRole()]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if not user.is_authenticated:
+            return qs.none()
+        if self.action == "list" and user.role not in {
+            User.Role.SUPERADMIN,
+            User.Role.ADMIN,
+        }:
+            return qs.filter(
+                is_active=True,
+                role__in={User.Role.INGENIERO, User.Role.TECNICO},
+            )
+        return qs
 
     def _is_superadmin(self, user):
         return getattr(user,"role",None) == User.Role.SUPERADMIN

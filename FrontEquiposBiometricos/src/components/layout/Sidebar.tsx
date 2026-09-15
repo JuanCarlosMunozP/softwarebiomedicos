@@ -34,32 +34,95 @@ interface LinkDef {
 }
 
 const allLinks: LinkDef[] = [
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
+  {
+    to: "/admin",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    end: true,
+    roles: [
+      "superadmin",
+      "admin",
+      "coordinador",
+      "ingeniero",
+      "tecnico",
+      "usuario",
+    ],
+  },
   { to: "/admin/sedes", label: "Sedes", icon: Building2, resource: "branches" },
-  { to: "/admin/equipos", label: "Equipos", icon: ClipboardList, resource: "equipment", end: true },
-  { to: "/admin/equipos/etiquetas", label: "Etiquetas QR", icon: QrCode, resource: "equipment" },
-  // El historial de mantenimientos no lo ve el técnico (trabaja desde
-  // "Órdenes de trabajo"). El resto sí.
+  {
+    to: "/admin/equipos",
+    label: "Equipos",
+    icon: ClipboardList,
+    resource: "equipment",
+    end: true,
+    roles: ["superadmin", "admin", "coordinador", "ingeniero"],
+  },
+  {
+    to: "/admin/equipos/etiquetas",
+    label: "Etiquetas QR",
+    icon: QrCode,
+    resource: "equipment",
+    roles: ["superadmin", "admin", "coordinador", "ingeniero"],
+  },
+  // Registrar/editar el historial de mantenimientos es exclusivo del
+  // superadmin. La gestión lo consulta desde la hoja de vida del equipo; el
+  // ingeniero trabaja desde "Órdenes de trabajo".
   {
     to: "/admin/mantenimientos",
     label: "Mantenimientos",
     icon: Wrench,
     resource: "maintenance",
-    roles: ["superadmin", "admin", "coordinador", "ingeniero"],
+    roles: ["superadmin"],
   },
-  // Las órdenes de trabajo las ejecuta quien tiene el trabajo asignado. La
-  // gestión hace el seguimiento desde Solicitudes.
   {
     to: "/admin/ordenes-trabajo",
     label: "Órdenes de trabajo",
     icon: FileText,
     resource: "work_orders",
-    roles: ["ingeniero", "tecnico"],
+    roles: ["superadmin", "admin", "coordinador"],
   },
-  { to: "/admin/agendamientos", label: "Solicitudes", icon: CalendarClock, resource: "scheduling" },
-  { to: "/admin/fallas", label: "Reportes de falla", icon: AlertTriangle, resource: "failures" },
+  {
+    to: "/admin/ordenes-trabajo",
+    label: "Tareas asignadas",
+    icon: FileText,
+    resource: "work_orders",
+    roles: ["ingeniero"],
+  },
+  {
+    to: "/admin/agendamientos",
+    label: "Solicitudes",
+    icon: CalendarClock,
+    resource: "scheduling",
+    roles: [
+      "superadmin",
+      "admin",
+      "coordinador",
+      "ingeniero",
+      "tecnico",
+      "usuario",
+    ],
+  },
+  {
+    to: "/admin/fallas",
+    label: "Reportes de falla",
+    icon: AlertTriangle,
+    resource: "failures",
+    roles: ["superadmin", "admin", "coordinador", "ingeniero"],
+  },
   { to: "/admin/usuarios", label: "Usuarios", icon: Users, resource: "users" },
-  { to: "/admin/perfil", label: "Mi perfil", icon: User },
+  {
+    to: "/admin/perfil",
+    label: "Mi perfil",
+    icon: User,
+    roles: [
+      "superadmin",
+      "admin",
+      "coordinador",
+      "ingeniero",
+      "tecnico",
+      "usuario",
+    ],
+  },
 ];
 
 function visibleLinks(role: Rol | undefined): LinkDef[] {
@@ -105,7 +168,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         <nav className="flex flex-col gap-1 p-3">
           {links.map(({ to, label, icon: Icon, end }) => (
             <NavLink
-              key={to}
+              key={`${to}-${label}`}
               to={to}
               end={end}
               onClick={onClose}

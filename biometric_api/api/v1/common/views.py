@@ -132,3 +132,29 @@ class CookieTokenLogoutView(APIView):
         response = Response(status=204)
         _delete_auth_cookies(response)
         return response
+
+
+class HealthView(APIView):
+    """Liveness/readiness para Docker: Postgres + Redis (Channels/Celery)."""
+
+    authentication_classes = ()
+    permission_classes = ()
+
+    def get(self, request, *args, **kwargs):
+        from django.db import connection
+        from redis import Redis
+
+        checks: dict[str, str] = {}
+        try:
+            connection.ensure_connection()
+            checks["database"] = "ok"
+        except Exception as exc:
+            checks["database"] = str(exc)
+        try:
+            Redis.from_url(settings.CHANNELS_REDIS_URL, socket_connect_timeout=2).ping()
+            checks["redis"] = "ok"
+        except Exception as exc:
+            checks["redis"] = str(exc)
+
+        ok = checks.get("database") == "ok" and checks.get("redis") == "ok"
+        return Response({"status": "ok" if ok else "degraded", "checks": checks}, status=200 if ok else 503)

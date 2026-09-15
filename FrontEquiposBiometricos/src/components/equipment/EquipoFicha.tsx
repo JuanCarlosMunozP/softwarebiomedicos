@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Activity,
+  AlertTriangle,
   Building2,
   CalendarClock,
   Calendar as CalendarIcon,
@@ -17,8 +19,11 @@ import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { equipmentService } from "@/services/equipment.service";
+import { resolveMediaUrl } from "@/lib/media";
 import { maintenanceService } from "@/services/maintenance.service";
 import { schedulingService } from "@/services/scheduling.service";
+import { useAuth } from "@/context/AuthContext";
+import { can } from "@/lib/permissions";
 import { assignedRoleLabel, assignedUserName } from "@/lib/users";
 import type { Equipment, EquipmentStatus } from "@/types/equipment";
 import type {
@@ -135,6 +140,14 @@ export function EquipoFichaContent({
   onEdit,
   onDelete,
 }: ContentProps) {
+  const { usuario } = useAuth();
+  const role = usuario?.role;
+  const navigate = useNavigate();
+  // El ingeniero no ve el historial de mantenimientos ni las solicitudes: su
+  // trabajo vive en "Órdenes de trabajo".
+  const canVerHistorial = can(role, "maintenance", "view");
+  const canVerProgramados = can(role, "scheduling", "view");
+
   const [tab, setTab] = useState<Tab>("info");
   const [history, setHistory] = useState<MaintenanceRecord[]>([]);
   const [scheduled, setScheduled] = useState<ScheduledMaintenance[]>([]);
@@ -155,17 +168,17 @@ export function EquipoFichaContent({
   }, [equipment]);
 
   useEffect(() => {
-    if (!eq) return;
+    if (!eq || !canVerHistorial) return;
     setLoadingH(true);
     maintenanceService
       .list({ equipment: eq.id, ordering: "-date" })
       .then(setHistory)
       .catch(() => setHistory([]))
       .finally(() => setLoadingH(false));
-  }, [eq]);
+  }, [eq, canVerHistorial]);
 
   useEffect(() => {
-    if (!eq) return;
+    if (!eq || !canVerProgramados) return;
     setLoadingS(true);
     schedulingService
       .list({
@@ -176,17 +189,18 @@ export function EquipoFichaContent({
       .then(setScheduled)
       .catch(() => setScheduled([]))
       .finally(() => setLoadingS(false));
-  }, [eq, scheduledKind]);
+  }, [eq, scheduledKind, canVerProgramados]);
 
   if (!eq) return null;
 
   const branchLabel =
     eq.branch_name ?? (branchName ? branchName(eq.branch) : `Sede #${eq.branch}`);
 
-  const qrSrc = eq.qr_code_url
+  const mediaQr = resolveMediaUrl(eq.qr_code_url);
+  const qrSrc = mediaQr
     ? qrBust
-      ? `${eq.qr_code_url}${eq.qr_code_url.includes("?") ? "&" : "?"}v=${qrBust}`
-      : eq.qr_code_url
+      ? `${mediaQr}${mediaQr.includes("?") ? "&" : "?"}v=${qrBust}`
+      : mediaQr
     : null;
 
   const regenerateQr = async () => {
@@ -268,7 +282,7 @@ export function EquipoFichaContent({
 
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-lg font-semibold text-app">{eq.name}</h3>
+              <h3 className="text-base font-semibold text-app">{eq.name}</h3>
               <Badge tone={STATUS_TONE[eq.status]}>{STATUS_LABEL[eq.status]}</Badge>
             </div>
 
@@ -287,7 +301,7 @@ export function EquipoFichaContent({
               <Field label="Ubicación">{eq.location}</Field>
             </dl>
 
-            {(canEdit || canDelete) && (
+            {(canEdit || canDelete || role === "tecnico") && (
               <div className="mt-1 flex flex-wrap gap-2">
                 {canEdit && onEdit && (
                   <Button
@@ -309,6 +323,15 @@ export function EquipoFichaContent({
                     Eliminar
                   </Button>
                 )}
+                {role === "tecnico" && (
+                  <Button
+                    size="sm"
+                    leftIcon={<AlertTriangle size={14} />}
+                    onClick={() => navigate("/admin/fallas")}
+                  >
+                    Reportar falla
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -319,28 +342,52 @@ export function EquipoFichaContent({
           <TabButton active={tab === "info"} onClick={() => setTab("info")}>
             Información
           </TabButton>
-          <TabButton active={tab === "historial"} onClick={() => setTab("historial")}>
-            <Wrench size={14} className="mr-1.5 inline" />
-            Mantenimientos realizados
-          </TabButton>
-          <TabButton active={tab === "programados"} onClick={() => setTab("programados")}>
-            <CalendarClock size={14} className="mr-1.5 inline" />
-            Programados
-          </TabButton>
+          {canVerHistorial && (
+            <TabButton
+              active={tab === "historial"}
+              onClick={() => setTab("historial")}
+            >
+              <Wrench size={14} className="mr-1.5 inline" />
+              Mantenimientos realizados
+            </TabButton>
+          )}
+          {canVerProgramados && (
+            <TabButton
+              active={tab === "programados"}
+              onClick={() => setTab("programados")}
+            >
+              <CalendarClock size={14} className="mr-1.5 inline" />
+              Programados
+            </TabButton>
+          )}
         </div>
 
         {/* Tab content */}
         {tab === "info" && (
           <div className="flex flex-col gap-4 text-sm">
-            <p className="text-app-muted">
-              Este equipo tiene actualmente{" "}
-              <strong className="text-app">{history.length}</strong> mantenimientos
-              registrados y{" "}
-              <strong className="text-app">
-                {scheduled.filter((s) => !s.is_completed).length}
-              </strong>{" "}
-              solicitudes pendientes.
-            </p>
+            {(canVerHistorial || canVerProgramados) && (
+              <p className="text-app-muted">
+                Este equipo tiene actualmente
+                {canVerHistorial && (
+                  <>
+                    {" "}
+                    <strong className="text-app">{history.length}</strong>{" "}
+                    mantenimientos registrados
+                  </>
+                )}
+                {canVerHistorial && canVerProgramados && " y"}
+                {canVerProgramados && (
+                  <>
+                    {" "}
+                    <strong className="text-app">
+                      {scheduled.filter((s) => !s.is_completed).length}
+                    </strong>{" "}
+                    solicitudes pendientes
+                  </>
+                )}
+                .
+              </p>
+            )}
 
             <div>
               <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-app-muted">
@@ -355,7 +402,7 @@ export function EquipoFichaContent({
                     <p className="text-xs text-app-muted">
                       MTBF — Tiempo medio entre fallas
                     </p>
-                    <p className="text-lg font-semibold text-app">
+                    <p className="text-2xl font-bold text-app">
                       {formatHours(eq.mtbf_hours)}
                     </p>
                     <p className="mt-0.5 text-xs text-app-muted">
@@ -372,7 +419,7 @@ export function EquipoFichaContent({
                     <p className="text-xs text-app-muted">
                       MTTR — Tiempo medio de reparación
                     </p>
-                    <p className="text-lg font-semibold text-app">
+                    <p className="text-2xl font-bold text-app">
                       {formatHours(eq.mttr_hours)}
                     </p>
                     <p className="mt-0.5 text-xs text-app-muted">
@@ -390,7 +437,7 @@ export function EquipoFichaContent({
           </div>
         )}
 
-        {tab === "historial" && (
+        {tab === "historial" && canVerHistorial && (
           <div className="flex flex-col gap-2">
             {loadingH ? (
               <p className="py-6 text-center text-sm text-app-muted">Cargando...</p>
@@ -461,7 +508,7 @@ export function EquipoFichaContent({
           </div>
         )}
 
-        {tab === "programados" && (
+        {tab === "programados" && canVerProgramados && (
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-app-muted">Filtrar por tipo:</span>
@@ -498,7 +545,7 @@ export function EquipoFichaContent({
                         {kindLabelScheduled(s.kind)}
                       </Badge>
                       <span className="text-xs text-app-muted">
-                        {s.scheduled_date ?? "Por programar"}
+                        {s.scheduled_date || s.requested_date}
                       </span>
                       <Badge tone={s.is_completed ? "success" : "warning"}>
                         {s.is_completed ? "Cumplido" : "Pendiente"}

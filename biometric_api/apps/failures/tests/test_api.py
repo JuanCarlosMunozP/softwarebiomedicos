@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from apps.equipment.tests.factories import EquipmentFactory
 from apps.failures.models import FailureRecord, FailureSeverity
+from apps.users.tests.factories import TecnicoFactory
 
 from .factories import FailureRecordFactory
 
@@ -389,3 +390,75 @@ class TestResolveAction:
 
     def test_resolve_missing_returns_404(self, auth_client):
         assert auth_client.post(resolve_url(99999)).status_code == 404
+
+
+class TestOperativoFailureScope:
+    """El operativo solo ve y crea reportes propios, de equipos de su área."""
+
+    def _client(self, api_client, **kwargs):
+        user = TecnicoFactory(**kwargs)
+        api_client.force_authenticate(user=user)
+        return api_client, user
+
+    def test_lists_only_own_reports_in_own_area(self, api_client, branch):
+        mine = EquipmentFactory(branch=branch, area="Radiología")
+        other_area = EquipmentFactory(branch=branch, area="UCI")
+        client, user = self._client(api_client, area="Radiología")
+        peer = TecnicoFactory(area="Radiología")
+
+        own = FailureRecordFactory(equipment=mine, reported_by=user)
+        FailureRecordFactory(equipment=mine, reported_by=peer)
+        FailureRecordFactory(equipment=other_area, reported_by=user)
+
+        response = client.get(LIST_URL)
+        assert response.status_code == 200
+        ids = {item["id"] for item in response.json()["results"]}
+        assert ids == {own.id}
+
+    def test_create_sets_reported_by_and_stays_in_area(self, api_client, branch):
+        equipment = EquipmentFactory(branch=branch, area="Radiología")
+        client, user = self._client(api_client, area="Radiología")
+
+        response = client.post(
+            LIST_URL,
+            {
+                "equipment": equipment.id,
+                "description": "El monitor no enciende.",
+                "severity": FailureSeverity.MEDIUM,
+                "resolved": True,
+                "resolution_notes": "intento de diagnóstico",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 201
+        body = response.json()
+        assert body["reported_by"] == user.id
+        assert body["resolved"] is False
+        assert body["resolution_notes"] == ""
+        record = FailureRecord.objects.get(pk=body["id"])
+        assert record.reported_by_id == user.id
+
+    def test_cannot_report_other_area_equipment(self, api_client, branch):
+        other = EquipmentFactory(branch=branch, area="UCI")
+        client, _user = self._client(api_client, area="Radiología")
+
+        response = client.post(
+            LIST_URL,
+            {
+                "equipment": other.id,
+                "description": "Falla observada.",
+                "severity": FailureSeverity.LOW,
+            },
+            format="json",
+        )
+        assert response.status_code == 400
+
+    def test_cannot_resolve(self, api_client, branch):
+        equipment = EquipmentFactory(branch=branch, area="Radiología")
+        client, user = self._client(api_client, area="Radiología")
+        failure = FailureRecordFactory(equipment=equipment, reported_by=user)
+
+        response = client.post(resolve_url(failure.id))
+        assert response.status_code == 403
+

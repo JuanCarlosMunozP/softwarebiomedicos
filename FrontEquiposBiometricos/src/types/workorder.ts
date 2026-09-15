@@ -59,6 +59,8 @@ export interface WorkOrderCost {
   spare_parts_cost: string;
   transport_cost: string;
   other_cost: string;
+  /** Suma de mano de obra + repuestos + transporte + otros. */
+  total?: string;
 }
 
 export interface WorkOrderScheduleInfo {

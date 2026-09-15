@@ -8,7 +8,11 @@ from channels.testing import WebsocketCommunicator
 from rest_framework_simplejwt.tokens import AccessToken
 
 from apps.realtime import events
-from apps.realtime.consumers import AUTH_CLOSE_CODE, NOTIFICATIONS_GROUP
+from apps.realtime.consumers import (
+    AUTH_CLOSE_CODE,
+    CHANNEL_LAYER_CLOSE_CODE,
+    NOTIFICATIONS_GROUP,
+)
 from apps.realtime.events import broadcast_notification
 from apps.realtime.middleware import CookieJWTAuthMiddleware
 from apps.realtime.routing import websocket_urlpatterns
@@ -85,6 +89,21 @@ def test_authenticated_user_via_bearer_header_connects():
     assert async_to_sync(scenario)() is True
 
 
+def test_channel_layer_outage_closes_with_1013(monkeypatch):
+    class BoomLayer:
+        async def group_add(self, *args, **kwargs):
+            raise ConnectionError("redis down")
+
+        async def group_discard(self, *args, **kwargs):
+            return None
+
+    monkeypatch.setattr("channels.layers.get_channel_layer", lambda *a, **k: BoomLayer())
+    token = str(AccessToken.for_user(TecnicoFactory()))
+    out = _close_code_for(_cookie_header(token))
+    assert out["type"] == "websocket.close"
+    assert out["code"] == CHANNEL_LAYER_CLOSE_CODE
+
+
 def test_broadcast_notification_wraps_payload_in_envelope(monkeypatch):
     fake_layer = type("L", (), {"group_send": AsyncMock()})()
     monkeypatch.setattr(events, "get_channel_layer", lambda: fake_layer)
@@ -103,6 +122,15 @@ def test_broadcast_notification_wraps_payload_in_envelope(monkeypatch):
 def test_broadcast_notification_is_noop_without_layer(monkeypatch):
     monkeypatch.setattr(events, "get_channel_layer", lambda: None)
     # No debe lanzar.
+    broadcast_notification({"type": "x"})
+
+
+def test_broadcast_notification_swallows_channel_layer_errors(monkeypatch):
+    async def boom(*_args, **_kwargs):
+        raise TimeoutError("Timeout reading from redis:6379")
+
+    fake_layer = type("L", (), {"group_send": boom})()
+    monkeypatch.setattr(events, "get_channel_layer", lambda: fake_layer)
     broadcast_notification({"type": "x"})
 
 

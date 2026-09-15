@@ -4,6 +4,27 @@ from rest_framework import permissions
 from apps.users.models import User
 
 
+class CanListAssignableUsers(permissions.BasePermission):
+    """GET de usuarios para armar el selector de responsable.
+
+    Admin ve a todos. Coordinador e ingeniero solo necesitan el listado de
+    ingenieros y usuarios operativos activos. El resto no lista.
+    """
+
+    message = _("No tienes permisos para esta acción.")
+
+    _ALLOWED = {
+        User.Role.SUPERADMIN,
+        User.Role.ADMIN,
+        User.Role.COORDINADOR,
+        User.Role.INGENIERO,
+    }
+
+    def has_permission(self, request, view) -> bool:
+        u = request.user
+        return bool(u and u.is_authenticated and u.role in self._ALLOWED)
+
+
 class IsAdminRole(permissions.BasePermission):
     """Permite el acceso a usuarios con rol superadmin o admin."""
 

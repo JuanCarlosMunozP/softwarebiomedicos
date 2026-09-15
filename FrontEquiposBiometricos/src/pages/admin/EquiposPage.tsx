@@ -578,9 +578,11 @@ export function EquiposPage() {
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-app sm:text-3xl">Equipos</h1>
+          <h1 className="text-2xl font-bold text-app">Equipos</h1>
           <p className="text-sm text-app-muted">
-            Inventario, catálogo de marcas y modelos.
+            {role === "tecnico"
+              ? `Equipos de tu área${usuario?.area ? ` (${usuario.area})` : ""}. Consulta e informa fallas observadas.`
+              : "Inventario, catálogo de marcas y modelos."}
           </p>
         </div>
         {tab === "equipos" && canCreate && (
@@ -590,22 +592,24 @@ export function EquiposPage() {
         )}
       </div>
 
-      <Tabs<Tab>
-        value={tab}
-        onChange={setTab}
-        items={[
-          {
-            value: "equipos",
-            label: "Equipos",
-            icon: <ClipboardList size={14} />,
-          },
-          {
-            value: "catalogo",
-            label: "Marcas y modelos",
-            icon: <Building size={14} />,
-          },
-        ]}
-      />
+      {canCreate && (
+        <Tabs<Tab>
+          value={tab}
+          onChange={setTab}
+          items={[
+            {
+              value: "equipos",
+              label: "Equipos",
+              icon: <ClipboardList size={14} />,
+            },
+            {
+              value: "catalogo",
+              label: "Marcas y modelos",
+              icon: <Building size={14} />,
+            },
+          ]}
+        />
+      )}
 
       {tab === "catalogo" && (
         <MarcasModelosPanel

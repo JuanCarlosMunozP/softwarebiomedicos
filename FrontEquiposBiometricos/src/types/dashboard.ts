@@ -94,6 +94,8 @@ export interface DashboardSummary {
   };
   time_series: {
     maintenance_by_month: MaintenanceMonthBucket[];
+    schedules?: { date: string; kind?: string; resolved: boolean }[];
+    maintenance_costs?: { date: string; cost: string }[];
   };
   lists: {
     overdue_schedules: OverdueSchedule[];
@@ -103,6 +105,64 @@ export interface DashboardSummary {
     schedules: MyScheduleTask[];
     failures: MyFailureTask[];
   };
+  my_week?: {
+    week_start: string;
+    week_end: string;
+    by_area: { area: string; count: number }[];
+    records: {
+      id: number;
+      date: string;
+      kind: MaintenanceKind;
+      equipment_name: string;
+      equipment_asset_tag: string;
+      area: string;
+    }[];
+  } | null;
+  area_ops?: {
+    source?: "failures" | "schedules";
+    area: string;
+    kpis: {
+      total: number;
+      open: number;
+      resolved: number;
+      this_week: number;
+      this_week_open?: number;
+      this_week_resolved?: number;
+    };
+    by_status: { status: "open" | "resolved"; count: number }[];
+    this_week_by_day: { date: string; count: number }[];
+    /** Puntos de fecha para el dashboard de usuario (solicitudes). */
+    series?: { date: string; resolved: boolean }[];
+    recent: {
+      id: number;
+      equipment_name: string;
+      equipment_asset_tag: string;
+      area: string;
+      severity: FailureSeverity;
+      resolved: boolean;
+      reported_at: string;
+      resolution_notes?: string;
+      opportunity_hours?: number | null;
+    }[];
+  } | null;
+  engineer_tasks?: {
+    kpis: {
+      assigned: number;
+      pending: number;
+      in_progress: number;
+      resolved: number;
+    };
+    recent: {
+      id: number;
+      number: string;
+      equipment_name: string;
+      equipment_asset_tag: string;
+      service_type: string;
+      status: string;
+      start_date: string;
+      description: string;
+    }[];
+  } | null;
 }
 
 export type { MaintenanceKind };

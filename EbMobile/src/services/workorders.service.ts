@@ -43,4 +43,33 @@ export const workOrdersService = {
     );
     return res.data;
   },
+  async listAll(params: WorkOrderListParams = {}) {
+    const all: WorkOrder[] = [];
+    for (let page = 1; page < 500; page += 1) {
+      const res = await api.get<Paginated<WorkOrder> | WorkOrder[]>(
+        "/equipment/work-orders/",
+        { params: { ...params, page } },
+      );
+      if (Array.isArray(res.data)) return res.data;
+      all.push(...res.data.results);
+      if (!res.data.next) break;
+    }
+    return all;
+  },
+  async complete(
+    id: number,
+    body: {
+      observations?: string;
+      status?: string;
+      failure_description?: string;
+      failure_severity?: string;
+      failure_resolution_notes?: string;
+    } = {},
+  ) {
+    const res = await api.post<WorkOrder>(
+      `/equipment/work-orders/${id}/complete/`,
+      body,
+    );
+    return res.data;
+  },
 };

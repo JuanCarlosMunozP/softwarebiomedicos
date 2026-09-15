@@ -23,6 +23,21 @@ class FailureRecordViewSet(AuditLogMixin, viewsets.ModelViewSet):
     ordering_fields = ("reported_at", "severity", "resolved_at")
     ordering = ("-reported_at",)
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        from api.v1.common.area_scope import operativo_area
+
+        area = operativo_area(self.request.user)
+        if area is not None:
+            if not area:
+                return qs.none()
+            # Solo sus reportes, y solo de equipos de su área.
+            return qs.filter(
+                equipment__area__iexact=area,
+                reported_by=self.request.user,
+            )
+        return qs
+
     @action(detail=True, methods=["post"], url_path="resolve")
     def resolve(self, request, pk=None):
         failure = self.get_object()

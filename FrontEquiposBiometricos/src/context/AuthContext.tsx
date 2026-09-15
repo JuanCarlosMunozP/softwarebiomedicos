@@ -41,13 +41,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (cancelled) return;
-        // Sólo limpiamos si tampoco había caché; si había caché, mantenemos
-        // la sesión optimistamente (el siguiente request 401 disparará el
-        // refresh + redirect).
-        if (!cachedUser) {
-          userCache.clear();
-          setUsuario(null);
-        }
+        // Sin cookie válida el 401 de /users/me/ es definitivo (el interceptor
+        // ya intentó refresh). Si dejamos el perfil cacheado, NotificationContext
+        // abre el WebSocket y el server cierra con 4401.
+        userCache.clear();
+        setUsuario(null);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

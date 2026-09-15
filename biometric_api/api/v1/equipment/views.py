@@ -1,8 +1,9 @@
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -19,8 +20,10 @@ from apps.equipment.models import (
     WorkOrderMeasurement,
     WorkOrderSignature,
     WorkOrderSparePart,
+    WorkOrderStatus,
 )
 from apps.equipment.services import generate_qr_for_equipment
+from apps.failures.models import FailureRecord, FailureSeverity
 from apps.users.models import User
 
 from .filters import EquipmentFilter
@@ -47,6 +50,22 @@ def _only_own_work_orders(user) -> bool:
     return bool(
         user and user.is_authenticated and getattr(user, "role", None) in _FIELD_ROLES
     )
+
+
+def _maintenance_record_for(work_order: EquipmentWorkOrder):
+    """El registro de mantenimiento que esta orden dejó (o cerró) en el
+    historial del equipo, sin importar su origen: enlace directo
+    (`maintenance_record`) o vía la solicitud de origen (`schedule`)."""
+    if work_order.maintenance_record_id:
+        return work_order.maintenance_record
+    if work_order.schedule_id:
+        # Import local: apps.maintenance.models ya importa apps.equipment.models.
+        from apps.maintenance.models import MaintenanceRecord
+
+        return MaintenanceRecord.objects.filter(
+            scheduled_maintenance_id=work_order.schedule_id
+        ).first()
+    return None
 
 
 class EquipmentViewSet(AuditLogMixin, viewsets.ModelViewSet):
@@ -80,6 +99,17 @@ class EquipmentViewSet(AuditLogMixin, viewsets.ModelViewSet):
     ordering_fields = ("name", "purchase_date", "created_at")
     ordering = ("name",)
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        from api.v1.common.area_scope import operativo_area
+
+        area = operativo_area(self.request.user)
+        if area is not None:
+            if not area:
+                return qs.none()
+            return qs.filter(area__iexact=area)
+        return qs
+
     @action(
         detail=False,
         methods=["get"],
@@ -88,7 +118,7 @@ class EquipmentViewSet(AuditLogMixin, viewsets.ModelViewSet):
     )
     def by_asset_tag(self, request, tag: str = ""):
         """ Consulta un equipo utilizando su código de inventario."""
-        equipment = get_object_or_404(Equipment, asset_tag__iexact=tag.strip())
+        equipment = get_object_or_404(self.get_queryset(), asset_tag__iexact=tag.strip())
         serializer = self.get_serializer(equipment)
         return Response(serializer.data)
 
@@ -291,6 +321,110 @@ class EquipmentWorkOrderViewSet(AuditLogMixin, viewsets.ModelViewSet):
         self.check_object_permissions(request, work_order)
         return Response(self.get_serializer(work_order).data)
 
+    @action(detail=True, methods=["post"], url_path="complete")
+    def complete(self, request, pk: int = None):
+        """El responsable marca su orden como realizada.
+
+        Pasa a ``FINISHED`` con fecha de fin, y las señales de
+        ``apps.maintenance`` / ``apps.scheduling`` dejan el mantenimiento en el
+        historial del equipo (y cierran la solicitud de origen, si la hubo).
+        ``get_queryset`` ya restringe a los roles de campo sus propias órdenes,
+        así que un técnico solo puede realizar las que tiene asignadas.
+
+        Body opcional: ``observations`` — hallazgos / trabajo hecho /
+        recomendaciones; queda en el registro de mantenimiento.
+
+        Si vienen ``failure_description`` y ``failure_severity``, se crea de
+        una vez el reporte de falla (resuelto) del mismo equipo.
+        """
+        work_order = self.get_object()
+        if work_order.status == WorkOrderStatus.CANCELLED:
+            raise ValidationError(
+                {"detail": _("La orden está cancelada; no se puede realizar.")}
+            )
+
+        observations = str(request.data.get("observations") or "").strip()
+        if not observations:
+            raise ValidationError(
+                {
+                    "observations": _(
+                        "La nota de resolución es obligatoria."
+                    )
+                }
+            )
+
+        target_status = str(
+            request.data.get("status") or WorkOrderStatus.FINISHED
+        ).strip()
+        if target_status in (WorkOrderStatus.PENDING, WorkOrderStatus.IN_PROGRESS):
+            work_order.status = target_status
+            work_order.save(update_fields=["status"])
+            return Response(self.get_serializer(work_order).data)
+
+        role = getattr(request.user, "role", None)
+        if (
+            role == User.Role.INGENIERO
+            and work_order.status == WorkOrderStatus.PENDING
+        ):
+            raise ValidationError(
+                {
+                    "detail": _(
+                        "Primero pasa la orden a En proceso; no se puede finalizar de una."
+                    )
+                }
+            )
+
+        failure_description = str(
+            request.data.get("failure_description") or ""
+        ).strip()
+        failure_severity = str(
+            request.data.get("failure_severity") or ""
+        ).strip()
+        failure_resolution_notes = str(
+            request.data.get("failure_resolution_notes") or observations
+        ).strip()
+
+        if failure_description and failure_severity not in FailureSeverity.values:
+            raise ValidationError(
+                {
+                    "failure_severity": _(
+                        "Indica la severidad de la falla (Baja, Media, Alta o Crítica)."
+                    )
+                }
+            )
+
+        transitioning = work_order.status != WorkOrderStatus.FINISHED
+
+        if transitioning:
+            work_order.status = WorkOrderStatus.FINISHED
+            if work_order.end_date is None:
+                work_order.end_date = timezone.now()
+            work_order.save(update_fields=["status", "end_date"])
+            work_order.refresh_from_db()
+
+        if observations:
+            record = _maintenance_record_for(work_order)
+            if record is not None:
+                record.observations = observations
+                record.save(update_fields=["observations", "updated_at"])
+
+        if transitioning and failure_description:
+            now = timezone.now()
+            FailureRecord.objects.create(
+                equipment=work_order.equipment,
+                reported_by=request.user
+                if getattr(request.user, "is_authenticated", False)
+                else None,
+                reported_at=now,
+                description=failure_description,
+                severity=failure_severity,
+                resolved=True,
+                resolved_at=now,
+                resolution_notes=failure_resolution_notes,
+            )
+
+        return Response(self.get_serializer(work_order).data)
+
 
 class _WorkOrderChildScopedMixin:
     """Los roles de campo solo ven y editan los elementos (repuestos,
@@ -303,6 +437,16 @@ class _WorkOrderChildScopedMixin:
             qs = qs.filter(work_order__technician=self.request.user)
         return qs
 
+    def _ensure_work_order_open(self, work_order) -> None:
+        if work_order is not None and work_order.status == WorkOrderStatus.FINISHED:
+            raise ValidationError(
+                {
+                    "detail": _(
+                        "La orden está terminada; el detalle es solo histórico."
+                    )
+                }
+            )
+
     def perform_create(self, serializer):
         user = self.request.user
         work_order = serializer.validated_data.get("work_order")
@@ -314,7 +458,16 @@ class _WorkOrderChildScopedMixin:
             raise PermissionDenied(
                 _("Solo puedes editar los elementos de tus propias órdenes de trabajo.")
             )
+        self._ensure_work_order_open(work_order)
         serializer.save()
+
+    def perform_update(self, serializer):
+        self._ensure_work_order_open(serializer.instance.work_order)
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self._ensure_work_order_open(instance.work_order)
+        instance.delete()
 
 
 class WorkOrderSparePartViewSet(_WorkOrderChildScopedMixin, viewsets.ModelViewSet):

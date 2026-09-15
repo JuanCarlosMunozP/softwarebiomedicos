@@ -7,6 +7,7 @@ from django.urls import reverse
 from apps.equipment.models import EquipmentStatus
 from apps.equipment.tests.factories import EquipmentFactory
 from apps.scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
+from apps.users.tests.factories import TecnicoFactory
 
 from .factories import MaintenanceScheduleFactory
 
@@ -59,9 +60,24 @@ class TestScheduleCreate:
         body = response.json()
         assert body["equipment"] == equipment.id
         assert body["equipment_asset_tag"] == equipment.asset_tag
+        assert body["equipment_name"] == equipment.name
         assert body["branch_name"] == equipment.branch.name
         assert body["is_completed"] is False
         assert MaintenanceSchedule.objects.count() == 1
+
+    def test_create_without_scheduled_date_returns_201(self, auth_client, equipment):
+        """El formulario de 'Nueva solicitud' no envía fecha programada."""
+        payload = {
+            "equipment": equipment.id,
+            "kind": ScheduledMaintenanceKind.REPAIR,
+            "notes": "Demo solicitud",
+        }
+        response = auth_client.post(LIST_URL, payload, format="json")
+        assert response.status_code == 201, response.json()
+        body = response.json()
+        assert body["scheduled_date"] is None
+        assert body["auto_generated"] is False
+        assert body["notes"] == "Demo solicitud"
 
     def test_create_strips_notes(self, auth_client, equipment):
         response = auth_client.post(
@@ -114,6 +130,51 @@ class TestScheduleCreate:
         assert body["requested_date"] == date.today().isoformat()
         assert body["requested_by"] == admin_user.id
         assert body["requested_by_detail"]["id"] == admin_user.id
+
+    def test_create_accepts_requested_date(self, auth_client, equipment):
+        """La fecha de solicitud se puede indicar; no queda fija en hoy."""
+        chosen = (date.today() - timedelta(days=3)).isoformat()
+        payload = {
+            "equipment": equipment.id,
+            "kind": ScheduledMaintenanceKind.REPAIR,
+            "requested_date": chosen,
+            "notes": "Falla reportada con fecha de solicitud propia.",
+        }
+        response = auth_client.post(LIST_URL, payload, format="json")
+        assert response.status_code == 201, response.json()
+        assert response.json()["requested_date"] == chosen
+
+
+class TestRequestingArea:
+    def test_uses_requester_area(self, api_client, equipment):
+        user = TecnicoFactory(area="Radiología")
+        api_client.force_authenticate(user=user)
+        response = api_client.post(
+            LIST_URL,
+            {
+                "equipment": equipment.id,
+                "kind": ScheduledMaintenanceKind.REPAIR,
+                "notes": "Falla en consola",
+            },
+            format="json",
+        )
+        assert response.status_code == 201, response.json()
+        assert response.json()["requesting_area"] == "Radiología"
+        assert response.json()["requested_by_detail"]["area"] == "Radiología"
+
+    def test_falls_back_to_equipment_area(self, auth_client, branch):
+        eq = EquipmentFactory(branch=branch, area="UCI")
+        response = auth_client.post(
+            LIST_URL,
+            {
+                "equipment": eq.id,
+                "kind": ScheduledMaintenanceKind.PREVENTIVE,
+                "notes": "Revisión",
+            },
+            format="json",
+        )
+        assert response.status_code == 201, response.json()
+        assert response.json()["requesting_area"] == "UCI"
 
 
 class TestScheduleList:
@@ -219,7 +280,7 @@ class TestScheduleList:
 
 
 class TestScheduleListScopedByRole:
-    """El técnico solo ve las solicitudes que tiene asignadas."""
+    """El operativo ve asignadas + pedidas; el usuario solo las que pidió."""
 
     def test_tecnico_only_sees_own_assignments(
         self, api_client, tecnico, equipment
@@ -239,6 +300,38 @@ class TestScheduleListScopedByRole:
         assert response.status_code == 200
         assert response.json()["count"] == 2
 
+    def test_tecnico_sees_requests_they_created(
+        self, api_client, tecnico, equipment
+    ):
+        mine = MaintenanceScheduleFactory(
+            equipment=equipment, requested_by=tecnico, assigned_technician=None
+        )
+        MaintenanceScheduleFactory(equipment=equipment, assigned_technician=None)
+
+        api_client.force_authenticate(user=tecnico)
+        response = api_client.get(LIST_URL)
+        assert response.status_code == 200
+        ids = [row["id"] for row in response.json()["results"]]
+        assert ids == [mine.id]
+
+    def test_usuario_only_sees_own_requests(self, api_client, equipment):
+        from apps.users.tests.factories import UsuarioFactory
+
+        user = UsuarioFactory()
+        other = UsuarioFactory()
+        mine = MaintenanceScheduleFactory(
+            equipment=equipment, requested_by=user, assigned_technician=None
+        )
+        MaintenanceScheduleFactory(
+            equipment=equipment, requested_by=other, assigned_technician=None
+        )
+
+        api_client.force_authenticate(user=user)
+        response = api_client.get(LIST_URL)
+        assert response.status_code == 200
+        assert response.json()["count"] == 1
+        assert response.json()["results"][0]["id"] == mine.id
+
     def test_management_sees_all(self, auth_client, tecnico, equipment):
         MaintenanceScheduleFactory.create_batch(
             2, equipment=equipment, assigned_technician=tecnico
@@ -250,34 +343,25 @@ class TestScheduleListScopedByRole:
         assert response.status_code == 200
         assert response.json()["count"] == 3
 
-    def test_ingeniero_sees_own_assignments_and_own_requests(
-        self, api_client, ingeniero, tecnico, equipment
+    def test_ingeniero_only_sees_assigned_or_requested(
+        self, api_client, ingeniero, equipment
     ):
-        from apps.users.tests.factories import IngenieroFactory
-
-        otro_ing = IngenieroFactory()
-        MaintenanceScheduleFactory(
+        mine = MaintenanceScheduleFactory(
             equipment=equipment, assigned_engineer=ingeniero
         )
-        MaintenanceScheduleFactory(
-            equipment=equipment, requested_by=ingeniero, assigned_technician=None
+        requested = MaintenanceScheduleFactory(
+            equipment=equipment, requested_by=ingeniero, assigned_engineer=None
         )
-        # Ajenas: de otro ingeniero, de un técnico, y sin asignar.
-        MaintenanceScheduleFactory(
-            equipment=equipment, assigned_engineer=otro_ing
-        )
-        MaintenanceScheduleFactory(
-            equipment=equipment, assigned_technician=tecnico
-        )
-        MaintenanceScheduleFactory(equipment=equipment, assigned_technician=None)
+        MaintenanceScheduleFactory(equipment=equipment, assigned_engineer=None)
 
         api_client.force_authenticate(user=ingeniero)
         response = api_client.get(LIST_URL)
 
         assert response.status_code == 200
-        assert response.json()["count"] == 2
+        ids = {row["id"] for row in response.json()["results"]}
+        assert ids == {mine.id, requested.id}
 
-    def test_ingeniero_created_request_stays_visible(
+    def test_ingeniero_cannot_create(
         self, api_client, ingeniero, equipment
     ):
         api_client.force_authenticate(user=ingeniero)
@@ -290,8 +374,7 @@ class TestScheduleListScopedByRole:
             },
             format="json",
         )
-        assert created.status_code == 201
-        assert api_client.get(LIST_URL).json()["count"] == 1
+        assert created.status_code == 403
 
 
 class TestScheduleRetrieve:
@@ -302,6 +385,7 @@ class TestScheduleRetrieve:
         body = response.json()
         assert body["id"] == schedule.id
         assert body["equipment_asset_tag"] == schedule.equipment.asset_tag
+        assert body["equipment_name"] == schedule.equipment.name
 
     def test_retrieve_missing_returns_404(self, auth_client):
         assert auth_client.get(detail_url(99999)).status_code == 404
@@ -315,6 +399,25 @@ class TestScheduleUpdate:
         assert response.status_code == 200
         schedule.refresh_from_db()
         assert schedule.notes == "Notas nuevas"
+
+    def test_patch_ignores_equipment_and_kind(self, auth_client, schedule):
+        other = EquipmentFactory()
+        original_equipment = schedule.equipment_id
+        original_kind = schedule.kind
+        response = auth_client.patch(
+            detail_url(schedule.id),
+            {
+                "equipment": other.id,
+                "kind": ScheduledMaintenanceKind.REPAIR,
+                "notes": "Sigue siendo el mismo equipo",
+            },
+            format="json",
+        )
+        assert response.status_code == 200
+        schedule.refresh_from_db()
+        assert schedule.equipment_id == original_equipment
+        assert schedule.kind == original_kind
+        assert schedule.notes == "Sigue siendo el mismo equipo"
 
     def test_patch_allows_past_date_when_only_completing(self, auth_client, schedule):
         past = (date.today() - timedelta(days=2)).isoformat()

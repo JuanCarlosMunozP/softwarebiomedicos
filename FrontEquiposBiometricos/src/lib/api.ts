@@ -4,8 +4,9 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
+const API_BASE_URL = import.meta.env.DEV
+  ? "/api/v1"
+  : import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
 export const USER_KEY = "biometric_user";
 
@@ -154,9 +155,27 @@ api.interceptors.response.use(
   },
 );
 
+function isUnusableApiErrorBody(data: unknown, contentType: string): boolean {
+  if (contentType.includes("text/html")) return true;
+  if (typeof data !== "string") return false;
+  const s = data.trimStart();
+  if (!s) return false;
+  if (s.startsWith("<") || /<!doctype/i.test(s)) return true;
+  // Django technical_500.html a veces llega como el bloque <style> (CSS).
+  if (/h1\s*\{\s*font-weight/i.test(s.slice(0, 800))) return true;
+  return false;
+}
+
 export function getApiErrorMessage(error: unknown, fallback = "Ocurrió un error"): string {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data;
+    const contentType = String(
+      (typeof error.response?.headers?.get === "function"
+        ? error.response.headers.get("content-type")
+        : error.response?.headers?.["content-type"] ??
+          error.response?.headers?.["Content-Type"]) ?? "",
+    );
+    if (isUnusableApiErrorBody(data, contentType)) return fallback;
     if (typeof data === "string") return data;
     if (data && typeof data === "object") {
       // DRF suele devolver { detail: "..." } o { campo: ["msg"] }

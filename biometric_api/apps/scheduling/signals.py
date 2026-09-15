@@ -1,7 +1,7 @@
 from datetime import datetime, time
 
 from django.db import transaction
-from django.db.models.signals import post_save
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
@@ -22,11 +22,82 @@ _RECORD_KIND = {
     ScheduledMaintenanceKind.REPAIR: MaintenanceKind.REPAIR,
 }
 _OPEN_STATUSES = ("PENDING", "IN_PROGRESS")
+_BUSY_EQUIPMENT_STATUSES = ("IN_MAINTENANCE", "IN_REPAIR")
+
+
+def _sync_equipment_status_from_schedules(equipment) -> None:
+    """Al solicitar preventivo o reparación, el equipo pasa a En mantenimiento
+    o En reparación. Si no queda ninguna abierta, vuelve a Operativo.
+
+    No pisa un equipo Fuera de servicio. Si hay preventivo y reparación
+    abiertos a la vez, gana En reparación.
+    """
+    from apps.equipment.models import Equipment, EquipmentStatus
+
+    equipment_id = getattr(equipment, "pk", None) or getattr(
+        equipment, "id", equipment
+    )
+    if not equipment_id:
+        return
+
+    current = (
+        Equipment.objects.filter(pk=equipment_id)
+        .values_list("status", flat=True)
+        .first()
+    )
+    if current is None or current == EquipmentStatus.INACTIVE:
+        return
+
+    open_requests = MaintenanceSchedule.objects.filter(
+        equipment_id=equipment_id,
+        is_completed=False,
+    )
+    if open_requests.filter(kind=ScheduledMaintenanceKind.REPAIR).exists():
+        target = EquipmentStatus.IN_REPAIR
+    elif open_requests.filter(kind=ScheduledMaintenanceKind.PREVENTIVE).exists():
+        target = EquipmentStatus.IN_MAINTENANCE
+    elif current in _BUSY_EQUIPMENT_STATUSES:
+        target = EquipmentStatus.ACTIVE
+    else:
+        return
+
+    if current != target:
+        Equipment.objects.filter(pk=equipment_id).update(status=target)
+
+
+@receiver(pre_save, sender=MaintenanceSchedule)
+def remember_previous_assignees(sender, instance: MaintenanceSchedule, **kwargs):
+    """Guarda el asignado anterior para saber si Guardar acaba de asignar."""
+    if not instance.pk:
+        instance._previous_engineer_id = None
+        instance._previous_technician_id = None
+        return
+    previous = (
+        MaintenanceSchedule.objects.filter(pk=instance.pk)
+        .values("assigned_engineer_id", "assigned_technician_id")
+        .first()
+    )
+    if previous is None:
+        instance._previous_engineer_id = None
+        instance._previous_technician_id = None
+        return
+    instance._previous_engineer_id = previous["assigned_engineer_id"]
+    instance._previous_technician_id = previous["assigned_technician_id"]
 
 
 @receiver(post_save, sender=MaintenanceSchedule)
 def trigger_schedule_notification(sender, instance: MaintenanceSchedule, created: bool, **kwargs):
     if created:
+        send_schedule_notification.delay(instance.pk)
+        return
+    previous_engineer = getattr(instance, "_previous_engineer_id", None)
+    previous_technician = getattr(instance, "_previous_technician_id", None)
+    assigned_now = instance.assigned_engineer_id or instance.assigned_technician_id
+    assignment_changed = (
+        instance.assigned_engineer_id != previous_engineer
+        or instance.assigned_technician_id != previous_technician
+    )
+    if assigned_now and assignment_changed:
         send_schedule_notification.delay(instance.pk)
 
 
@@ -68,13 +139,27 @@ def sync_work_order_from_schedule(sender, instance: MaintenanceSchedule, **kwarg
         number=_unique_wo_number(instance),
         service_type=_WO_SERVICE_TYPE.get(instance.kind, "CORRECTIVE"),
         start_date=timezone.make_aware(datetime.combine(start, time(8, 0))),
-        description=(
-            instance.notes or f"Solicitud de {instance.get_kind_display().lower()}."
-        ),
+        description=(instance.notes or instance.get_kind_display()),
         technician=assignee,
         status="PENDING",
         schedule=instance,
     )
+
+
+@receiver(post_save, sender=MaintenanceSchedule)
+def sync_equipment_status_from_schedule(
+    sender, instance: MaintenanceSchedule, **kwargs
+):
+    """Crear, programar o cumplir la solicitud actualiza el estado del
+    equipo para los filtros de Equipos."""
+    _sync_equipment_status_from_schedules(instance.equipment)
+
+
+@receiver(post_delete, sender=MaintenanceSchedule)
+def sync_equipment_status_on_schedule_delete(
+    sender, instance: MaintenanceSchedule, **kwargs
+):
+    _sync_equipment_status_from_schedules(instance.equipment)
 
 
 @receiver(post_save, sender=EquipmentWorkOrder)

@@ -137,6 +137,28 @@ class TestBranchCreate:
         assert "name" in body
         assert "Ya existe una sede con este nombre" in body["name"][0]
 
+    def test_create_two_branches_without_email(self, auth_client):
+        first = auth_client.post(
+            LIST_URL, data=self._payload(name="Sede A", email=""), format="json"
+        )
+        second = auth_client.post(
+            LIST_URL, data=self._payload(name="Sede B", email=""), format="json"
+        )
+        assert first.status_code == status.HTTP_201_CREATED, first.json()
+        assert second.status_code == status.HTTP_201_CREATED, second.json()
+        assert first.json()["email"] in (None, "")
+        assert second.json()["email"] in (None, "")
+
+    def test_create_with_duplicate_email_returns_400_in_spanish(self, auth_client):
+        auth_client.post(LIST_URL, data=self._payload(), format="json")
+        response = auth_client.post(
+            LIST_URL,
+            data=self._payload(name="Sede Sur", email="norte@clinic.test"),
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "Ya existe una sede con este correo electrónico" in response.json()["email"][0]
+
     def test_create_with_invalid_phone_returns_400_in_spanish(self, auth_client):
         response = auth_client.post(
             LIST_URL,

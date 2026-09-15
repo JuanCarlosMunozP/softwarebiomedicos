@@ -146,6 +146,10 @@ class EquipmentSerializer(serializers.ModelSerializer):
             return None
         request = self.context.get("request")
         url = obj.qr_code.url
+        # MEDIA_URL debe ser `/media/...`. Si queda relativo, build_absolute_uri
+        # lo pega al path del listado y el <img> da 404.
+        if not url.startswith(("http://", "https://", "/")):
+            url = f"/{url}"
         return request.build_absolute_uri(url) if request else url
 
     def validate_asset_tag(self, value: str) -> str:
@@ -349,16 +353,21 @@ class WorkOrderSignatureSerializer(serializers.ModelSerializer):
         ]
 
 class WorkOrderCostSerializer(serializers.ModelSerializer):
+    total = serializers.SerializerMethodField()
 
     class Meta:
-
         model = WorkOrderCost
+        fields = "__all__"
+        read_only_fields = ["id", "spare_parts_cost", "total"]
 
-        fields = '__all__'
-
-        read_only_fields = [
-            "id",
-        ]
+    def get_total(self, obj):
+        value = (
+            (obj.labor_cost or 0)
+            + (obj.spare_parts_cost or 0)
+            + (obj.transport_cost or 0)
+            + (obj.other_cost or 0)
+        )
+        return f"{value:.2f}"
 
 class EquipmentWorkOrderSerializer(serializers.ModelSerializer):
 
@@ -446,9 +455,30 @@ class EquipmentWorkOrderSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
+        status = attrs.get("status", getattr(self.instance, "status", None))
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if (
+            self.instance is not None
+            and status == "FINISHED"
+            and self.instance.status == "PENDING"
+            and getattr(user, "role", None) == "ingeniero"
+        ):
+            raise serializers.ValidationError(
+                {
+                    "status": _(
+                        "Primero pasa la orden a En proceso; no se puede finalizar de una."
+                    )
+                }
+            )
         start = attrs.get("start_date", getattr(self.instance, "start_date", None))
         end = attrs.get("end_date", getattr(self.instance, "end_date", None))
-        if start and end and end < start:
+        if status == "FINISHED" and not end:
+            attrs["end_date"] = timezone.now()
+            end = attrs["end_date"]
+        # Al terminar, la fecha fin es el momento real del trabajo; puede ser
+        # anterior a un inicio programado a futuro.
+        if start and end and end < start and status != "FINISHED":
             raise serializers.ValidationError(
                 {"end_date": _("La fecha de fin no puede ser anterior al inicio.")}
             )

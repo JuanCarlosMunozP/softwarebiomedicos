@@ -25,6 +25,15 @@ describe("getApiErrorMessage", () => {
     );
   });
 
+  it("ignores Django HTML/CSS 500 dumps and uses the fallback", () => {
+    const html = axiosErrorWithData("<!DOCTYPE html><html><body>Traceback</body></html>", 500);
+    html.response!.headers = { "content-type": "text/html; charset=utf-8" };
+    expect(getApiErrorMessage(html, "Error al guardar")).toBe("Error al guardar");
+
+    const css = axiosErrorWithData("h1 { font-weight:normal; }\nh2 { margin-bottom:.8em; }", 500);
+    expect(getApiErrorMessage(css, "Error al guardar")).toBe("Error al guardar");
+  });
+
   it("prefers DRF's `detail` field when present", () => {
     const error = axiosErrorWithData({ detail: "No autorizado." });
     expect(getApiErrorMessage(error)).toBe("No autorizado.");

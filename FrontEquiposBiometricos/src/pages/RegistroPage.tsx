@@ -190,7 +190,7 @@ export function RegistroPage() {
                   }`}
                 >
                   <option value="">Selecciona un cargo</option>
-                  <option value="tecnico">Técnico biomédico</option>
+                  <option value="tecnico">Usuario operativo</option>
                   <option value="enfermeria">Enfermería</option>
                   <option value="medico">Médico</option>
                   <option value="administrativo">Administrativo</option>

@@ -50,11 +50,13 @@ export function EquipoDetallePage() {
             Volver
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-app sm:text-3xl">
+            <h1 className="text-2xl font-bold text-app">
               Hoja de vida del equipo
             </h1>
             <p className="text-sm text-app-muted">
-              Información, mantenimientos realizados y agendamientos.
+              {usuario?.role === "tecnico"
+                ? "Consulta el equipo asignado a tu área."
+                : "Información, mantenimientos realizados y agendamientos."}
             </p>
           </div>
         </div>

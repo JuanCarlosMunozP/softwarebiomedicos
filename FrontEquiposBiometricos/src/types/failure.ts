@@ -8,6 +8,7 @@ export interface FailureReport {
   description: string;
   severity: FailureSeverity;
   reported_at: string;
+  reported_by?: number | null;
   resolved: boolean;
   resolved_at?: string | null;
   resolution_notes?: string | null;

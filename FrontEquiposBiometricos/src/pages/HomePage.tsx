@@ -4,7 +4,6 @@ import {
   ArrowRight,
   BookOpen,
   Boxes,
-  Code2,
   GraduationCap,
   HeartPulse,
   History,
@@ -63,15 +62,6 @@ const modulos = [
     title: "Roles y permisos",
     desc: "Administrador, técnico y usuario clínico, cada uno con accesos diseñados a su responsabilidad.",
   },
-];
-
-const stack = [
-  "React 19",
-  "TypeScript",
-  "Vite",
-  "Tailwind CSS v4",
-  "React Router",
-  "Axios",
 ];
 
 export function HomePage() {
@@ -210,31 +200,6 @@ export function HomePage() {
               </div>
             </Card>
           ))}
-        </div>
-      </section>
-
-      {/* Tecnología — chips, perfecto para presentar como trabajo de grado */}
-      <section className="border-t border-app bg-app-muted">
-        <div className="mx-auto flex max-w-screen-2xl flex-col items-start gap-6 px-4 py-12 sm:px-6 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-primary)]">
-              <Code2 size={16} />
-              Construido con
-            </div>
-            <h2 className="mt-2 text-xl font-bold text-app sm:text-2xl">
-              Stack tecnológico moderno y mantenible
-            </h2>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {stack.map((s) => (
-              <span
-                key={s}
-                className="rounded-full border border-app bg-surface px-3 py-1.5 text-sm font-medium text-app"
-              >
-                {s}
-              </span>
-            ))}
-          </div>
         </div>
       </section>
 

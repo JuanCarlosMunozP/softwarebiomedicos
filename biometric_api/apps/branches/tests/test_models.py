@@ -28,6 +28,24 @@ class TestBranchModel:
         branch = BranchFactory.build(phone="+57 300 555 1234")
         branch.full_clean()
 
+    def test_blank_email_is_stored_as_null_and_can_repeat(self):
+        a = Branch.objects.create(
+            name="Sede Sin Mail 1",
+            address="Calle 1",
+            city="Bogota",
+            phone="+57 300 111 1111",
+            email="",
+        )
+        b = Branch.objects.create(
+            name="Sede Sin Mail 2",
+            address="Calle 2",
+            city="Bogota",
+            phone="+57 300 222 2222",
+            email="",
+        )
+        assert a.email is None
+        assert b.email is None
+
 
 class TestBranchManager:
     def test_active_manager_returns_only_active(self):

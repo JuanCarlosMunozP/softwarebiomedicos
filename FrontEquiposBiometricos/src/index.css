@@ -9,6 +9,9 @@
   --color-secondary: #111827;
 
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Misma familia que el resto de la UI: códigos/placas no cambian de tipo. */
+  --font-mono: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --default-font-family: var(--font-sans);
 }
 
 :root {
@@ -38,6 +41,31 @@ body,
 /* Los formularios marcan los campos inválidos con el prop `error` de <Input>.
    Desactivamos el estilo nativo del navegador para que no compita: */
 @layer base {
+  html {
+    font-family: var(--font-sans);
+  }
+
+  button,
+  input,
+  select,
+  textarea,
+  optgroup,
+  option {
+    font-family: inherit;
+  }
+
+  svg text,
+  .recharts-wrapper,
+  .recharts-text,
+  .recharts-legend-item-text,
+  .recharts-tooltip-wrapper,
+  .recharts-default-tooltip,
+  .recharts-tooltip-item,
+  .recharts-tooltip-label {
+    font-family: var(--font-sans) !important;
+    font-size: 0.75rem !important;
+  }
+
   /* Flechas (spinner) de los <input type="number"> — se quitan en todos los navegadores. */
   input[type="number"] {
     -moz-appearance: textfield;
@@ -67,6 +95,9 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
+  /* Cuerpo del panel: 14px. Títulos 24px, secciones 16px, meta 12px. */
+  font-size: 0.875rem;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

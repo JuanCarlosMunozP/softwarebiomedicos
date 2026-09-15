@@ -7,6 +7,7 @@ export interface CreateUserInput {
   last_name: string;
   role: Rol;
   phone?: string;
+  area?: string;
   password: string;
 }
 
@@ -17,6 +18,7 @@ export interface UpdateUserInput {
   last_name?: string;
   role?: Rol;
   phone?: string;
+  area?: string;
   is_active?: boolean;
 }
 

@@ -21,6 +21,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { ROLE_LABEL, can } from "@/lib/permissions";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { cn } from "@/lib/cn";
+import { fullNameOf } from "@/lib/users";
 import type { Rol } from "@/types/auth";
 import type { AppDrawerParamList } from "./types";
 
@@ -42,21 +43,26 @@ const NAV_ITEMS: NavItem[] = [
     key: "Equipos",
     label: "Equipos",
     icon: (c) => <Stethoscope size={18} color={c} />,
-    visible: (r) => can(r, "equipment", "view"),
+    visible: (r) =>
+      can(r, "equipment", "view") && r !== "tecnico" && r !== "usuario",
   },
   {
     key: "Mantenimientos",
     label: "Mantenimientos",
     icon: (c) => <Wrench size={18} color={c} />,
-    // No lo ve el técnico (trabaja desde "Órdenes de trabajo").
-    visible: (r) => r !== "tecnico" && can(r, "maintenance", "view"),
+    // Registrar/editar el historial es exclusivo del superadmin. El resto
+    // trabaja desde "Órdenes de trabajo".
+    visible: (r) => r === "superadmin",
   },
   {
     key: "OrdenesTrabajo",
     label: "Órdenes de trabajo",
     icon: (c) => <FileText size={18} color={c} />,
-    // Solo quien ejecuta el trabajo asignado.
-    visible: (r) => r === "ingeniero" || r === "tecnico",
+    visible: (r) =>
+      r === "superadmin" ||
+      r === "admin" ||
+      r === "coordinador" ||
+      r === "ingeniero",
   },
   {
     key: "Agendamientos",
@@ -68,7 +74,7 @@ const NAV_ITEMS: NavItem[] = [
     key: "Fallas",
     label: "Fallas",
     icon: (c) => <TriangleAlert size={18} color={c} />,
-    visible: (r) => can(r, "failures", "view"),
+    visible: (r) => can(r, "failures", "view") && r !== "tecnico",
   },
   {
     key: "Sedes",
@@ -120,9 +126,7 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
                 className="text-sm font-semibold text-app-text dark:text-app-dark-text"
                 numberOfLines={1}
               >
-                {usuario
-                  ? `${usuario.first_name} ${usuario.last_name}`.trim() || usuario.username
-                  : "Invitado"}
+                {usuario ? fullNameOf(usuario) : "Invitado"}
               </Text>
               {usuario && (
                 <Text className="text-xs text-app-text-muted dark:text-app-dark-text-muted">
@@ -158,7 +162,9 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
                       : "text-app-text dark:text-app-dark-text",
                   )}
                 >
-                  {it.label}
+                  {it.key === "OrdenesTrabajo" && role === "ingeniero"
+                    ? "Tareas asignadas"
+                    : it.label}
                 </Text>
               </Pressable>
             );

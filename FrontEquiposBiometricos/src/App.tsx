@@ -86,20 +86,22 @@ function App() {
                       <Route path="sedes" element={<SedesPage />} />
                     </Route>
 
-                    <Route path="equipos" element={<EquiposPage />} />
                     <Route
-                      path="equipos/etiquetas"
-                      element={<EtiquetasQrPage />}
-                    />
-                    <Route path="equipos/:id" element={<EquipoDetallePage />} />
-                    <Route
-                      path="agendamientos"
-                      element={<AgendamientosPage />}
-                    />
-                    <Route path="fallas" element={<FallasPage />} />
-                    <Route path="perfil" element={<PerfilPage />} />
-
-                    {/* Historial de mantenimientos: todos menos el técnico. */}
+                      element={
+                        <ProtectedRoute
+                          roles={[
+                            "superadmin",
+                            "admin",
+                            "coordinador",
+                            "ingeniero",
+                            "tecnico",
+                          ]}
+                        />
+                      }
+                    >
+                      <Route path="equipos" element={<EquiposPage />} />
+                      <Route path="equipos/:id" element={<EquipoDetallePage />} />
+                    </Route>
                     <Route
                       element={
                         <ProtectedRoute
@@ -113,15 +115,71 @@ function App() {
                       }
                     >
                       <Route
+                        path="equipos/etiquetas"
+                        element={<EtiquetasQrPage />}
+                      />
+                    </Route>
+                    {/* Solicitudes: gestión + operativo + usuario +
+                        ingeniero (solo consulta). */}
+                    <Route
+                      element={
+                        <ProtectedRoute
+                          roles={[
+                            "superadmin",
+                            "admin",
+                            "coordinador",
+                            "ingeniero",
+                            "tecnico",
+                            "usuario",
+                          ]}
+                        />
+                      }
+                    >
+                      <Route
+                        path="agendamientos"
+                        element={<AgendamientosPage />}
+                      />
+                    </Route>
+                    <Route
+                      element={
+                        <ProtectedRoute
+                          roles={[
+                            "superadmin",
+                            "admin",
+                            "coordinador",
+                            "ingeniero",
+                            "tecnico",
+                          ]}
+                        />
+                      }
+                    >
+                      <Route path="fallas" element={<FallasPage />} />
+                    </Route>
+                    <Route path="perfil" element={<PerfilPage />} />
+
+                    {/* Historial de mantenimientos: registrar/editar es
+                        exclusivo del superadmin. */}
+                    <Route
+                      element={<ProtectedRoute roles={["superadmin"]} />}
+                    >
+                      <Route
                         path="mantenimientos"
                         element={<MantenimientosPage />}
                       />
                     </Route>
 
-                    {/* Órdenes de trabajo: solo quien ejecuta el trabajo. */}
+                    {/* Órdenes de trabajo: gestión ve todas; el ingeniero
+                        solo las suyas ("Tareas asignadas"). */}
                     <Route
                       element={
-                        <ProtectedRoute roles={["ingeniero", "tecnico"]} />
+                        <ProtectedRoute
+                          roles={[
+                            "superadmin",
+                            "admin",
+                            "coordinador",
+                            "ingeniero",
+                          ]}
+                        />
                       }
                     >
                       <Route

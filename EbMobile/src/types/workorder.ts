@@ -60,6 +60,7 @@ export interface WorkOrderCost {
   spare_parts_cost: string;
   transport_cost: string;
   other_cost: string;
+  total?: string;
 }
 
 export interface WorkOrderDetail extends WorkOrder {

@@ -10,7 +10,7 @@ from .managers import MaintenanceScheduleManager
 
 class ScheduledMaintenanceKind(models.TextChoices):
     PREVENTIVE = "PREVENTIVE", _("Mantenimiento preventivo")
-    REPAIR = "REPAIR", _("Reparación programada")
+    REPAIR = "REPAIR", _("Reparación")
 
 
 class MaintenanceSchedule(models.Model):
@@ -65,6 +65,18 @@ class MaintenanceSchedule(models.Model):
     )
     notified_at = models.DateTimeField(_("Notificado el"), null=True, blank=True)
     is_completed = models.BooleanField(_("Completado"), default=False, db_index=True)
+    # Columnas que ya existían en Postgres (migración 0004 aplicada sin el
+    # archivo en el repo). Sin default, el INSERT de una solicitud nueva
+    # mandaba NULL y reventaba con IntegrityError.
+    auto_generated = models.BooleanField(_("Generada automáticamente"), default=False)
+    generated_from = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="generated_schedules",
+        verbose_name=_("Solicitud origen"),
+    )
     created_at = models.DateTimeField(_("Creado"), auto_now_add=True)
     updated_at = models.DateTimeField(_("Actualizado"), auto_now=True)
 

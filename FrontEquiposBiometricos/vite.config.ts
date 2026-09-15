@@ -20,7 +20,7 @@ export default defineConfig({
     css: true,
   },
   server: {
-    host: '127.0.0.1',
+    host: true,
     // Proxy hacia Django: así el navegador solo habla con 127.0.0.1:5173
     // (un único origen) y nunca hace un request cross-origin real hacia
     // :8000. Esto es necesario porque el backend entrega el access/refresh

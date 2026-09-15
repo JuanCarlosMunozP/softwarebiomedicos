@@ -27,7 +27,9 @@ const matrix: Matrix = {
     users: ["view", "create", "edit", "delete"],
     branches: ["view", "create", "edit", "delete"],
     equipment: ["view", "create", "edit", "delete"],
-    maintenance: ["view", "create", "edit", "delete"],
+    // Registrar/editar en el historial de mantenimientos es exclusivo del
+    // superadmin; el resto de la gestión solo lo consulta.
+    maintenance: ["view"],
     scheduling: ["view", "create", "edit", "delete"],
     failures: ["view", "create", "edit", "delete"],
     work_orders: ["view", "create", "edit", "delete"],
@@ -35,7 +37,7 @@ const matrix: Matrix = {
   coordinador: {
     branches: ["view"],
     equipment: ["view", "create", "edit"],
-    maintenance: ["view", "create", "edit", "delete"],
+    maintenance: ["view"],
     scheduling: ["view", "create", "edit", "delete"],
     failures: ["view", "create", "edit"],
     work_orders: ["view", "create", "edit", "delete"],
@@ -43,17 +45,19 @@ const matrix: Matrix = {
   ingeniero: {
     branches: ["view"],
     equipment: ["view"],
-    maintenance: ["view", "create", "edit"],
-    scheduling: ["view", "create", "edit"],
+    // Consulta solicitudes asignadas (área solicitante); no las gestiona.
+    scheduling: ["view"],
     failures: ["view", "create", "edit"],
     work_orders: ["view", "create", "edit"],
   },
   tecnico: {
     equipment: ["view"],
-    maintenance: ["view", "create"],
-    scheduling: ["view"],
     failures: ["view", "create"],
-    work_orders: ["view", "create", "edit"],
+    scheduling: ["view", "create"],
+  },
+  usuario: {
+    equipment: ["view"],
+    scheduling: ["view", "create"],
   },
 };
 
@@ -67,11 +71,20 @@ export function can(
   return Array.isArray(actions) && actions.includes(action);
 }
 
+export const ASSIGNABLE_ROLES: Rol[] = [
+  "admin",
+  "coordinador",
+  "ingeniero",
+  "tecnico",
+  "usuario",
+];
+
 export function canAssignRole(actorRole: Rol | undefined, targetRole: Rol): boolean {
   if (!actorRole) return false;
-  if (actorRole === "superadmin") return true;
+  if (targetRole === "superadmin") return false;
+  if (actorRole === "superadmin") return ASSIGNABLE_ROLES.includes(targetRole);
   if (actorRole === "admin") {
-    return targetRole !== "superadmin" && targetRole !== "admin";
+    return targetRole !== "admin" && ASSIGNABLE_ROLES.includes(targetRole);
   }
   return false;
 }
@@ -81,5 +94,6 @@ export const ROLE_LABEL: Record<Rol, string> = {
   admin: "Administrador",
   coordinador: "Coordinador",
   ingeniero: "Ingeniero biomédico",
-  tecnico: "Técnico",
+  tecnico: "Usuario operativo",
+  usuario: "Usuario",
 };

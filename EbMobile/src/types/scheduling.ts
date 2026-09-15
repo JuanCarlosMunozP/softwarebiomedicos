@@ -6,6 +6,7 @@ export interface RequestedByUser {
   id: number;
   username: string;
   full_name: string;
+  area?: string | null;
 }
 
 export interface ScheduledMaintenance {
@@ -17,6 +18,8 @@ export interface ScheduledMaintenance {
   /** Fecha en que se creó la solicitud (solo lectura). */
   requested_date: string;
   requested_by_detail?: RequestedByUser | null;
+  /** Área del solicitante; si no tiene, la del equipo. */
+  requesting_area?: string | null;
   /** Fecha de programación; null mientras la solicitud no se agenda. */
   scheduled_date: string | null;
   notes?: string;
@@ -26,6 +29,12 @@ export interface ScheduledMaintenance {
   assigned_technician_detail?: AssignedUser | null;
   is_completed: boolean;
   notified_at?: string | null;
+  work_order?: {
+    id: number;
+    number: string;
+    status: string;
+    end_date?: string | null;
+  } | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -34,6 +43,7 @@ export interface ScheduledMaintenance {
 export interface ScheduleCreateInput {
   equipment: number;
   kind: ScheduleKind;
+  requested_date?: string;
   notes?: string;
 }
 

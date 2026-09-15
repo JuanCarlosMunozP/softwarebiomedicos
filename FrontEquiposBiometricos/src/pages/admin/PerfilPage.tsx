@@ -17,6 +17,7 @@ import { useAuth } from "@/context/AuthContext";
 import { ROLE_LABEL } from "@/lib/permissions";
 import { usersService } from "@/services/users.service";
 import { getApiErrorMessage } from "@/lib/api";
+import { fullNameOf } from "@/lib/users";
 
 export function PerfilPage() {
   const { usuario, refreshUser } = useAuth();
@@ -30,9 +31,7 @@ export function PerfilPage() {
 
   if (!usuario) return null;
 
-  const fullName =
-    [usuario.first_name, usuario.last_name].filter(Boolean).join(" ") ||
-    usuario.username;
+  const fullName = fullNameOf(usuario);
 
   const initials = (
     (usuario.first_name?.[0] ?? usuario.username[0] ?? "?") +
@@ -71,7 +70,7 @@ export function PerfilPage() {
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold text-app sm:text-3xl">Mi perfil</h1>
+        <h1 className="text-2xl font-bold text-app">Mi perfil</h1>
         <p className="text-sm text-app-muted">
           Información personal y configuración de la cuenta.
         </p>
@@ -92,7 +91,7 @@ export function PerfilPage() {
             {initials}
           </div>
           <div className="flex flex-1 flex-col gap-1">
-            <h2 className="text-xl font-bold text-app">{fullName}</h2>
+            <h2 className="text-base font-semibold text-app">{fullName}</h2>
             <p className="text-sm text-app-muted">@{usuario.username}</p>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <Badge tone="primary">

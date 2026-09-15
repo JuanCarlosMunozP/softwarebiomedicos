@@ -28,12 +28,24 @@ export function Card({ children, padding = "md", className, ...props }: CardProp
   );
 }
 
-export function CardHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
+export function CardHeader({
+  title,
+  subtitle,
+  action,
+  compact = false,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: ReactNode;
+  compact?: boolean;
+}) {
   return (
-    <div className="mb-4 flex items-start justify-between gap-4">
+    <div className={cn("flex items-start justify-between gap-3", compact ? "mb-2" : "mb-4")}>
       <div>
-        <h3 className="text-lg font-semibold text-app">{title}</h3>
-        {subtitle && <p className="mt-0.5 text-sm text-app-muted">{subtitle}</p>}
+        <h3 className={cn("font-semibold text-app", compact ? "text-sm" : "text-base")}>
+          {title}
+        </h3>
+        {subtitle && <p className="mt-0.5 text-xs text-app-muted sm:text-sm">{subtitle}</p>}
       </div>
       {action}
     </div>

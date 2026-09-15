@@ -2,7 +2,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, LogOut, Menu, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { ROLE_LABEL } from "@/lib/permissions";
+import { ROLE_LABEL, panelHome } from "@/lib/permissions";
+import { fullNameOf } from "@/lib/users";
 
 interface HeaderProps {
   onToggleSidebar?: () => void;
@@ -18,10 +19,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
     navigate("/login");
   };
 
-  const fullName = usuario
-    ? [usuario.first_name, usuario.last_name].filter(Boolean).join(" ") ||
-      usuario.username
-    : "";
+  const fullName = usuario ? fullNameOf(usuario) : "";
 
   // El botón "Ir al panel" sólo aparece cuando el usuario está autenticado
   // y NO está ya dentro del panel.
@@ -74,7 +72,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
               </div>
               {showGoToPanel && (
                 <Link
-                  to="/admin"
+                  to={panelHome(usuario.role)}
                   className="inline-flex h-10 items-center gap-2 rounded-lg bg-[var(--color-primary)] px-3 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-dark)]"
                 >
                   <LayoutDashboard size={16} />

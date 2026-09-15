@@ -22,6 +22,14 @@ class FailureRecord(models.Model):
         related_name="failures",
         verbose_name=_("Equipo"),
     )
+    reported_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="failure_reports",
+        verbose_name=_("Reportado por"),
+    )
     reported_at = models.DateTimeField(
         _("Reportada el"),
         default=timezone.now,

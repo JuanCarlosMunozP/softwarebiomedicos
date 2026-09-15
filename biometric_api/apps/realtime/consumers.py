@@ -1,4 +1,8 @@
+import logging
+
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+
+logger = logging.getLogger(__name__)
 
 # Grupo único al que se unen todos los clientes autenticados. Cuando haga
 # falta segmentar (por sede, por rol, por usuario) se agregan más grupos en
@@ -8,6 +12,8 @@ NOTIFICATIONS_GROUP = "notifications"
 # Código de cierre que el frontend (lib/websocket.ts) interpreta como
 # "sesión inválida/expirada": deja de reintentar.
 AUTH_CLOSE_CODE = 4401
+# Redis/channel layer caído: el cliente sí debe reintentar (no es 4401).
+CHANNEL_LAYER_CLOSE_CODE = 1013
 
 
 class NotificationConsumer(AsyncJsonWebsocketConsumer):
@@ -26,13 +32,25 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
             await self.accept()
             await self.close(code=AUTH_CLOSE_CODE)
             return
-        await self.channel_layer.group_add(NOTIFICATIONS_GROUP, self.channel_name)
+        try:
+            await self.channel_layer.group_add(NOTIFICATIONS_GROUP, self.channel_name)
+        except Exception:
+            logger.exception(
+                "No se pudo unir al channel layer (¿Redis inalcanzable? "
+                "CHANNELS_REDIS_URL debe ser redis://redis:6379/3 dentro de Docker)."
+            )
+            await self.accept()
+            await self.close(code=CHANNEL_LAYER_CLOSE_CODE)
+            return
         await self.accept()
 
     async def disconnect(self, code):
-        await self.channel_layer.group_discard(
-            NOTIFICATIONS_GROUP, self.channel_name
-        )
+        try:
+            await self.channel_layer.group_discard(
+                NOTIFICATIONS_GROUP, self.channel_name
+            )
+        except Exception:
+            logger.debug("group_discard falló (channel layer no disponible)", exc_info=True)
 
     async def receive_json(self, content, **kwargs):
         # Canal de solo lectura: no se procesa nada entrante.

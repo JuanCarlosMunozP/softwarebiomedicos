@@ -29,7 +29,7 @@ class _RequestedBySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("id", "username", "full_name")
+        fields = ("id", "username", "full_name", "area")
 
     def get_full_name(self, obj: User) -> str:
         return f"{obj.first_name} {obj.last_name}".strip()
@@ -45,6 +45,7 @@ class _MaintenanceRecordMiniSerializer(serializers.ModelSerializer):
 
 class MaintenanceScheduleSerializer(serializers.ModelSerializer):
     equipment_asset_tag = serializers.CharField(source="equipment.asset_tag", read_only=True)
+    equipment_name = serializers.CharField(source="equipment.name", read_only=True)
     branch_name = serializers.CharField(source="equipment.branch.name", read_only=True)
     # Sin esto, ModelSerializer generaría el PrimaryKeyRelatedField aplicando
     # el `limit_choices_to` del modelo (role/is_active) como queryset. Eso
@@ -63,6 +64,14 @@ class MaintenanceScheduleSerializer(serializers.ModelSerializer):
     assigned_technician = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), required=False, allow_null=True
     )
+    # Un solo responsable en el formulario: se enruta al FK de ingeniero u
+    # operativo según el rol, sin romper los campos existentes.
+    assigned_to = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        required=False,
+        allow_null=True,
+        write_only=True,
+    )
     assigned_engineer_detail = _AssignedUserSerializer(
         source="assigned_engineer", read_only=True
     )
@@ -70,6 +79,7 @@ class MaintenanceScheduleSerializer(serializers.ModelSerializer):
         source="assigned_technician", read_only=True
     )
     requested_by_detail = _RequestedBySerializer(source="requested_by", read_only=True)
+    requesting_area = serializers.SerializerMethodField()
     # La solicitud nace sin fecha programada; la gestión la fija después.
     scheduled_date = serializers.DateField(required=False, allow_null=True)
     maintenance_record = serializers.SerializerMethodField()
@@ -83,19 +93,24 @@ class MaintenanceScheduleSerializer(serializers.ModelSerializer):
             "id",
             "equipment",
             "equipment_asset_tag",
+            "equipment_name",
             "branch_name",
             "kind",
             "requested_date",
             "requested_by",
             "requested_by_detail",
+            "requesting_area",
             "scheduled_date",
             "notes",
             "assigned_engineer",
             "assigned_engineer_detail",
             "assigned_technician",
             "assigned_technician_detail",
+            "assigned_to",
             "notified_at",
             "is_completed",
+            "auto_generated",
+            "generated_from",
             "maintenance_record",
             "maintenance_record_detail",
             "work_order",
@@ -105,19 +120,31 @@ class MaintenanceScheduleSerializer(serializers.ModelSerializer):
         read_only_fields = (
             "id",
             "equipment_asset_tag",
+            "equipment_name",
             "branch_name",
-            "requested_date",
             "requested_by",
             "requested_by_detail",
+            "requesting_area",
             "assigned_engineer_detail",
             "assigned_technician_detail",
             "notified_at",
+            "auto_generated",
+            "generated_from",
             "maintenance_record",
             "maintenance_record_detail",
             "work_order",
             "created_at",
             "updated_at",
         )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Al programar/editar, el equipo y el tipo ya están en la solicitud
+        # y no se pueden cambiar (solo se eligen al crear).
+        if isinstance(self.instance, MaintenanceSchedule):
+            self.fields["equipment"].read_only = True
+            self.fields["kind"].read_only = True
+            self.fields["requested_date"].read_only = True
 
     def create(self, validated_data):
         request = self.context.get("request")
@@ -144,7 +171,23 @@ class MaintenanceScheduleSerializer(serializers.ModelSerializer):
         wo = getattr(obj, "work_order", None)
         if wo is None:
             return None
-        return {"id": wo.id, "number": wo.number, "status": wo.status}
+        end = wo.end_date
+        return {
+            "id": wo.id,
+            "number": wo.number,
+            "status": wo.status,
+            "end_date": end.isoformat() if end else None,
+        }
+
+    def get_requesting_area(self, obj) -> str | None:
+        requester = obj.requested_by
+        if requester is not None:
+            area = (requester.area or "").strip()
+            if area:
+                return area
+        equipment = obj.equipment
+        area = (getattr(equipment, "area", None) or "").strip()
+        return area or None
 
     def validate_equipment(self, value):
         if value.status == EquipmentStatus.INACTIVE:
@@ -187,6 +230,33 @@ class MaintenanceScheduleSerializer(serializers.ModelSerializer):
             )
         if value.role != User.Role.TECNICO:
             raise serializers.ValidationError(
-                _("El usuario asignado debe tener el rol de técnico.")
+                _("El usuario asignado debe tener el rol de usuario operativo.")
             )
         return value
+
+    def validate_assigned_to(self, value):
+        if value is None:
+            return value
+        if not value.is_active:
+            raise serializers.ValidationError(
+                _("El usuario asignado no está activo.")
+            )
+        if value.role not in {User.Role.INGENIERO, User.Role.TECNICO}:
+            raise serializers.ValidationError(
+                _("El asignado debe ser ingeniero biomédico o usuario operativo.")
+            )
+        return value
+
+    def validate(self, attrs):
+        assigned_to = attrs.pop("assigned_to", serializers.empty)
+        if assigned_to is not serializers.empty:
+            if assigned_to is None:
+                attrs["assigned_engineer"] = None
+                attrs["assigned_technician"] = None
+            elif assigned_to.role == User.Role.INGENIERO:
+                attrs["assigned_engineer"] = assigned_to
+                attrs["assigned_technician"] = None
+            else:
+                attrs["assigned_technician"] = assigned_to
+                attrs["assigned_engineer"] = None
+        return attrs

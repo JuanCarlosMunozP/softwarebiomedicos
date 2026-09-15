@@ -31,26 +31,27 @@ class MaintenanceScheduleViewSet(viewsets.ModelViewSet):
         "assigned_technician__username",
         "assigned_technician__first_name",
         "assigned_technician__last_name",
+        "requested_by__area",
+        "equipment__area",
     )
     ordering_fields = ("scheduled_date", "requested_date", "created_at")
     ordering = ("scheduled_date",)
 
     def get_queryset(self):
         qs = super().get_queryset()
-        # Técnico e ingeniero solo ven las solicitudes que tienen asignadas
-        # (cada uno en su FK). El ingeniero además ve las que él mismo creó.
-        # Gestión (superadmin/admin/coordinador) ve todas.
+        # Gestión ve todas. El operativo ve las que pidió o las que le
+        # asignaron. El usuario sin perfil técnico solo ve las que él pidió.
+        # El ingeniero solo consulta las asignadas a él o las que él pidió
+        # (sin crear/editar/borrar solicitudes).
         user = self.request.user
         if not user.is_authenticated:
             return qs
         if user.role == User.Role.TECNICO:
-            qs = qs.filter(assigned_technician=user)
-        elif user.role == User.Role.INGENIERO:
-            qs = qs.filter(
-                Q(assigned_engineer=user)
-                | Q(assigned_technician=user)
-                | Q(requested_by=user)
-            )
+            return qs.filter(Q(assigned_technician=user) | Q(requested_by=user))
+        if user.role == User.Role.USUARIO:
+            return qs.filter(requested_by=user)
+        if user.role == User.Role.INGENIERO:
+            return qs.filter(Q(assigned_engineer=user) | Q(requested_by=user))
         return qs
 
     @action(detail=True, methods=["post"], url_path="complete")

@@ -19,27 +19,14 @@ import type { NotificationEvent } from "@/types/notifications";
 
 type Handler = (event: NotificationEvent) => void;
 
-const WS_BASE_URL =
-  (import.meta.env.VITE_WS_BASE_URL as string | undefined) ??
-  deriveWsBaseFromApi();
-
-function deriveWsBaseFromApi(): string {
-  // Si no se setea VITE_WS_BASE_URL, derivamos del API base
-  // (http://host:port/api/v1 → ws://host:port). VITE_API_BASE_URL puede ser
-  // relativo (p. ej. "/api/v1", tanto en dev vía proxy de Vite como en
-  // producción vía nginx) — por eso resolvemos siempre contra
-  // window.location: sin una base explícita, `new URL()` lanza para
-  // cualquier valor relativo.
-  const apiUrl =
-    (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
-    "http://localhost:8000/api/v1";
-  try {
-    const u = new URL(apiUrl, window.location.origin);
-    const scheme = u.protocol === "https:" ? "wss:" : "ws:";
-    return `${scheme}//${u.host}`;
-  } catch {
-    return "ws://localhost:8000";
+/** Siempre el origen de la pestaña (Vite :5173 / nginx). Nunca :8000. */
+function getWsBaseUrl(): string {
+  const explicit = import.meta.env.VITE_WS_BASE_URL as string | undefined;
+  if (explicit && !explicit.includes(":8000")) {
+    return explicit.replace(/\/$/, "");
   }
+  const scheme = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${scheme}//${window.location.host}`;
 }
 
 const AUTH_CLOSE_CODE = 4401;
@@ -74,18 +61,18 @@ class NotificationSocket {
       window.clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
-    if (this.socket) {
-      this.socket.onopen = null;
-      this.socket.onmessage = null;
-      this.socket.onerror = null;
-      this.socket.onclose = null;
-      if (
-        this.socket.readyState === WebSocket.OPEN ||
-        this.socket.readyState === WebSocket.CONNECTING
-      ) {
-        this.socket.close(1000, "client_disconnect");
+    const socket = this.socket;
+    this.socket = null;
+    if (socket) {
+      socket.onopen = null;
+      socket.onmessage = null;
+      socket.onerror = null;
+      socket.onclose = null;
+      // Cerrar solo si ya está abierto: close() en CONNECTING dispara
+      // "WebSocket is closed before the connection is established".
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.close(1000, "client_disconnect");
       }
-      this.socket = null;
     }
     this.connected = false;
     this.retryAttempt = 0;
@@ -98,11 +85,15 @@ class NotificationSocket {
 
   private open(): void {
     if (!this.connected) return;
-    const url = `${WS_BASE_URL}/ws/notifications/`;
+    const url = `${getWsBaseUrl()}/ws/notifications/`;
     const socket = new WebSocket(url);
     this.socket = socket;
 
     socket.onopen = () => {
+      if (this.intentionallyClosed || this.socket !== socket) {
+        socket.close(1000, "stale");
+        return;
+      }
       this.retryAttempt = 0;
     };
 

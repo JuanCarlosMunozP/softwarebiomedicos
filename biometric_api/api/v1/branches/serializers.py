@@ -5,6 +5,10 @@ from apps.branches.models import Branch
 
 
 class BranchSerializer(serializers.ModelSerializer):
+    # Vacío → None: el UNIQUE de Postgres trata "" como valor y la segunda
+    # sede sin correo chocaba (IntegrityError). Varios NULL sí se permiten.
+    email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
+
     class Meta:
         model = Branch
         fields = (
@@ -20,8 +24,9 @@ class BranchSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "created_at", "updated_at")
         extra_kwargs = {
-            # El mensaje de unicidad lo controla validate_name (en español).
+            # El mensaje de unicidad lo controla validate_name / validate_email.
             "name": {"validators": []},
+            "email": {"validators": []},
         }
 
     def validate_name(self, value: str) -> str:
@@ -35,6 +40,21 @@ class BranchSerializer(serializers.ModelSerializer):
         if queryset.exists():
             raise serializers.ValidationError(
                 _("Ya existe una sede con este nombre.")
+            )
+        return normalized
+
+    def validate_email(self, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().lower()
+        if not normalized:
+            return None
+        queryset = Branch.objects.filter(email__iexact=normalized)
+        if self.instance is not None:
+            queryset = queryset.exclude(pk=self.instance.pk)
+        if queryset.exists():
+            raise serializers.ValidationError(
+                _("Ya existe una sede con este correo electrónico.")
             )
         return normalized
 

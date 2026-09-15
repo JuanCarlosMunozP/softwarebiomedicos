@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Bell,
   CalendarClock,
   Check,
   ChevronLeft,
   ChevronRight,
+  Eye,
   Pencil,
   Plus,
   Trash2,
@@ -41,12 +41,33 @@ const KIND_LABEL: Record<ScheduleKind, string> = {
   REPAIR: "Reparación",
 };
 
+function scheduleEstado(s: ScheduledMaintenance): {
+  label: string;
+  tone: "success" | "info" | "warning";
+} {
+  if (s.is_completed || s.work_order?.status === "FINISHED") {
+    return { label: "Cumplida", tone: "success" };
+  }
+  if (s.work_order?.status === "IN_PROGRESS") {
+    return { label: "En proceso", tone: "info" };
+  }
+  return { label: "Pendiente", tone: "warning" };
+}
+
+function formatDateTime(iso?: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString();
+}
+
 const today = () => new Date().toISOString().slice(0, 10);
 const PAGE_SIZE = 20;
 
 interface FormState {
   equipment: number;
   kind: ScheduleKind;
+  requested_date: string;
   scheduled_date: string;
   notes: string;
   assigned_technician: number | null;
@@ -56,6 +77,7 @@ interface FormState {
 const empty: FormState = {
   equipment: 0,
   kind: "PREVENTIVE",
+  requested_date: today(),
   scheduled_date: "",
   notes: "",
   assigned_technician: null,
@@ -81,6 +103,7 @@ export function AgendamientosPage() {
   const [completedFilter, setCompletedFilter] = useState("");
 
   const [editing, setEditing] = useState<ScheduledMaintenance | null>(null);
+  const [viewing, setViewing] = useState<ScheduledMaintenance | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<FormState>(empty);
   const [saving, setSaving] = useState(false);
@@ -94,10 +117,14 @@ export function AgendamientosPage() {
   const canCreate = can(role, "scheduling", "create");
   const canEdit = can(role, "scheduling", "edit");
   const canDelete = can(role, "scheduling", "delete");
+  const showRequestingArea = role === "superadmin" || role === "ingeniero";
+  const tableColSpan = showRequestingArea ? 7 : 6;
+  const isCoordinatorOrSuperadmin =
+    role === "coordinador" || role === "superadmin";
   const canRegisterMaintenance = can(role, "maintenance", "create");
   // Solo el ingeniero/técnico ejecuta la orden de trabajo; la gestión hace
   // seguimiento por el estado de la solicitud.
-  const canOpenWorkOrder = role === "ingeniero" || role === "tecnico";
+  const canOpenWorkOrder = role === "ingeniero";
 
   const equipmentOptions = useMemo(
     () =>
@@ -156,8 +183,8 @@ export function AgendamientosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Carga la lista de técnicos disponibles. Si el rol no puede listar
-  // usuarios (coordinador/ingeniero), el form cae al input numérico.
+  // Coordinador e ingeniero pueden listar ingenieros/operativos activos
+  // (selector de responsable). Admin ve el catálogo completo.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -191,8 +218,15 @@ export function AgendamientosPage() {
     assignedUserName(s.assigned_technician_detail) ??
     assignedUserName(s.assigned_engineer_detail);
 
+  const labelForRequester = (s: ScheduledMaintenance) =>
+    s.requested_by_detail?.full_name || s.requested_by_detail?.username || null;
+
   const openCreate = () => {
-    setForm({ ...empty, equipment: equipment[0]?.id ?? 0 });
+    setForm({
+      ...empty,
+      equipment: equipment[0]?.id ?? 0,
+      requested_date: today(),
+    });
     setCreating(true);
   };
 
@@ -200,6 +234,7 @@ export function AgendamientosPage() {
     setForm({
       equipment: s.equipment,
       kind: s.kind,
+      requested_date: s.requested_date,
       scheduled_date: s.scheduled_date ?? "",
       notes: s.notes ?? "",
       assigned_technician: s.assigned_technician ?? null,
@@ -219,18 +254,26 @@ export function AgendamientosPage() {
     setSaving(true);
     try {
       if (editing) {
+        const assignedUser = technicians.find(
+          (u) =>
+            u.id === form.assigned_technician ||
+            u.id === form.assigned_engineer,
+        );
         await schedulingService.update(editing.id, {
-          equipment: form.equipment,
-          kind: form.kind,
           scheduled_date: form.scheduled_date || null,
           notes: form.notes,
-          assigned_technician: form.assigned_technician,
-          assigned_engineer: form.assigned_engineer,
+          ...(technicianListAvailable
+            ? assignmentPayload(assignedUser ?? null)
+            : {
+                assigned_technician: form.assigned_technician,
+                assigned_engineer: form.assigned_engineer,
+              }),
         });
       } else {
         await schedulingService.create({
           equipment: form.equipment,
           kind: form.kind,
+          requested_date: form.requested_date || today(),
           notes: form.notes,
         });
       }
@@ -266,15 +309,6 @@ export function AgendamientosPage() {
     }
   };
 
-  const notifyOne = async (s: ScheduledMaintenance) => {
-    try {
-      await schedulingService.notify(s.id);
-      alert("Notificación encolada.");
-    } catch (err) {
-      alert(getApiErrorMessage(err, "No se pudo notificar"));
-    }
-  };
-
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
   const start = count === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const end = Math.min(page * PAGE_SIZE, count);
@@ -283,7 +317,7 @@ export function AgendamientosPage() {
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-app sm:text-3xl">
+          <h1 className="text-2xl font-bold text-app">
             Solicitudes
           </h1>
           <p className="text-sm text-app-muted">
@@ -336,9 +370,10 @@ export function AgendamientosPage() {
             <thead>
               <tr className="border-b border-app text-left text-xs uppercase tracking-wider text-app-muted [&>th]:pb-2 [&>th]:pr-6 [&>th]:font-medium [&>th]:whitespace-nowrap">
                 <th>Equipo</th>
+                {showRequestingArea && <th>Área solicitante</th>}
                 <th>Tipo</th>
-                <th>Fechas</th>
-                <th>Técnico</th>
+                <th>Fecha de Solicitud</th>
+                <th>Asignado a</th>
                 <th>Estado</th>
                 <th className="pr-0 text-right">Acciones</th>
               </tr>
@@ -346,13 +381,19 @@ export function AgendamientosPage() {
             <tbody className="divide-y divide-[var(--border)] [&>tr>td]:pr-6 [&>tr>td]:align-top">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-app-muted">
+                  <td
+                    colSpan={tableColSpan}
+                    className="py-8 text-center text-app-muted"
+                  >
                     Cargando...
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-app-muted">
+                  <td
+                    colSpan={tableColSpan}
+                    className="py-8 text-center text-app-muted"
+                  >
                     Sin solicitudes.
                   </td>
                 </tr>
@@ -368,26 +409,21 @@ export function AgendamientosPage() {
                           <p className="font-medium">
                             {s.equipment_name ?? equipmentLabel(s.equipment)}
                           </p>
-                          {s.notes && (
-                            <p className="text-xs text-app-muted">{s.notes}</p>
-                          )}
-                          {s.requested_by_detail && (
+                          {labelForRequester(s) && (
                             <p className="text-xs text-app-muted">
-                              Solicitada por {s.requested_by_detail.full_name ||
-                                s.requested_by_detail.username}
-                            </p>
-                          )}
-                          {s.maintenance_record_detail && (
-                            <p className="mt-1 inline-flex items-center gap-1 text-xs text-app-muted">
-                              <Wrench size={11} />
-                              Cumplida por mantenimiento #
-                              {s.maintenance_record_detail.id} ·{" "}
-                              {s.maintenance_record_detail.date}
+                              {labelForRequester(s)}
                             </p>
                           )}
                         </div>
                       </div>
                     </td>
+                    {showRequestingArea && (
+                      <td className="py-3 text-app-muted">
+                        {s.requesting_area || (
+                          <span className="text-xs italic">Sin área</span>
+                        )}
+                      </td>
+                    )}
                     <td className="py-3">
                       <Badge tone={s.kind === "PREVENTIVE" ? "info" : "danger"}>
                         {KIND_LABEL[s.kind]}
@@ -395,15 +431,16 @@ export function AgendamientosPage() {
                     </td>
                     <td className="py-3 text-app-muted whitespace-nowrap">
                       <div>
-                        <span className="text-xs uppercase tracking-wide">Sol.</span>{" "}
                         {s.requested_date}
                       </div>
-                      <div className="text-xs">
-                        <span className="uppercase tracking-wide">Prog.</span>{" "}
-                        {s.scheduled_date ?? (
-                          <span className="italic">por programar</span>
-                        )}
-                      </div>
+                      {s.work_order?.status === "FINISHED" && (
+                        <div className="text-xs">
+                          <span className="text-xs uppercase tracking-wide">
+                            Fin
+                          </span>{" "}
+                          {formatDateTime(s.work_order.end_date)}
+                        </div>
+                      )}
                     </td>
                     <td className="py-3 text-app-muted">
                       {labelForScheduleTechnician(s) ? (
@@ -418,12 +455,20 @@ export function AgendamientosPage() {
                       )}
                     </td>
                     <td className="py-3">
-                      <Badge tone={s.is_completed ? "success" : "warning"}>
-                        {s.is_completed ? "Cumplida" : "Pendiente"}
+                      <Badge tone={scheduleEstado(s).tone}>
+                        {scheduleEstado(s).label}
                       </Badge>
                     </td>
                     <td className="py-3">
                       <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          leftIcon={<Eye size={14} />}
+                          onClick={() => setViewing(s)}
+                        >
+                          Detalle
+                        </Button>
                         {s.work_order ? (
                           canOpenWorkOrder ? (
                             <Button
@@ -463,16 +508,6 @@ export function AgendamientosPage() {
                             onClick={() => void completeOne(s)}
                           >
                             Cumplir
-                          </Button>
-                        )}
-                        {canEdit && (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            leftIcon={<Bell size={14} />}
-                            onClick={() => void notifyOne(s)}
-                          >
-                            Notificar
                           </Button>
                         )}
                         {canEdit && (
@@ -537,44 +572,186 @@ export function AgendamientosPage() {
       </Card>
 
       <Modal
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Detalle de la solicitud"
+        size="lg"
+      >
+        {viewing && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-app-muted">
+                Equipo
+              </p>
+              <p className="mt-0.5 text-sm font-medium text-app">
+                {viewing.equipment_name ?? equipmentLabel(viewing.equipment)}
+                {viewing.equipment_asset_tag
+                  ? ` (${viewing.equipment_asset_tag})`
+                  : ""}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-app-muted">
+                Solicitante
+              </p>
+              <p className="mt-0.5 text-sm text-app">
+                {labelForRequester(viewing) ?? "—"}
+              </p>
+            </div>
+            {showRequestingArea && (
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-app-muted">
+                  Área solicitante
+                </p>
+                <p className="mt-0.5 text-sm text-app">
+                  {viewing.requesting_area ?? "—"}
+                </p>
+              </div>
+            )}
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-app-muted">
+                Tipo
+              </p>
+              <p className="mt-0.5 text-sm text-app">
+                {KIND_LABEL[viewing.kind]}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-app-muted">
+                Estado
+              </p>
+              <p className="mt-0.5 text-sm text-app">
+                {scheduleEstado(viewing).label}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-app-muted">
+                Fecha de solicitud
+              </p>
+              <p className="mt-0.5 text-sm text-app">{viewing.requested_date}</p>
+            </div>
+            {viewing.scheduled_date && (
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-app-muted">
+                Fecha programada
+              </p>
+              <p className="mt-0.5 text-sm text-app">
+                {viewing.scheduled_date}
+              </p>
+            </div>
+            )}
+            {viewing.work_order?.status === "FINISHED" && (
+              <div className="sm:col-span-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-app-muted">
+                  Fecha fin
+                </p>
+                <p className="mt-0.5 text-sm text-app">
+                  {formatDateTime(viewing.work_order.end_date)}
+                </p>
+              </div>
+            )}
+            <div className="sm:col-span-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-app-muted">
+                Asignado a
+              </p>
+              <p className="mt-0.5 text-sm text-app">
+                {labelForScheduleTechnician(viewing) ?? "Sin asignar"}
+              </p>
+            </div>
+            <div className="sm:col-span-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-app-muted">
+                Descripción
+              </p>
+              <p className="mt-0.5 whitespace-pre-wrap text-sm text-app">
+                {viewing.notes?.trim() ? viewing.notes : "Sin descripción"}
+              </p>
+            </div>
+            {viewing.maintenance_record_detail && (
+              <p className="inline-flex items-center gap-1 text-xs text-app-muted sm:col-span-2">
+                <Wrench size={11} />
+                Cumplida por mantenimiento #{viewing.maintenance_record_detail.id}{" "}
+                · {viewing.maintenance_record_detail.date}
+              </p>
+            )}
+            <div className="flex justify-end sm:col-span-2">
+              <Button variant="secondary" onClick={() => setViewing(null)}>
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
         open={creating || !!editing}
         onClose={closeModal}
         title={editing ? "Programar solicitud" : "Nueva solicitud"}
         size="lg"
       >
         <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
-          <Select
-            label="Equipo"
-            value={String(form.equipment)}
-            onChange={(e) =>
-              setForm({ ...form, equipment: Number(e.target.value) })
-            }
-            options={equipmentOptions}
-            placeholder="Selecciona un equipo"
-            required
-            className="sm:col-span-2"
-            error={
-              equipmentOptions.length === 0 && equipmentError
-                ? "No se pudieron cargar los equipos. Recarga la página e inténtalo de nuevo."
-                : undefined
-            }
-            hint={
-              equipmentOptions.length === 0 && !equipmentError
-                ? "Aún no hay equipos registrados en el sistema."
-                : undefined
-            }
-          />
-          <Select
-            label="Tipo"
-            value={form.kind}
-            onChange={(e) =>
-              setForm({ ...form, kind: e.target.value as ScheduleKind })
-            }
-            options={Object.entries(KIND_LABEL).map(([value, label]) => ({
-              value,
-              label,
-            }))}
-          />
+          {editing || (creating && isCoordinatorOrSuperadmin) ? (
+            <div className="sm:col-span-2">
+              <Input
+                label="Equipo"
+                value={
+                  editing
+                    ? editing.equipment_name
+                      ? `${editing.equipment_name}${
+                          editing.equipment_asset_tag
+                            ? ` (${editing.equipment_asset_tag})`
+                            : ""
+                        }`
+                      : equipmentLabel(editing.equipment)
+                    : equipmentLabel(form.equipment)
+                }
+                readOnly
+                disabled
+              />
+            </div>
+          ) : (
+            <div className="sm:col-span-2">
+              <Select
+                label="Equipo"
+                value={String(form.equipment)}
+                onChange={(e) =>
+                  setForm({ ...form, equipment: Number(e.target.value) })
+                }
+                options={equipmentOptions}
+                placeholder="Selecciona un equipo"
+                required
+                error={
+                  equipmentOptions.length === 0 && equipmentError
+                    ? "No se pudieron cargar los equipos. Recarga la página e inténtalo de nuevo."
+                    : undefined
+                }
+                hint={
+                  equipmentOptions.length === 0 && !equipmentError
+                    ? "Aún no hay equipos registrados en el sistema."
+                    : undefined
+                }
+              />
+            </div>
+          )}
+          {editing || (creating && isCoordinatorOrSuperadmin) ? (
+            <Input
+              label="Tipo"
+              value={KIND_LABEL[editing ? editing.kind : form.kind]}
+              readOnly
+              disabled
+            />
+          ) : (
+            <Select
+              label="Tipo"
+              value={form.kind}
+              onChange={(e) =>
+                setForm({ ...form, kind: e.target.value as ScheduleKind })
+              }
+              options={Object.entries(KIND_LABEL).map(([value, label]) => ({
+                value,
+                label,
+              }))}
+            />
+          )}
           {editing ? (
             <Input
               label="Fecha programada"
@@ -588,17 +765,18 @@ export function AgendamientosPage() {
             <Input
               label="Fecha de solicitud"
               type="date"
-              value={today()}
-              readOnly
-              disabled
-              hint="Se registra automáticamente con la fecha de hoy."
+              value={form.requested_date}
+              onChange={(e) =>
+                setForm({ ...form, requested_date: e.target.value })
+              }
+              required
             />
           )}
           {editing && (
             <div className="sm:col-span-2">
               {technicianListAvailable ? (
                 <TechnicianSelect
-                  label="Técnico o ingeniero asignado"
+                  label="Asignado a"
                   value={
                     form.assigned_technician ?? form.assigned_engineer ?? null
                   }
@@ -606,11 +784,11 @@ export function AgendamientosPage() {
                     setForm({ ...form, ...assignmentPayload(user ?? null) })
                   }
                   technicians={technicians}
-                  hint="Búscalo por nombre, usuario o correo. Opcional — puedes asignarlo más tarde."
+                  hint="Ingeniero o usuario operativo. Opcional — puedes asignarlo más tarde."
                 />
               ) : (
                 <Input
-                  label="ID del técnico (opcional)"
+                  label="ID del asignado (opcional)"
                   type="number"
                   value={form.assigned_technician ?? ""}
                   onChange={(e) =>
@@ -622,7 +800,7 @@ export function AgendamientosPage() {
                       assigned_engineer: null,
                     })
                   }
-                  hint="Tu rol no permite listar usuarios; ingresa el ID manualmente o déjalo vacío."
+                  hint="Tu rol no lista usuarios; deja vacío o escribe el ID del responsable."
                 />
               )}
             </div>

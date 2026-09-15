@@ -409,6 +409,14 @@ class EquipmentWorkOrder(models.Model):
         choices=WorkOrderStatus.choices,
         default=WorkOrderStatus.PENDING,
     )
+    # La columna ya existía en Postgres (NOT NULL, sin default) sin este campo
+    # en el modelo: al crear una OT desde un mantenimiento Django no la enviaba
+    # y el INSERT fallaba. Default "" para órdenes nuevas / no canceladas.
+    cancel_reason = models.TextField(
+        _("Motivo de cancelación"),
+        blank=True,
+        default="",
+    )
 
     report = models.FileField(
         upload_to="equipment/orders/",

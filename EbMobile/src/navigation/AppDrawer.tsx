@@ -26,6 +26,7 @@ export function AppDrawer() {
   return (
     <Drawer.Navigator
       drawerContent={(props) => <CustomDrawerContent {...props} />}
+      initialRouteName="Dashboard"
       screenOptions={({ navigation }) => ({
         headerStyle: {
           backgroundColor: colors.surface,
@@ -51,25 +52,33 @@ export function AppDrawer() {
         component={DashboardScreen}
         options={{ title: "Dashboard" }}
       />
-      {can(role, "equipment", "view") && (
+      {can(role, "equipment", "view") &&
+        role !== "tecnico" &&
+        role !== "usuario" && (
         <Drawer.Screen
           name="Equipos"
           component={EquiposScreen}
           options={{ title: "Equipos" }}
         />
       )}
-      {role !== "tecnico" && can(role, "maintenance", "view") && (
+      {role === "superadmin" && (
         <Drawer.Screen
           name="Mantenimientos"
           component={MantenimientosScreen}
           options={{ title: "Mantenimientos" }}
         />
       )}
-      {(role === "ingeniero" || role === "tecnico") && (
+      {(role === "superadmin" ||
+        role === "admin" ||
+        role === "coordinador" ||
+        role === "ingeniero") && (
         <Drawer.Screen
           name="OrdenesTrabajo"
           component={OrdenesTrabajoScreen}
-          options={{ title: "Órdenes de trabajo" }}
+          options={{
+            title:
+              role === "ingeniero" ? "Tareas asignadas" : "Órdenes de trabajo",
+          }}
         />
       )}
       {can(role, "scheduling", "view") && (

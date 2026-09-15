@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   CheckCheck,
@@ -52,6 +53,7 @@ const empty: FailureInput = {
 export function FallasPage() {
   const { usuario } = useAuth();
   const role = usuario?.role;
+  const navigate = useNavigate();
 
   const [items, setItems] = useState<FailureReport[]>([]);
   const [count, setCount] = useState(0);
@@ -199,6 +201,10 @@ export function FallasPage() {
       await failuresService.resolve(resolveTarget.id, resolveNotes || undefined);
       setResolveTarget(null);
       setResolveNotes("");
+      if (role === "ingeniero") {
+        navigate("/admin", { replace: true });
+        return;
+      }
       await load();
     } catch (err) {
       alert(getApiErrorMessage(err, "No se pudo resolver"));
@@ -207,6 +213,7 @@ export function FallasPage() {
     }
   };
 
+  const tableCols = 6 + (canEdit || canDelete ? 1 : 0);
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
   const start = count === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const end = Math.min(page * PAGE_SIZE, count);
@@ -215,11 +222,15 @@ export function FallasPage() {
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-app sm:text-3xl">
+          <h1 className="text-2xl font-bold text-app">
             Reportes de falla
           </h1>
           <p className="text-sm text-app-muted">
-            Registra y resuelve fallas reportadas en los equipos biomédicos.
+            {role === "tecnico"
+              ? `Consultas el estado de los reportes que has generado${usuario?.area ? ` · ${usuario.area}` : ""}. Informa lo que observas; no registres diagnóstico ni reparación.`
+              : role === "ingeniero"
+                ? "Resuelve los reportes de falla. Cada resolución queda en el dashboard (abiertas vs resueltas)."
+                : "Registra y resuelve fallas reportadas en los equipos biomédicos."}
           </p>
         </div>
         {canCreate && (
@@ -280,19 +291,22 @@ export function FallasPage() {
                 <th className="pb-2 font-medium">Severidad</th>
                 <th className="pb-2 font-medium">Reportada</th>
                 <th className="pb-2 font-medium">Estado</th>
-                <th className="pb-2 font-medium text-right">Acciones</th>
+                <th className="pb-2 font-medium">Solución</th>
+                {(canEdit || canDelete) && (
+                  <th className="pb-2 font-medium text-right">Acciones</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-app-muted">
+                  <td colSpan={tableCols} className="py-8 text-center text-app-muted">
                     Cargando...
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-app-muted">
+                  <td colSpan={tableCols} className="py-8 text-center text-app-muted">
                     Sin reportes.
                   </td>
                 </tr>
@@ -332,6 +346,16 @@ export function FallasPage() {
                         {f.resolved ? "Resuelta" : "Abierta"}
                       </Badge>
                     </td>
+                    <td className="py-3 text-app-muted">
+                      <p className="line-clamp-2 max-w-xs">
+                        {f.resolution_notes?.trim()
+                          ? f.resolution_notes
+                          : f.resolved
+                            ? "Sin notas"
+                            : "Pendiente"}
+                      </p>
+                    </td>
+                    {(canEdit || canDelete) && (
                     <td className="py-3">
                       <div className="flex justify-end gap-2">
                         {canEdit && !f.resolved && (
@@ -369,6 +393,7 @@ export function FallasPage() {
                         )}
                       </div>
                     </td>
+                    )}
                   </tr>
                 ))
               )}

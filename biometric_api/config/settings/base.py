@@ -20,6 +20,7 @@ env = environ.Env(
     DJANGO_DEBUG=(bool, False),
     DJANGO_ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
     CORS_ALLOWED_ORIGINS=(list, []),
+    CSRF_TRUSTED_ORIGINS=(list, []),
     CELERY_TASK_ALWAYS_EAGER=(bool, False),
     EMAIL_USE_TLS=(bool, True),
     AWS_QUERYSTRING_AUTH=(bool, True),
@@ -165,7 +166,7 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-MEDIA_URL = "media/"
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # ---------------------------------------------------------------------------
@@ -275,17 +276,17 @@ CONTENT_SECURITY_POLICY = {
 }
 
 # ---------------------------------------------------------------------------
-# CORS
+# CORS / CSRF (frontend web en otro puerto en dev: Vite :5173 → API :8000)
 # ---------------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
-# OJO: NO poner CORS_ALLOW_CREDENTIALS = True. El frontend web ya no
-# necesita requests cross-origin con cookies — en dev pasa por el proxy de
-# Vite (mismo origen, ver vite.config.ts) y en prod nginx sirve todo bajo un
-# único origen. Combinar ALLOW_CREDENTIALS con el CORS_ALLOW_ALL_ORIGINS de
-# dev.py dejaría a cualquier sitio de terceros leer respuestas autenticadas
-# (con la cookie de sesión) de un desarrollador que tenga el backend
-# corriendo y visite esa página — sin ganar nada a cambio, porque nada del
-# flujo real depende de eso.
+CSRF_TRUSTED_ORIGINS = env(
+    "CSRF_TRUSTED_ORIGINS",
+    default=env("CORS_ALLOWED_ORIGINS"),
+)
+# Credenciales (cookies httpOnly) exigen un origen concreto, nunca '*'.
+# En prod nginx unifica origen y esto no se usa; en dev Vite puede proxear
+# /api o hablar directo a :8000 (login desde localhost:5173).
+CORS_ALLOW_CREDENTIALS = True
 
 # ---------------------------------------------------------------------------
 # AWS S3 (django-storages)
@@ -354,10 +355,20 @@ CELERY_TIMEZONE = TIME_ZONE
 # ---------------------------------------------------------------------------
 # Reusa el mismo Redis que Celery pero en otra DB para no mezclar keys.
 CHANNELS_REDIS_URL = env("CHANNELS_REDIS_URL", default="redis://localhost:6379/3")
+# redis-py 8 default `socket_timeout=5` aborta el BZPOPMIN bloqueante de
+# channels-redis (~5 s sin mensajes) y tumba `/ws/notifications/`.
+# `None` restaura la espera indefinida que Channels necesita.
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {"hosts": [CHANNELS_REDIS_URL]},
+        "CONFIG": {
+            "hosts": [
+                {
+                    "address": CHANNELS_REDIS_URL,
+                    "socket_timeout": None,
+                }
+            ],
+        },
     }
 }
 

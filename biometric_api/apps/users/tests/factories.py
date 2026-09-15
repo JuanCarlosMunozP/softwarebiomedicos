@@ -48,3 +48,7 @@ class IngenieroFactory(UserFactory):
 
 class TecnicoFactory(UserFactory):
     role = User.Role.TECNICO
+
+
+class UsuarioFactory(UserFactory):
+    role = User.Role.USUARIO

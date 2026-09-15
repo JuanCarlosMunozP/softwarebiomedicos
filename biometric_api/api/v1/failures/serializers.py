@@ -3,6 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from apps.failures.models import FailureRecord
+from api.v1.common.area_scope import operativo_area
 
 
 class FailureRecordSerializer(serializers.ModelSerializer):
@@ -19,6 +20,7 @@ class FailureRecordSerializer(serializers.ModelSerializer):
             "equipment",
             "equipment_asset_tag",
             "branch_name",
+            "reported_by",
             "reported_at",
             "description",
             "severity",
@@ -28,7 +30,7 @@ class FailureRecordSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "created_at", "updated_at")
+        read_only_fields = ("id", "reported_by", "created_at", "updated_at")
 
     def validate_description(self, value: str) -> str:
         normalized = value.strip() if value else ""
@@ -88,7 +90,42 @@ class FailureRecordSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"resolved_at": _("La fecha de resolución no puede ser anterior al reporte.")}
             )
+
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        area = operativo_area(user)
+        if area is not None:
+            # El operativo informa lo que observa: no marca resolución ni notas técnicas.
+            attrs["resolved"] = False
+            attrs["resolved_at"] = None
+            attrs["resolution_notes"] = ""
+            equipment = attrs.get("equipment", getattr(instance, "equipment", None))
+            eq_area = (getattr(equipment, "area", None) or "").strip()
+            if not area:
+                raise serializers.ValidationError(
+                    {
+                        "equipment": _(
+                            "Tu usuario operativo no tiene un área asignada. Pide a un administrador que la configure."
+                        )
+                    }
+                )
+            if equipment is not None and eq_area.lower() != area.lower():
+                raise serializers.ValidationError(
+                    {
+                        "equipment": _(
+                            "Solo puedes reportar fallas de equipos de tu área (%(area)s)."
+                        )
+                        % {"area": area}
+                    }
+                )
         return attrs
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if user and getattr(user, "is_authenticated", False):
+            validated_data["reported_by"] = user
+        return super().create(validated_data)
 
 
 class ResolveFailureSerializer(serializers.Serializer):

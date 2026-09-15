@@ -11,6 +11,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { ROLE_LABEL } from "@/lib/permissions";
 import { getApiErrorMessage } from "@/lib/api";
 import { usersService } from "@/services/users.service";
+import { fullNameOf } from "@/lib/users";
 
 export function PerfilScreen() {
   const { usuario, logout, refreshUser } = useAuth();
@@ -78,8 +79,7 @@ export function PerfilScreen() {
           </View>
           <View className="flex-1">
             <Text className="text-base font-semibold text-app-text dark:text-app-dark-text">
-              {[usuario.first_name, usuario.last_name].filter(Boolean).join(" ") ||
-                usuario.username}
+              {fullNameOf(usuario)}
             </Text>
             <Text className="text-xs text-app-text-muted dark:text-app-dark-text-muted">
               @{usuario.username}
