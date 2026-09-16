@@ -1,1 +1,7 @@
-"""Pruebas de realtime: auth WebSocket 4401, broadcast y evento post-email."""
+"""Pruebas de realtime (`apps.realtime.tests`).
+
+`test_notifications.py`: handshake WebSocket (4401 si no hay JWT),
+`broadcast_notification` al grupo `notifications`, y el evento
+`schedule_email_sent` que emite la tarea Celery tras el correo de
+agendamiento. No hay modelos.
+"""

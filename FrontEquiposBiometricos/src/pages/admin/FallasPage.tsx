@@ -42,7 +42,7 @@ const SEV_TONE: Record<FailureSeverity, "info" | "warning" | "danger" | "neutral
   CRITICAL: "danger",
 };
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 6;
 
 const empty: FailureInput = {
   equipment: 0,

@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 
 interface ModalProps {
@@ -7,30 +8,59 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: ReactNode;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  /** Encima de otro modal (p. ej. Nueva marca sobre Nuevo equipo). */
+  nested?: boolean;
 }
 
 const sizes: Record<NonNullable<ModalProps["size"]>, string> = {
+  xs: "max-w-xs",
   sm: "max-w-md",
   md: "max-w-lg",
   lg: "max-w-2xl",
   xl: "max-w-4xl",
 };
 
-export function Modal({ open, onClose, title, children, size = "md" }: ModalProps) {
+const closeStack: Array<() => void> = [];
+
+export function Modal({
+  open,
+  onClose,
+  title,
+  children,
+  size = "md",
+  nested = false,
+}: ModalProps) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!open) return;
+    const entry = () => onCloseRef.current();
+    closeStack.push(entry);
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key !== "Escape") return;
+      if (closeStack[closeStack.length - 1] !== entry) return;
+      e.preventDefault();
+      entry();
     };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      const idx = closeStack.lastIndexOf(entry);
+      if (idx >= 0) closeStack.splice(idx, 1);
+    };
+  }, [open]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div
+      className={cn(
+        "fixed inset-0 flex items-center justify-center p-4",
+        nested ? "z-[60]" : "z-50",
+      )}
+    >
       <div className="fixed inset-0 bg-black/50" onClick={onClose} aria-hidden />
       <div
         role="dialog"
@@ -40,8 +70,20 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
           sizes[size],
         )}
       >
-        <div className="flex items-center justify-between border-b border-app px-5 py-3">
-          <h2 className="text-base font-semibold text-app">{title}</h2>
+        <div
+          className={cn(
+            "flex items-center justify-between border-b border-app",
+            size === "xs" ? "px-3 py-2" : "px-5 py-3",
+          )}
+        >
+          <h2
+            className={cn(
+              "font-semibold text-app",
+              size === "xs" ? "text-sm" : "text-base",
+            )}
+          >
+            {title}
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -51,8 +93,16 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
             <X size={16} />
           </button>
         </div>
-        <div className="max-h-[75vh] overflow-y-auto p-5">{children}</div>
+        <div
+          className={cn(
+            "max-h-[75vh] overflow-y-auto",
+            size === "xs" ? "p-3" : "p-5",
+          )}
+        >
+          {children}
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

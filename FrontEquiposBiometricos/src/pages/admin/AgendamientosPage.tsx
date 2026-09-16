@@ -64,7 +64,7 @@ function formatDateTime(iso?: string | null) {
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 6;
 
 interface FormState {
   equipment: number;

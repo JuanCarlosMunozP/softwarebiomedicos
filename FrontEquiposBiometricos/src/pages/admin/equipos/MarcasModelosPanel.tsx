@@ -1,12 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useImperativeHandle, useMemo, useState, forwardRef } from "react";
 import {
   Boxes,
-  Building,
   ChevronLeft,
   ChevronRight,
   Layers,
   Pencil,
-  Plus,
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -21,45 +19,40 @@ import { modelsService } from "@/services/models.service";
 import { useAuth } from "@/context/AuthContext";
 import { can } from "@/lib/permissions";
 import { getApiErrorMessage } from "@/lib/api";
-import { cn } from "@/lib/cn";
 import type { Brand, BrandInput, EquipmentModel, ModelInput } from "@/types/brand";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 6;
 
 interface Props {
   // Permite que el componente padre se entere de cambios y refresque sus
   // selects (por ejemplo el formulario de equipos).
-  onChanged?: () => void;
+  onChanged?: (created?: { brand?: Brand; model?: EquipmentModel }) => void;
 }
 
-export function MarcasModelosPanel({ onChanged }: Props) {
+export interface MarcasModelosPanelHandle {
+  openCreateBrand: () => void;
+  openCreateModel: (brandId?: number) => void;
+}
+
+export const MarcasModelosPanel = forwardRef<MarcasModelosPanelHandle, Props>(
+  function MarcasModelosPanel({ onChanged }, ref) {
   const { usuario } = useAuth();
   const role = usuario?.role;
 
-  const canCreate = can(role, "equipment", "create");
   const canEdit = can(role, "equipment", "edit");
   const canDelete = can(role, "equipment", "delete");
 
-  // ---- Estado ----
-  const [brands, setBrands] = useState<Brand[]>([]);
-  const [brandCount, setBrandCount] = useState(0);
-  const [brandPage, setBrandPage] = useState(1);
-  // Catálogo completo (sin paginar) SOLO para el <Select> de "Marca" al
-  // crear un modelo — `brands` de arriba es la página visible en pantalla,
-  // no todo el catálogo, y el desplegable necesita ofrecer todas las marcas.
   const [allBrands, setAllBrands] = useState<Brand[]>([]);
   const [models, setModels] = useState<EquipmentModel[]>([]);
   const [modelCount, setModelCount] = useState(0);
   const [modelPage, setModelPage] = useState(1);
-  const [loadingB, setLoadingB] = useState(true);
-  const [loadingM, setLoadingM] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [brandSearch, setBrandSearch] = useState("");
-  const [modelSearch, setModelSearch] = useState("");
-  const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
+  const [brandNameFilter, setBrandNameFilter] = useState("");
+  const [modelNameFilter, setModelNameFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
-  // Modales marca
   const [creatingBrand, setCreatingBrand] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
   const [brandForm, setBrandForm] = useState<BrandInput>({
@@ -67,10 +60,6 @@ export function MarcasModelosPanel({ onChanged }: Props) {
     is_active: true,
   });
   const [savingBrand, setSavingBrand] = useState(false);
-  const [brandToDelete, setBrandToDelete] = useState<Brand | null>(null);
-  const [deletingBrand, setDeletingBrand] = useState(false);
-
-  // Modales modelo
   const [creatingModel, setCreatingModel] = useState(false);
   const [editingModel, setEditingModel] = useState<EquipmentModel | null>(null);
   const [modelForm, setModelForm] = useState<ModelInput>({
@@ -79,51 +68,38 @@ export function MarcasModelosPanel({ onChanged }: Props) {
     is_active: true,
   });
   const [savingModel, setSavingModel] = useState(false);
+  const [brandToDelete, setBrandToDelete] = useState<Brand | null>(null);
+  const [deletingBrand, setDeletingBrand] = useState(false);
   const [modelToDelete, setModelToDelete] = useState<EquipmentModel | null>(null);
   const [deletingModel, setDeletingModel] = useState(false);
+  const [fichaTarget, setFichaTarget] = useState<EquipmentModel | null>(null);
 
-  // ---- Carga ----
-  // listPaginated (no list): con más de una página de marcas/modelos, list()
-  // solo trae la primera y el resto queda invisible sin ningún aviso.
-  const loadBrands = async (targetPage = brandPage) => {
-    setLoadingB(true);
-    setError(null);
+  const loadAllBrands = async () => {
     try {
-      const data = await brandsService.listPaginated({
-        ordering: "name",
-        search: brandSearch || undefined,
-        page: targetPage,
-        page_size: PAGE_SIZE,
-      });
-      setBrands(data.results);
-      setBrandCount(data.count);
-      setBrandPage(targetPage);
-      // Mantener selección si todavía existe en esta página; sino seleccionar
-      // la primera de la página actual.
-      if (selectedBrand && !data.results.some((b) => b.id === selectedBrand.id)) {
-        setSelectedBrand(data.results[0] ?? null);
-      } else if (!selectedBrand) {
-        setSelectedBrand(data.results[0] ?? null);
-      }
-    } catch (err) {
-      setError(getApiErrorMessage(err, "No se pudieron cargar las marcas"));
-    } finally {
-      setLoadingB(false);
+      setAllBrands(await brandsService.listAll({ ordering: "name" }));
+    } catch {
+      // El listado de modelos sigue funcionando aunque falle el filtro.
     }
   };
 
-  const loadModels = async (targetPage = modelPage) => {
-    if (!selectedBrand) {
-      setModels([]);
-      setModelCount(0);
-      return;
-    }
-    setLoadingM(true);
+  const loadModels = async (
+    targetPage = modelPage,
+    opts?: { brandName?: string; modelName?: string; status?: string },
+  ) => {
+    const brandName =
+      opts && "brandName" in opts ? opts.brandName : brandNameFilter;
+    const modelName =
+      opts && "modelName" in opts ? opts.modelName : modelNameFilter;
+    const status = opts && "status" in opts ? opts.status : statusFilter;
+    setLoading(true);
+    setError(null);
     try {
       const data = await modelsService.listPaginated({
         ordering: "name",
-        brand: selectedBrand.id,
-        search: modelSearch || undefined,
+        brand_name: brandName || undefined,
+        name: modelName || undefined,
+        is_active:
+          status === "true" ? true : status === "false" ? false : undefined,
         page: targetPage,
         page_size: PAGE_SIZE,
       });
@@ -133,15 +109,7 @@ export function MarcasModelosPanel({ onChanged }: Props) {
     } catch (err) {
       setError(getApiErrorMessage(err, "No se pudieron cargar los modelos"));
     } finally {
-      setLoadingM(false);
-    }
-  };
-
-  const loadAllBrands = async () => {
-    try {
-      setAllBrands(await brandsService.listAll({ ordering: "name" }));
-    } catch {
-      // No es crítico — el buscador de marcas de la izquierda sigue vivo.
+      setLoading(false);
     }
   };
 
@@ -150,31 +118,46 @@ export function MarcasModelosPanel({ onChanged }: Props) {
   }, []);
 
   useEffect(() => {
-    const id = window.setTimeout(() => void loadBrands(1), 250);
-    return () => window.clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandSearch]);
-
-  useEffect(() => {
     const id = window.setTimeout(() => void loadModels(1), 250);
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedBrand?.id, modelSearch]);
+  }, [brandNameFilter, modelNameFilter, statusFilter]);
 
-  // ---- Marcas ----
+  const closeBrandModal = () => {
+    setCreatingBrand(false);
+    setEditingBrand(null);
+  };
+
+  const closeModelModal = () => {
+    setCreatingModel(false);
+    setEditingModel(null);
+  };
+
   const openCreateBrand = () => {
     setBrandForm({ name: "", is_active: true });
     setCreatingBrand(true);
   };
 
-  const openEditBrand = (b: Brand) => {
-    setBrandForm({ name: b.name, is_active: b.is_active });
-    setEditingBrand(b);
+  const openCreateModel = (brandId?: number) => {
+    const preferred = brandId
+      ? allBrands.find((b) => b.id === brandId)
+      : allBrands[0];
+    setModelForm({
+      name: "",
+      brand: preferred?.id ?? 0,
+      is_active: true,
+    });
+    setCreatingModel(true);
   };
 
-  const closeBrandModal = () => {
-    setCreatingBrand(false);
-    setEditingBrand(null);
+  const openEditModel = (m: EquipmentModel) => {
+    setFichaTarget(null);
+    setEditingModel(m);
+    setModelForm({
+      name: m.name,
+      brand: m.brand,
+      is_active: m.is_active,
+    });
   };
 
   const submitBrand = async (e: React.FormEvent) => {
@@ -182,55 +165,22 @@ export function MarcasModelosPanel({ onChanged }: Props) {
     setSavingBrand(true);
     try {
       if (editingBrand) {
-        const updated = await brandsService.update(editingBrand.id, brandForm);
-        if (selectedBrand?.id === updated.id) setSelectedBrand(updated);
+        await brandsService.update(editingBrand.id, brandForm);
+        closeBrandModal();
+        await loadAllBrands();
+        await loadModels();
+        onChanged?.();
       } else {
-        await brandsService.create(brandForm);
+        const created = await brandsService.create(brandForm);
+        closeBrandModal();
+        await loadAllBrands();
+        onChanged?.({ brand: created });
       }
-      closeBrandModal();
-      await Promise.all([loadBrands(), loadAllBrands()]);
-      onChanged?.();
     } catch (err) {
       alert(getApiErrorMessage(err, "Error al guardar la marca"));
     } finally {
       setSavingBrand(false);
     }
-  };
-
-  const confirmDeleteBrand = async () => {
-    if (!brandToDelete) return;
-    setDeletingBrand(true);
-    try {
-      await brandsService.remove(brandToDelete.id);
-      if (selectedBrand?.id === brandToDelete.id) setSelectedBrand(null);
-      setBrandToDelete(null);
-      await Promise.all([loadBrands(), loadAllBrands()]);
-      onChanged?.();
-    } catch (err) {
-      alert(getApiErrorMessage(err, "No se pudo eliminar la marca"));
-    } finally {
-      setDeletingBrand(false);
-    }
-  };
-
-  // ---- Modelos ----
-  const openCreateModel = () => {
-    setModelForm({
-      name: "",
-      brand: selectedBrand?.id ?? allBrands[0]?.id ?? 0,
-      is_active: true,
-    });
-    setCreatingModel(true);
-  };
-
-  const openEditModel = (m: EquipmentModel) => {
-    setModelForm({ name: m.name, brand: m.brand, is_active: m.is_active });
-    setEditingModel(m);
-  };
-
-  const closeModelModal = () => {
-    setCreatingModel(false);
-    setEditingModel(null);
   };
 
   const submitModel = async (e: React.FormEvent) => {
@@ -239,16 +189,42 @@ export function MarcasModelosPanel({ onChanged }: Props) {
     try {
       if (editingModel) {
         await modelsService.update(editingModel.id, modelForm);
+        closeModelModal();
+        await loadModels();
+        onChanged?.();
       } else {
-        await modelsService.create(modelForm);
+        const created = await modelsService.create(modelForm);
+        closeModelModal();
+        setBrandNameFilter(created.brand_name ?? "");
+        setModelNameFilter(created.name);
+        setStatusFilter("");
+        await loadModels(1, {
+          brandName: created.brand_name ?? "",
+          modelName: created.name,
+          status: "",
+        });
+        onChanged?.({ model: created });
       }
-      closeModelModal();
-      await loadModels();
-      onChanged?.();
     } catch (err) {
       alert(getApiErrorMessage(err, "Error al guardar el modelo"));
     } finally {
       setSavingModel(false);
+    }
+  };
+
+  const confirmDeleteBrand = async () => {
+    if (!brandToDelete) return;
+    setDeletingBrand(true);
+    try {
+      await brandsService.remove(brandToDelete.id);
+      setBrandToDelete(null);
+      await loadAllBrands();
+      await loadModels();
+      onChanged?.();
+    } catch (err) {
+      alert(getApiErrorMessage(err, "No se pudo eliminar la marca"));
+    } finally {
+      setDeletingBrand(false);
     }
   };
 
@@ -258,6 +234,7 @@ export function MarcasModelosPanel({ onChanged }: Props) {
     try {
       await modelsService.remove(modelToDelete.id);
       setModelToDelete(null);
+      setFichaTarget(null);
       await loadModels();
       onChanged?.();
     } catch (err) {
@@ -272,296 +249,250 @@ export function MarcasModelosPanel({ onChanged }: Props) {
     [allBrands],
   );
 
-  const brandTotalPages = Math.max(1, Math.ceil(brandCount / PAGE_SIZE));
+  const brandOf = (m: EquipmentModel) =>
+    allBrands.find((b) => b.id === m.brand);
+
   const modelTotalPages = Math.max(1, Math.ceil(modelCount / PAGE_SIZE));
+  const start = modelCount === 0 ? 0 : (modelPage - 1) * PAGE_SIZE + 1;
+  const end = Math.min(modelPage * PAGE_SIZE, modelCount);
+
+  useImperativeHandle(ref, () => ({
+    openCreateBrand,
+    openCreateModel,
+  }));
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
-      {/* Columna marcas */}
-      <Card padding="none" className="flex flex-col">
-        <div className="flex items-center justify-between gap-2 border-b border-app px-4 py-3">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
-              <Building size={16} />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-app">Marcas</p>
-              <p className="text-xs text-app-muted">
-                {brandCount} registradas
-              </p>
-            </div>
-          </div>
-          {canCreate && (
-            <Button
-              size="sm"
-              leftIcon={<Plus size={14} />}
-              onClick={openCreateBrand}
-            >
-              Nueva
-            </Button>
-          )}
+    <Card padding="none">
+      <div className="flex items-center gap-2 border-b border-app px-4 py-3">
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+          <Layers size={16} />
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-app">
+            Catálogo de marcas y modelos
+          </p>
+          <p className="text-xs text-app-muted">
+            {allBrands.length} marcas · {modelCount} modelos
+          </p>
         </div>
+      </div>
 
-        <div className="border-b border-app px-3 py-2">
-          <Input
-            placeholder="Buscar marca..."
-            value={brandSearch}
-            onChange={(e) => setBrandSearch(e.target.value)}
-          />
+      <div className="grid gap-2 border-b border-app px-4 py-3 sm:grid-cols-3">
+        <Input
+          placeholder="Nombre de la marca"
+          value={brandNameFilter}
+          onChange={(e) => setBrandNameFilter(e.target.value)}
+        />
+        <Input
+          placeholder="Nombre del modelo"
+          value={modelNameFilter}
+          onChange={(e) => setModelNameFilter(e.target.value)}
+        />
+        <Select
+          placeholder="Todos los estados"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          options={[
+            { value: "true", label: "Activo" },
+            { value: "false", label: "Inactivo" },
+          ]}
+        />
+      </div>
+
+      {error && (
+        <div
+          role="alert"
+          className="m-3 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
+        >
+          {error}
         </div>
+      )}
 
-        <div className="max-h-[60vh] flex-1 overflow-y-auto">
-          {loadingB ? (
-            <p className="py-8 text-center text-sm text-app-muted">Cargando...</p>
-          ) : brands.length === 0 ? (
-            <p className="py-8 text-center text-sm text-app-muted">
-              Aún no hay marcas. Crea la primera para empezar.
-            </p>
-          ) : (
-            <ul className="divide-y divide-[var(--border)]">
-              {brands.map((b) => {
-                const active = selectedBrand?.id === b.id;
-                return (
-                  <li
-                    key={b.id}
-                    className={cn(
-                      "flex cursor-pointer items-center gap-2 px-3 py-2.5 transition",
-                      active
-                        ? "bg-[var(--color-primary)]/10"
-                        : "hover:bg-app-muted",
-                    )}
-                    onClick={() => setSelectedBrand(b)}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p
-                        className={cn(
-                          "truncate text-sm font-medium",
-                          active ? "text-[var(--color-primary)]" : "text-app",
-                        )}
-                      >
-                        {b.name}
-                      </p>
-                      <p className="text-xs text-app-muted">
-                        {b.models_count != null
-                          ? `${b.models_count} modelos`
-                          : ""}
-                        {b.is_active ? "" : " · Inactiva"}
-                      </p>
-                    </div>
-                    {!b.is_active && (
-                      <Badge tone="neutral">Inactiva</Badge>
-                    )}
-                    {canEdit && (
-                      <button
-                        type="button"
-                        onClick={(ev) => {
-                          ev.stopPropagation();
-                          openEditBrand(b);
-                        }}
-                        aria-label={`Editar ${b.name}`}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded text-app-muted hover:bg-app-muted hover:text-app"
-                      >
-                        <Pencil size={13} />
-                      </button>
-                    )}
-                    {canDelete && (
-                      <button
-                        type="button"
-                        onClick={(ev) => {
-                          ev.stopPropagation();
-                          setBrandToDelete(b);
-                        }}
-                        aria-label={`Eliminar ${b.name}`}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-
-        {brandCount > PAGE_SIZE && (
-          <div className="flex items-center justify-between gap-2 border-t border-app px-3 py-2 text-xs text-app-muted">
-            <span>
-              {brandPage} / {brandTotalPages}
-            </span>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                aria-label="Página anterior"
-                disabled={brandPage <= 1 || loadingB}
-                onClick={() => void loadBrands(Math.max(1, brandPage - 1))}
-                className="inline-flex h-7 w-7 items-center justify-center rounded text-app-muted hover:bg-app-muted hover:text-app disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <ChevronLeft size={14} />
-              </button>
-              <button
-                type="button"
-                aria-label="Página siguiente"
-                disabled={brandPage >= brandTotalPages || loadingB}
-                onClick={() =>
-                  void loadBrands(Math.min(brandTotalPages, brandPage + 1))
-                }
-                className="inline-flex h-7 w-7 items-center justify-center rounded text-app-muted hover:bg-app-muted hover:text-app disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-        )}
-      </Card>
-
-      {/* Columna modelos */}
-      <Card padding="none" className="flex flex-col">
-        <div className="flex items-center justify-between gap-2 border-b border-app px-4 py-3">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
-              <Layers size={16} />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-app">
-                Modelos {selectedBrand && `· ${selectedBrand.name}`}
-              </p>
-              <p className="text-xs text-app-muted">
-                {selectedBrand
-                  ? `${modelCount} modelos`
-                  : "Selecciona una marca para ver sus modelos"}
-              </p>
-            </div>
-          </div>
-          {canCreate && (
-            <Button
-              size="sm"
-              leftIcon={<Plus size={14} />}
-              onClick={openCreateModel}
-              disabled={allBrands.length === 0}
-            >
-              Nuevo
-            </Button>
-          )}
-        </div>
-
-        <div className="border-b border-app px-3 py-2">
-          <Input
-            placeholder="Buscar modelo..."
-            value={modelSearch}
-            onChange={(e) => setModelSearch(e.target.value)}
-            disabled={!selectedBrand}
-          />
-        </div>
-
-        {error && (
-          <div
-            role="alert"
-            className="m-3 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
-          >
-            {error}
-          </div>
-        )}
-
-        <div className="max-h-[60vh] flex-1 overflow-y-auto">
-          {!selectedBrand ? (
-            <div className="flex flex-col items-center gap-2 py-12 text-center text-sm text-app-muted">
-              <Boxes size={28} className="opacity-50" />
-              <p>Elige una marca a la izquierda para ver sus modelos.</p>
-            </div>
-          ) : loadingM ? (
-            <p className="py-8 text-center text-sm text-app-muted">Cargando...</p>
-          ) : models.length === 0 ? (
-            <p className="py-8 text-center text-sm text-app-muted">
-              {selectedBrand.name} aún no tiene modelos. Agrega el primero.
-            </p>
-          ) : (
-            <ul className="divide-y divide-[var(--border)]">
-              {models.map((m) => (
-                <li
-                  key={m.id}
-                  className="flex items-center gap-2 px-4 py-2.5"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-app">
-                      {m.name}
-                    </p>
-                    <p className="text-xs text-app-muted">
-                      {m.equipment_count != null
-                        ? `${m.equipment_count} equipos asociados`
-                        : ""}
-                    </p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-app text-left text-xs uppercase tracking-wider text-app-muted">
+              <th className="px-4 py-3 font-medium">Marca</th>
+              <th className="px-4 py-3 font-medium">Modelo</th>
+              <th className="px-4 py-3 font-medium">Estado</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--border)]">
+            {loading ? (
+              <tr>
+                <td colSpan={3} className="py-10 text-center text-app-muted">
+                  Cargando...
+                </td>
+              </tr>
+            ) : allBrands.length === 0 && models.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="py-10 text-center text-app-muted">
+                  <div className="flex flex-col items-center gap-2">
+                    <Boxes size={28} className="opacity-50" />
+                    <p>Aún no hay marcas. Crea la primera para empezar.</p>
                   </div>
-                  {!m.is_active && <Badge tone="neutral">Inactivo</Badge>}
-                  {canEdit && (
-                    <button
-                      type="button"
-                      onClick={() => openEditModel(m)}
-                      aria-label={`Editar ${m.name}`}
-                      className="inline-flex h-7 w-7 items-center justify-center rounded text-app-muted hover:bg-app-muted hover:text-app"
-                    >
-                      <Pencil size={13} />
-                    </button>
-                  )}
-                  {canDelete && (
-                    <button
-                      type="button"
-                      onClick={() => setModelToDelete(m)}
-                      aria-label={`Eliminar ${m.name}`}
-                      className="inline-flex h-7 w-7 items-center justify-center rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+                </td>
+              </tr>
+            ) : models.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="py-10 text-center text-app-muted">
+                  No se encontraron modelos con los filtros actuales.
+                </td>
+              </tr>
+            ) : (
+              models.map((m) => {
+                const brand = brandOf(m);
+                return (
+                  <tr
+                    key={m.id}
+                    onClick={() => setFichaTarget(m)}
+                    className="cursor-pointer text-app transition hover:bg-app-muted/50"
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium">
+                          {m.brand_name ?? brand?.name ?? `Marca #${m.brand}`}
+                        </span>
+                        {brand && !brand.is_active && (
+                          <Badge tone="neutral">Inactiva</Badge>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="font-medium">{m.name}</p>
+                      {m.equipment_count != null && (
+                        <p className="text-xs text-app-muted">
+                          {m.equipment_count} equipos asociados
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {m.is_active ? (
+                        <Badge tone="success">Activo</Badge>
+                      ) : (
+                        <Badge tone="neutral">Inactivo</Badge>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
 
-        {modelCount > PAGE_SIZE && (
-          <div className="flex items-center justify-between gap-2 border-t border-app px-3 py-2 text-xs text-app-muted">
-            <span>
-              {modelPage} / {modelTotalPages}
-            </span>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                aria-label="Página anterior"
-                disabled={modelPage <= 1 || loadingM}
-                onClick={() => void loadModels(Math.max(1, modelPage - 1))}
-                className="inline-flex h-7 w-7 items-center justify-center rounded text-app-muted hover:bg-app-muted hover:text-app disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <ChevronLeft size={14} />
-              </button>
-              <button
-                type="button"
-                aria-label="Página siguiente"
-                disabled={modelPage >= modelTotalPages || loadingM}
-                onClick={() =>
-                  void loadModels(Math.min(modelTotalPages, modelPage + 1))
-                }
-                className="inline-flex h-7 w-7 items-center justify-center rounded text-app-muted hover:bg-app-muted hover:text-app disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <ChevronRight size={14} />
-              </button>
-            </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-app px-4 py-3 text-xs text-app-muted">
+        <p>
+          {modelCount === 0
+            ? "Sin resultados"
+            : `Mostrando ${start}–${end} de ${modelCount}`}
+        </p>
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="secondary"
+            leftIcon={<ChevronLeft size={14} />}
+            disabled={modelPage <= 1 || loading}
+            onClick={() => void loadModels(Math.max(1, modelPage - 1))}
+          >
+            Anterior
+          </Button>
+          <span className="px-2 text-app">
+            {modelPage} / {modelTotalPages}
+          </span>
+          <Button
+            size="sm"
+            variant="secondary"
+            rightIcon={<ChevronRight size={14} />}
+            disabled={modelPage >= modelTotalPages || loading}
+            onClick={() =>
+              void loadModels(Math.min(modelTotalPages, modelPage + 1))
+            }
+          >
+            Siguiente
+          </Button>
+        </div>
+      </div>
+
+      <Modal
+        open={
+          !!fichaTarget &&
+          !creatingBrand &&
+          !creatingModel &&
+          !editingBrand &&
+          !editingModel
+        }
+        onClose={() => setFichaTarget(null)}
+        title={
+          fichaTarget
+            ? (fichaTarget.brand_name ??
+              brandOf(fichaTarget)?.name ??
+              "Marca")
+            : "Catálogo"
+        }
+        size="xs"
+        nested
+      >
+        {fichaTarget && (
+          <div className="flex flex-col gap-3">
+            <dl className="grid gap-2 text-sm">
+              <div>
+                <dt className="text-xs text-app-muted">Marca</dt>
+                <dd className="font-medium text-app">
+                  {fichaTarget.brand_name ??
+                    brandOf(fichaTarget)?.name ??
+                    `Marca #${fichaTarget.brand}`}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-app-muted">Modelo</dt>
+                <dd className="font-medium text-app">{fichaTarget.name}</dd>
+              </div>
+            </dl>
+            {(canEdit || canDelete) && (
+              <div className="flex flex-wrap gap-2">
+                {canEdit && (
+                  <Button
+                    size="sm"
+                    className="h-7 px-2.5 text-xs"
+                    variant="secondary"
+                    leftIcon={<Pencil size={12} />}
+                    onClick={() => openEditModel(fichaTarget)}
+                  >
+                    Editar
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    size="sm"
+                    className="h-7 px-2.5 text-xs"
+                    variant="danger"
+                    leftIcon={<Trash2 size={12} />}
+                    onClick={() => setModelToDelete(fichaTarget)}
+                  >
+                    Eliminar
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         )}
-      </Card>
+      </Modal>
 
-      {/* Modal marca */}
       <Modal
         open={creatingBrand || !!editingBrand}
         onClose={closeBrandModal}
         title={editingBrand ? "Editar marca" : "Nueva marca"}
         size="sm"
+        nested
       >
         <form onSubmit={submitBrand} className="flex flex-col gap-4">
           <Input
-            label="Nombre"
+            label="Nombre de la marca"
             value={brandForm.name}
-            onChange={(e) => setBrandForm({ ...brandForm, name: e.target.value })}
+            onChange={(e) =>
+              setBrandForm({ ...brandForm, name: e.target.value })
+            }
             required
           />
           <label className="flex items-center gap-2 text-sm text-app">
@@ -585,28 +516,29 @@ export function MarcasModelosPanel({ onChanged }: Props) {
         </form>
       </Modal>
 
-      {/* Modal modelo */}
       <Modal
         open={creatingModel || !!editingModel}
         onClose={closeModelModal}
         title={editingModel ? "Editar modelo" : "Nuevo modelo"}
         size="sm"
+        nested
       >
         <form onSubmit={submitModel} className="flex flex-col gap-4">
           <Select
             label="Marca"
-            value={String(modelForm.brand)}
+            value={modelForm.brand ? String(modelForm.brand) : ""}
             onChange={(e) =>
               setModelForm({ ...modelForm, brand: Number(e.target.value) })
             }
             options={brandOptions}
-            placeholder="Selecciona una marca"
             required
           />
           <Input
             label="Nombre del modelo"
             value={modelForm.name}
-            onChange={(e) => setModelForm({ ...modelForm, name: e.target.value })}
+            onChange={(e) =>
+              setModelForm({ ...modelForm, name: e.target.value })
+            }
             required
           />
           <label className="flex items-center gap-2 text-sm text-app">
@@ -617,7 +549,7 @@ export function MarcasModelosPanel({ onChanged }: Props) {
                 setModelForm({ ...modelForm, is_active: e.target.checked })
               }
             />
-            Modelo activo
+            Activo
           </label>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={closeModelModal}>
@@ -630,7 +562,6 @@ export function MarcasModelosPanel({ onChanged }: Props) {
         </form>
       </Modal>
 
-      {/* Confirmaciones */}
       <ConfirmDialog
         open={!!brandToDelete}
         title="Eliminar marca"
@@ -651,6 +582,6 @@ export function MarcasModelosPanel({ onChanged }: Props) {
         onConfirm={confirmDeleteModel}
         onClose={() => setModelToDelete(null)}
       />
-    </div>
+    </Card>
   );
-}
+});

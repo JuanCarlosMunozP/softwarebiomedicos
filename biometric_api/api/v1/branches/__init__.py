@@ -1,7 +1,11 @@
-"""HTTP de sedes (Branch).
+"""HTTP de sedes (`/api/v1/branches/`).
 
-CRUD de sucursales con filters, serializers, urls y views.
-Superadmin y admin tienen CRUD; coordinador e ingeniero solo lectura;
-técnico y usuario no acceden. Borrar una sede con equipos asociados
-devuelve 409 (ProtectedError).
+CRUD de `Branch` (nombre, dirección, ciudad, teléfono, email opcional,
+activa/inactiva) con filters, serializers y urls. Superadmin y admin
+tienen CRUD; coordinador e ingeniero solo lectura; técnico y usuario
+no acceden al recurso.
+
+Borrar una sede que todavía tiene equipos asociados falla con 409
+porque `Equipment.branch` es PROTECT. El email vacío se normaliza a
+NULL para que la unicidad opcional funcione en Postgres.
 """

@@ -1,5 +1,5 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, LogOut, Menu, User } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { LayoutDashboard, Menu, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { ROLE_LABEL, panelHome } from "@/lib/permissions";
@@ -10,14 +10,8 @@ interface HeaderProps {
 }
 
 export function Header({ onToggleSidebar }: HeaderProps) {
-  const { usuario, isAuthenticated, logout } = useAuth();
-  const navigate = useNavigate();
+  const { usuario, isAuthenticated } = useAuth();
   const location = useLocation();
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
 
   const fullName = usuario ? fullNameOf(usuario) : "";
 
@@ -60,7 +54,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <ThemeToggle />
+          {!isAuthenticated && <ThemeToggle />}
           {isAuthenticated && usuario ? (
             <>
               <div className="hidden items-center gap-2 rounded-lg border border-app bg-app-muted px-3 py-2 sm:flex">
@@ -79,14 +73,6 @@ export function Header({ onToggleSidebar }: HeaderProps) {
                   <span className="hidden sm:inline">Ir al panel</span>
                 </Link>
               )}
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="inline-flex h-10 items-center gap-2 rounded-lg border border-app bg-surface px-3 text-sm font-medium text-app transition hover:bg-app-muted"
-              >
-                <LogOut size={16} />
-                <span className="hidden sm:inline">Salir</span>
-              </button>
             </>
           ) : (
             <Link

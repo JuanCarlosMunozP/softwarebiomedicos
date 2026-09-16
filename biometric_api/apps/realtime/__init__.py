@@ -1,7 +1,18 @@
-"""Notificaciones en tiempo real (Django Channels).
+"""Notificaciones en tiempo real (`apps.realtime`).
 
-NotificationConsumer en /ws/notifications/ es solo lectura; JWT por
-cookie o Bearer; cierra 4401 si no hay sesión. broadcast_notification()
-publica al grupo global; si Redis falla, no levanta. La tarea Celery de
-email de agendamiento emite schedule_email_sent al terminar el correo.
+No define modelos. Usa Django Channels + Redis.
+
+- `consumers.NotificationConsumer` en `/ws/notifications/`: solo
+  lectura (el cliente no manda eventos). JWT por cookie o Bearer
+  (middleware). Si no hay sesión acepta y cierra con 4401 para que
+  el frontend deje de reintentar. Si Redis cae, cierra 1013
+  (sí reintenta). Grupo único `notifications`.
+- `events.broadcast_notification()`: publica un dict JSON al grupo;
+  si el channel layer falla, loguea y no tumba la operación de
+  negocio.
+- `routing.py`: websocket_urlpatterns.
+- `middleware.py`: autentica el scope ASGI.
+
+Quien emite: tarea de email de agendamiento (`schedule_email_sent`)
+y `send_overdue_alert` (`overdue_maintenance`).
 """

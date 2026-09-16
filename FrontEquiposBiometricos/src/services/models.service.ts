@@ -7,6 +7,8 @@ export interface ModelsListParams {
   brand?: number;
   is_active?: boolean;
   search?: string;
+  name?: string;
+  brand_name?: string;
   page?: number;
   page_size?: number;
 }

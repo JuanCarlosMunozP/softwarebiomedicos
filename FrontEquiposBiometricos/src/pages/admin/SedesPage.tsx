@@ -34,7 +34,7 @@ const PHONE_RE = /^\+?[0-9\s\-()]{7,20}$/;
 
 /** Valida en el cliente lo mismo que el backend, para no gastar un viaje al
  *  servidor y decir exactamente qué campo falla. */
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 6;
 
 function validateBranch(form: BranchInput): Record<string, string> {
   const errs: Record<string, string> = {};

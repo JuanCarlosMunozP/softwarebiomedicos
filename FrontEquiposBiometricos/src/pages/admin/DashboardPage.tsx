@@ -37,7 +37,6 @@ import { fullNameOf } from "@/lib/users";
 import { dashboardService } from "@/services/dashboard.service";
 import type {
   DashboardSummary,
-  EquipmentStatusBucket,
   FailureSeverity,
   FailureSeverityBucket,
   MaintenanceKind,
@@ -1848,9 +1847,33 @@ function KpiRow({
           <Card key={label} className={alert ? "ring-2 ring-red-200 dark:ring-red-900/60" : ""}>
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-xs text-app-muted">{label}</p>
-                <p className="mt-1 text-2xl font-bold text-app">{value}</p>
-                <p className="mt-1 text-xs text-app-muted">{delta}</p>
+                <p
+                  className={
+                    alert && label === "Vencidos"
+                      ? "text-xs text-red-600 dark:text-red-400"
+                      : "text-xs text-app-muted"
+                  }
+                >
+                  {label}
+                </p>
+                <p
+                  className={
+                    alert && label === "Vencidos"
+                      ? "mt-1 text-2xl font-bold text-red-600 dark:text-red-400"
+                      : "mt-1 text-2xl font-bold text-app"
+                  }
+                >
+                  {value}
+                </p>
+                <p
+                  className={
+                    alert && label === "Vencidos"
+                      ? "mt-1 text-xs text-red-600 dark:text-red-400"
+                      : "mt-1 text-xs text-app-muted"
+                  }
+                >
+                  {delta}
+                </p>
               </div>
               {label === "Equipos operativos" && statusPie.length > 0 ? (
                 <div className="h-16 w-16 shrink-0">
@@ -1890,59 +1913,6 @@ function KpiRow({
           </Card>
         ))}
     </div>
-  );
-}
-
-function EquipmentStatusChart({ data }: { data: EquipmentStatusBucket[] }) {
-  const total = useMemo(() => data.reduce((s, d) => s + d.count, 0), [data]);
-  if (total === 0)
-    return (
-      <Card>
-        <CardHeader
-          title="Equipos por estado"
-          subtitle="Distribución del inventario"
-        />
-        <p className="py-8 text-center text-sm text-app-muted">
-          Sin equipos registrados.
-        </p>
-      </Card>
-    );
-  return (
-    <Card>
-      <CardHeader
-        title="Equipos por estado"
-        subtitle="Distribución del inventario"
-      />
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height={256} minWidth={0}>
-          <PieChart>
-            <Pie
-              data={data}
-              dataKey="count"
-              nameKey="status"
-              innerRadius={55}
-              outerRadius={90}
-              paddingAngle={2}
-            >
-              {data.map((d) => (
-                <Cell key={d.status} fill={STATUS_COLOR[d.status]} />
-              ))}
-            </Pie>
-            <Tooltip
-              formatter={(value, _name, item) => {
-                const status = (item?.payload?.status ?? "") as EquipmentStatus;
-                return [String(value), STATUS_LABEL[status] ?? status];
-              }}
-            />
-            <Legend
-              formatter={(value) =>
-                STATUS_LABEL[value as EquipmentStatus] ?? value
-              }
-            />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-    </Card>
   );
 }
 

@@ -1,5 +1,9 @@
-"""Migraciones de usuarios.
+"""Migraciones de usuarios (`apps.users.migrations`).
 
-0001 User+rol; 0002 legacy usuario→tecnico; 0003 area; 0004 etiqueta
-Usuario operativo; 0005 reintroduce choice usuario distinto del operativo.
+- `0001_initial`: `User` (AbstractUser) + choices de rol.
+- `0002`: renombra el choice legado `usuario` → `tecnico` (operativo).
+- `0003`: campo `area` del operativo.
+- `0004`: etiqueta visible “Usuario operativo” para `tecnico`.
+- `0005`: reintroduce el choice `usuario` (solicitante) distinto del
+  operativo.
 """

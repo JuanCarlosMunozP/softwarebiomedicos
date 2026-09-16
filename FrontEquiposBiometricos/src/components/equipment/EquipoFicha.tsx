@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Activity,
@@ -8,6 +8,7 @@ import {
   Calendar as CalendarIcon,
   Download,
   FileText,
+  Image as ImageIcon,
   Pencil,
   RefreshCw,
   Timer,
@@ -24,6 +25,7 @@ import { maintenanceService } from "@/services/maintenance.service";
 import { schedulingService } from "@/services/scheduling.service";
 import { useAuth } from "@/context/AuthContext";
 import { can } from "@/lib/permissions";
+import { getApiErrorMessage } from "@/lib/api";
 import { assignedRoleLabel, assignedUserName } from "@/lib/users";
 import type { Equipment, EquipmentStatus } from "@/types/equipment";
 import type {
@@ -157,6 +159,10 @@ export function EquipoFichaContent({
   const [eq, setEq] = useState<Equipment | null>(equipment);
   const [regeneratingQr, setRegeneratingQr] = useState(false);
   const [qrBust, setQrBust] = useState(0);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [imageBust, setImageBust] = useState(0);
 
   useEffect(() => {
     setEq(equipment);
@@ -165,6 +171,8 @@ export function EquipoFichaContent({
     setScheduled([]);
     setScheduledKind("");
     setQrBust(0);
+    setImageBust(0);
+    setImageError(null);
   }, [equipment]);
 
   useEffect(() => {
@@ -203,6 +211,13 @@ export function EquipoFichaContent({
       : mediaQr
     : null;
 
+  const mediaImage = resolveMediaUrl(eq.equipment_image);
+  const imageSrc = mediaImage
+    ? imageBust
+      ? `${mediaImage}${mediaImage.includes("?") ? "&" : "?"}v=${imageBust}`
+      : mediaImage
+    : null;
+
   const regenerateQr = async () => {
     setRegeneratingQr(true);
     try {
@@ -213,6 +228,23 @@ export function EquipoFichaContent({
       // El QR anterior sigue siendo válido; no bloqueamos la ficha.
     } finally {
       setRegeneratingQr(false);
+    }
+  };
+
+  const uploadImage = async (file: File) => {
+    setUploadingImage(true);
+    setImageError(null);
+    try {
+      const updated = await equipmentService.updateImage(eq.id, file);
+      setEq(updated);
+      setImageBust(Date.now());
+    } catch (err) {
+      setImageError(
+        getApiErrorMessage(err, "No se pudo guardar la imagen del equipo"),
+      );
+    } finally {
+      setUploadingImage(false);
+      if (imageInputRef.current) imageInputRef.current.value = "";
     }
   };
 
@@ -387,6 +419,56 @@ export function EquipoFichaContent({
                 )}
                 .
               </p>
+            )}
+
+            {(imageSrc || canEdit) && (
+              <div>
+                <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-app-muted">
+                  Imagen del equipo
+                </h4>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                  {imageSrc && (
+                    <div className="overflow-hidden rounded-lg border border-app bg-app-muted">
+                      <img
+                        src={imageSrc}
+                        alt={`Imagen del equipo ${eq.name}`}
+                        className="h-40 w-56 object-cover"
+                      />
+                    </div>
+                  )}
+                  {canEdit && (
+                    <div className="flex flex-col gap-2">
+                      <input
+                        ref={imageInputRef}
+                        type="file"
+                        accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) void uploadImage(file);
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        leftIcon={<ImageIcon size={14} />}
+                        loading={uploadingImage}
+                        onClick={() => imageInputRef.current?.click()}
+                      >
+                        {imageSrc ? "Cambiar imagen" : "Adjuntar imagen"}
+                      </Button>
+                      <p className="text-xs text-app-muted">
+                        JPG o PNG, máximo 8 MB.
+                      </p>
+                      {imageError && (
+                        <p role="alert" className="text-xs text-red-600 dark:text-red-400">
+                          {imageError}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
 
             <div>

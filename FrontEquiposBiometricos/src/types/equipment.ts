@@ -118,6 +118,14 @@ export interface Equipment {
   observations?: string | null;
 
   // ==============================
+  // ARCHIVOS
+  // ==============================
+
+  /** URL de la fotografía del equipo (`ImageField`). */
+  equipment_image?: string | null;
+  life_sheet_pdf?: string | null;
+
+  // ==============================
   // QR
   // ============================== 
   

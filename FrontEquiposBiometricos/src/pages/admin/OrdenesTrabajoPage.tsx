@@ -133,7 +133,7 @@ const SIGNATURE_LABEL = {
 } as const;
 
 const today = () => new Date().toISOString().slice(0, 16);
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 6;
 
 const emptyForm: WorkOrderInput = {
   equipment: 0,

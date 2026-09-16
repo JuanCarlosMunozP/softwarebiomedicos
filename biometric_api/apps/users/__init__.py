@@ -1,8 +1,18 @@
-"""Usuarios (AbstractUser).
+"""Usuarios del sistema (`apps.users`).
 
-Roles: superadmin, admin, coordinador, ingeniero, tecnico (Usuario
-operativo, con area p. ej. Radiología) y usuario. Email único; teléfono
-con regex. is_admin_role agrupa superadmin y admin. Manager propio para
-alta con rol. El operativo se recorta por area en equipos, fallas y
-solicitudes; el rol usuario solo ve las solicitudes que él creó.
+`User` hereda de AbstractUser. Campos extra: email único, nombres
+obligatorios, teléfono con regex, `role` y `area` (solo tiene
+sentido en el rol operativo).
+
+Roles (`User.Role`):
+- `superadmin`, `admin`: gestión plena (is_admin_role).
+- `coordinador`: agenda, OT, catálogo; no borra historial.
+- `ingeniero`: ejecuta OT asignadas; consulta solicitudes propias.
+- `tecnico` (etiqueta “Usuario operativo”): recorte por `area`
+  (p. ej. Radiología) en equipos, fallas y solicitudes.
+- `usuario`: solo ve/crea las solicitudes que él pidió; puede
+  consultar inventario.
+
+`UserManager` da de alta con rol. Admin Django personalizado.
+HTTP en `api.v1.users` con permisos propios (no ROLE_MATRIX).
 """

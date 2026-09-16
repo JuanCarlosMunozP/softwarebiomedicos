@@ -1,9 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Building2,
   IdCard,
   Key,
+  LogOut,
   Mail,
+  Moon,
   Phone,
   ShieldCheck,
   User as UserIcon,
@@ -13,6 +16,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
 import { ROLE_LABEL } from "@/lib/permissions";
 import { usersService } from "@/services/users.service";
@@ -20,7 +24,8 @@ import { getApiErrorMessage } from "@/lib/api";
 import { fullNameOf } from "@/lib/users";
 
 export function PerfilPage() {
-  const { usuario, refreshUser } = useAuth();
+  const { usuario, refreshUser, logout } = useAuth();
+  const navigate = useNavigate();
   const [pwdOpen, setPwdOpen] = useState(false);
   const [currentPwd, setCurrentPwd] = useState("");
   const [newPwd, setNewPwd] = useState("");
@@ -141,6 +146,38 @@ export function PerfilPage() {
             )}
           </Field>
         </dl>
+      </Card>
+
+      <Card padding="lg">
+        <h3 className="mb-4 text-base font-semibold text-app">
+          Configuración
+        </h3>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-start gap-2">
+              <Moon size={14} className="mt-0.5 text-app-muted" />
+              <div>
+                <p className="text-sm font-medium text-app">Apariencia</p>
+                <p className="text-xs text-app-muted">
+                  Cambia entre modo claro y modo oscuro.
+                </p>
+              </div>
+            </div>
+            <ThemeToggle />
+          </div>
+          <div className="border-t border-app pt-4">
+            <Button
+              variant="secondary"
+              leftIcon={<LogOut size={14} />}
+              onClick={() => {
+                logout();
+                navigate("/login");
+              }}
+            >
+              Cerrar sesión
+            </Button>
+          </div>
+        </div>
       </Card>
 
       <Modal

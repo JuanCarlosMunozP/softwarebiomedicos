@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Building,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
@@ -12,10 +11,12 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
-import { Tabs } from "@/components/ui/Tabs";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EquipoFicha } from "@/components/equipment/EquipoFicha";
-import { MarcasModelosPanel } from "@/pages/admin/equipos/MarcasModelosPanel";
+import {
+  MarcasModelosPanel,
+  type MarcasModelosPanelHandle,
+} from "@/pages/admin/equipos/MarcasModelosPanel";
 import { useAuth } from "@/context/AuthContext";
 import { equipmentService } from "@/services/equipment.service";
 import { branchesService } from "@/services/branches.service";
@@ -61,6 +62,8 @@ const RISK_TONE: Record<RiskClass, "success" | "info" | "warning" | "danger"> = 
 };
 
 const PAGE_SIZE = 10;
+const NEW_BRAND_VALUE = "__new_brand__";
+const NEW_MODEL_VALUE = "__new_model__";
 
 interface FormState {
   name: string;
@@ -178,13 +181,9 @@ const empty: FormState = {
   observations:"",
 };
 
-type Tab = "equipos" | "catalogo";
-
 export function EquiposPage() {
   const { usuario } = useAuth();
   const role = usuario?.role;
-
-  const [tab, setTab] = useState<Tab>("equipos");
 
   const [items, setItems] = useState<Equipment[]>([]);
   const [count, setCount] = useState(0);
@@ -208,6 +207,7 @@ export function EquiposPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const formErrorRef = useRef<HTMLDivElement | null>(null);
+  const catalogPanelRef = useRef<MarcasModelosPanelHandle | null>(null);
 
   const [toDelete, setToDelete] = useState<Equipment | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -223,13 +223,15 @@ export function EquiposPage() {
     [branches],
   );
 
-  const brandOptions = useMemo(
-    () =>
-      brands
-        .filter((b) => b.is_active || b.id === form.brand)
-        .map((b) => ({ value: String(b.id), label: b.name })),
-    [brands, form.brand],
-  );
+  const brandOptions = useMemo(() => {
+    const opts = brands
+      .filter((b) => b.is_active || b.id === form.brand)
+      .map((b) => ({ value: String(b.id), label: b.name }));
+    if (canCreate) {
+      opts.unshift({ value: NEW_BRAND_VALUE, label: "Nueva marca" });
+    }
+    return opts;
+  }, [brands, form.brand, canCreate]);
 
   // Modelos disponibles para la marca seleccionada en el formulario.
   const modelsForForm = useMemo(
@@ -237,13 +239,15 @@ export function EquiposPage() {
     [models, form.brand],
   );
 
-  const modelOptionsForm = useMemo(
-    () =>
-      modelsForForm
-        .filter((m) => m.is_active || m.id === form.equipment_model)
-        .map((m) => ({ value: String(m.id), label: m.name })),
-    [modelsForForm, form.equipment_model],
-  );
+  const modelOptionsForm = useMemo(() => {
+    const opts = modelsForForm
+      .filter((m) => m.is_active || m.id === form.equipment_model)
+      .map((m) => ({ value: String(m.id), label: m.name }));
+    if (canCreate && form.brand) {
+      opts.unshift({ value: NEW_MODEL_VALUE, label: "Nuevo modelo" });
+    }
+    return opts;
+  }, [modelsForForm, form.equipment_model, canCreate, form.brand]);
 
   const branchName = (id: number) =>
     branches.find((b) => b.id === id)?.name ?? `Sede #${id}`;
@@ -309,13 +313,12 @@ export function EquiposPage() {
   }, [search, statusFilter, branchFilter, brandFilter, riskFilter]);
 
   useEffect(() => {
-    if (tab !== "equipos") return;
     const id = window.setTimeout(() => {
       void load(page);
     }, 300);
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, statusFilter, branchFilter, brandFilter, riskFilter, page, tab]);
+  }, [search, statusFilter, branchFilter, brandFilter, riskFilter, page]);
 
   // Al aparecer un error en el formulario, lo traemos a la vista: si no,
   // queda arriba mientras el usuario mira la parte de abajo del modal.
@@ -425,15 +428,29 @@ export function EquiposPage() {
     setFormError(null);
   };
 
+  const openCatalogForm = (kind: "brand" | "model", brandId?: number) => {
+    if (kind === "brand") {
+      catalogPanelRef.current?.openCreateBrand();
+    } else {
+      catalogPanelRef.current?.openCreateModel(brandId);
+    }
+  };
+
   const submit = async (ev: React.FormEvent) => {
     ev.preventDefault();
 
     // Validación explícita: los campos obligatorios que están arriba en el
     // formulario quedaban ocultos al hacer scroll y el navegador bloqueaba
     // el envío sin que se viera por qué. Ahora lo decimos claramente.
-    if (models.length > 0 && form.brand && modelOptionsForm.length === 0) {
+    if (
+      models.length > 0 &&
+      form.brand &&
+      modelsForForm.filter(
+        (m) => m.is_active || m.id === form.equipment_model,
+      ).length === 0
+    ) {
       setFormError(
-        'La marca seleccionada no tiene modelos. Créalos en la pestaña "Marcas y modelos" y vuelve a intentarlo.',
+        "La marca seleccionada no tiene modelos. Crea uno con la opción Nuevo modelo y vuelve a intentarlo.",
       );
       return;
     }
@@ -578,49 +595,20 @@ export function EquiposPage() {
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-app">Equipos</h1>
+          <h1 className="text-2xl font-bold text-app">Inventario</h1>
           <p className="text-sm text-app-muted">
             {role === "tecnico"
               ? `Equipos de tu área${usuario?.area ? ` (${usuario.area})` : ""}. Consulta e informa fallas observadas.`
-              : "Inventario, catálogo de marcas y modelos."}
+              : "Inventario de equipos"}
           </p>
         </div>
-        {tab === "equipos" && canCreate && (
+        {canCreate && (
           <Button leftIcon={<Plus size={16} />} onClick={openCreate}>
             Nuevo equipo
           </Button>
         )}
       </div>
 
-      {canCreate && (
-        <Tabs<Tab>
-          value={tab}
-          onChange={setTab}
-          items={[
-            {
-              value: "equipos",
-              label: "Equipos",
-              icon: <ClipboardList size={14} />,
-            },
-            {
-              value: "catalogo",
-              label: "Marcas y modelos",
-              icon: <Building size={14} />,
-            },
-          ]}
-        />
-      )}
-
-      {tab === "catalogo" && (
-        <MarcasModelosPanel
-          onChanged={() => {
-            void loadCatalog();
-          }}
-        />
-      )}
-
-      {tab === "equipos" && (
-        <>
           <Card>
             <div className="grid gap-2 sm:grid-cols-5">
               <Input
@@ -799,7 +787,28 @@ export function EquiposPage() {
               </div>
             </div>
           </Card>
-        </>
+
+      {canCreate && (
+        <MarcasModelosPanel
+          ref={catalogPanelRef}
+          onChanged={(created) => {
+            void loadCatalog().then(() => {
+              if (created?.brand) {
+                setForm((f) => ({
+                  ...f,
+                  brand: created.brand.id,
+                  equipment_model: 0,
+                }));
+              } else if (created?.model) {
+                setForm((f) => ({
+                  ...f,
+                  brand: created.model.brand,
+                  equipment_model: created.model.id,
+                }));
+              }
+            });
+          }}
+        />
       )}
 
       <Modal
@@ -887,6 +896,10 @@ export function EquiposPage() {
             label="Marca"
             value={String(form.brand)}
             onChange={(e) => {
+              if (e.target.value === NEW_BRAND_VALUE) {
+                openCatalogForm("brand");
+                return;
+              }
               const brandId = Number(e.target.value);
               const brandModels = models.filter(
                 (m) => m.brand === brandId && m.is_active,
@@ -902,26 +915,32 @@ export function EquiposPage() {
             placeholder="Selecciona una marca"
             required
             hint={
-              brandOptions.length === 0
-                ? "Crea una marca primero en la pestaña Marcas y modelos."
+              brands.filter((b) => b.is_active || b.id === form.brand).length === 0
+                ? "Crea una marca primero con la opción Nueva marca."
                 : undefined
             }
           />
           <Select
             label="Modelo"
             value={String(form.equipment_model)}
-            onChange={(e) =>
-              setForm({ ...form, equipment_model: Number(e.target.value) })
-            }
+            onChange={(e) => {
+              if (e.target.value === NEW_MODEL_VALUE) {
+                openCatalogForm("model", form.brand);
+                return;
+              }
+              setForm({ ...form, equipment_model: Number(e.target.value) });
+            }}
             options={modelOptionsForm}
             placeholder={
               !form.brand
                 ? "Selecciona una marca primero"
-                : modelOptionsForm.length === 0
+                : modelsForForm.filter(
+                    (m) => m.is_active || m.id === form.equipment_model,
+                  ).length === 0
                   ? "No hay modelos para esta marca"
                   : "Selecciona un modelo"
             }
-            disabled={!form.brand || modelOptionsForm.length === 0}
+            disabled={!form.brand}
             required
           />
           <Select

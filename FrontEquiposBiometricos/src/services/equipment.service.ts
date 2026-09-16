@@ -82,6 +82,15 @@ export const equipmentService = {
     const res = await api.post<Equipment>(`/equipment/${id}/regenerate-qr/`);
     return res.data;
   },
+  /** Sube o reemplaza la foto del equipo (`equipment_image` del modelo). */
+  async updateImage(id: number, file: File) {
+    const fd = new FormData();
+    fd.append("equipment_image", file);
+    const res = await api.patch<Equipment>(`/equipment/${id}/`, fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+  },
   async regenerateQrAll(params: { missing?: boolean } = {}) {
     const res = await api.post<{ regenerated: number }>(
       "/equipment/regenerate-qr-all/",

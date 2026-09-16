@@ -1,6 +1,10 @@
-"""App contenedora del dashboard.
+"""App contenedora de tests del dashboard (`apps.dashboard`).
 
-No define modelos. La agregación y el recorte por rol están en
-api.v1.dashboard (helpers y views). Esta app agrupa los tests de
-integración del summary.
+No está en INSTALLED_APPS y no define modelos, señales ni tareas.
+El endpoint y la agregación viven en `api.v1.dashboard` (`views.py`
+arma el payload por rol; `helpers.py` calcula KPIs, series y listas).
+
+Este paquete solo agrupa tests de integración de
+`GET /api/v1/dashboard/summary/` (alcance por rol, vencidos, cola
+de alertas Celery). Pytest los recoge por ruta, no como app Django.
 """
