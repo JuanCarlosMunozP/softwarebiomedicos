@@ -27,8 +27,9 @@ media/
 staticfiles/
 .staticfiles_cache/
 
-# Migrations: las dejamos en repo (solo ignoramos las del módulo si fuera necesario)
-# (Comentado intencionalmente: las migraciones SÍ se versionan)
+# Migraciones numeradas (0001 en adelante): cada entorno las genera.
+# Se conservan las carpetas y los __init__.py.
+**/migrations/[0-9]*.py
 
 # Environments
 .env
