@@ -25,6 +25,7 @@ import { useAuth } from "@/context/AuthContext";
 import { schedulingService } from "@/services/scheduling.service";
 import { equipmentService } from "@/services/equipment.service";
 import { usersService } from "@/services/users.service";
+import { workOrdersService } from "@/services/workorders.service";
 import { can } from "@/lib/permissions";
 import { getApiErrorMessage } from "@/lib/api";
 import type { Equipment } from "@/types/equipment";
@@ -33,6 +34,7 @@ import type {
   ScheduleKind,
   ScheduledMaintenance,
 } from "@/types/scheduling";
+import type { WorkOrderDetail } from "@/types/workorder";
 
 const TECHNICIAN_ROLES = ["tecnico", "ingeniero"];
 
@@ -104,6 +106,8 @@ export function AgendamientosPage() {
 
   const [editing, setEditing] = useState<ScheduledMaintenance | null>(null);
   const [viewing, setViewing] = useState<ScheduledMaintenance | null>(null);
+  const [woDetail, setWoDetail] = useState<WorkOrderDetail | null>(null);
+  const [woLoading, setWoLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<FormState>(empty);
   const [saving, setSaving] = useState(false);
@@ -125,6 +129,30 @@ export function AgendamientosPage() {
   // Solo el ingeniero/técnico ejecuta la orden de trabajo; la gestión hace
   // seguimiento por el estado de la solicitud.
   const canOpenWorkOrder = role === "ingeniero";
+
+  const workOrderId = viewing?.work_order?.id;
+  useEffect(() => {
+    if (!canOpenWorkOrder || !workOrderId) {
+      setWoDetail(null);
+      return;
+    }
+    let cancelled = false;
+    setWoLoading(true);
+    workOrdersService
+      .details(workOrderId)
+      .then((d) => {
+        if (!cancelled) setWoDetail(d);
+      })
+      .catch(() => {
+        if (!cancelled) setWoDetail(null);
+      })
+      .finally(() => {
+        if (!cancelled) setWoLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canOpenWorkOrder, workOrderId]);
 
   const equipmentOptions = useMemo(
     () =>
@@ -575,7 +603,7 @@ export function AgendamientosPage() {
         open={!!viewing}
         onClose={() => setViewing(null)}
         title="Detalle de la solicitud"
-        size="lg"
+        size={canOpenWorkOrder && workOrderId ? "xl" : "lg"}
       >
         {viewing && (
           <div className="grid gap-4 sm:grid-cols-2">
@@ -672,6 +700,88 @@ export function AgendamientosPage() {
                 Cumplida por mantenimiento #{viewing.maintenance_record_detail.id}{" "}
                 · {viewing.maintenance_record_detail.date}
               </p>
+            )}
+            {canOpenWorkOrder && workOrderId && (
+              <div className="sm:col-span-2 border-t border-app pt-4">
+                {woLoading && !woDetail ? (
+                  <p className="text-sm text-app-muted">Cargando intervención...</p>
+                ) : woDetail ? (
+                  <div className="grid gap-3 text-sm">
+                    <p className="text-xs font-medium uppercase tracking-wide text-app-muted">
+                      Intervención · Orden {woDetail.number}
+                    </p>
+                    <div>
+                      <p className="font-semibold text-app">Repuestos</p>
+                      {(woDetail.spare_parts ?? []).length === 0 ? (
+                        <p className="text-xs text-app-muted">Sin registros.</p>
+                      ) : (
+                        (woDetail.spare_parts ?? []).map((r) => (
+                          <p key={r.id} className="text-app">
+                            {r.name} · {r.reference} · x{r.quantity} · $
+                            {r.total_cost}
+                          </p>
+                        ))
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-app">Mediciones</p>
+                      {(woDetail.measurements ?? []).length === 0 ? (
+                        <p className="text-xs text-app-muted">Sin registros.</p>
+                      ) : (
+                        (woDetail.measurements ?? []).map((r) => (
+                          <p key={r.id} className="text-app">
+                            {r.parameter}: {r.measured_value} {r.unit} (esp.{" "}
+                            {r.expected_value}) {r.passed ? "OK" : "No"}
+                          </p>
+                        ))
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-app">Evidencias</p>
+                      {(woDetail.evidences ?? []).length === 0 ? (
+                        <p className="text-xs text-app-muted">Sin registros.</p>
+                      ) : (
+                        (woDetail.evidences ?? []).map((r) => (
+                          <p key={r.id} className="text-app">
+                            {r.evidence_type}: {r.description}
+                          </p>
+                        ))
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-app">Firmas</p>
+                      {(woDetail.signatures ?? []).length === 0 ? (
+                        <p className="text-xs text-app-muted">Sin registros.</p>
+                      ) : (
+                        (woDetail.signatures ?? []).map((r) => (
+                          <p key={r.id} className="text-app">
+                            {r.signed_by}
+                            {r.signed_at
+                              ? ` · ${new Date(r.signed_at).toLocaleString()}`
+                              : ""}
+                          </p>
+                        ))
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-app">Costos</p>
+                      {woDetail.cost ? (
+                        <p className="text-app">
+                          Mano de obra ${woDetail.cost.labor_cost} · Repuestos $
+                          {woDetail.cost.spare_parts_cost} · Transporte $
+                          {woDetail.cost.transport_cost} · Otros $
+                          {woDetail.cost.other_cost} · Total $
+                          {woDetail.cost.total ?? "—"}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-app-muted">
+                          Sin costos registrados.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
             )}
             <div className="flex justify-end sm:col-span-2">
               <Button variant="secondary" onClick={() => setViewing(null)}>

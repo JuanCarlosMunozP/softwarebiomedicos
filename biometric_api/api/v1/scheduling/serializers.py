@@ -122,6 +122,7 @@ class MaintenanceScheduleSerializer(serializers.ModelSerializer):
             "equipment_asset_tag",
             "equipment_name",
             "branch_name",
+            "requested_date",
             "requested_by",
             "requested_by_detail",
             "requesting_area",
@@ -144,7 +145,6 @@ class MaintenanceScheduleSerializer(serializers.ModelSerializer):
         if isinstance(self.instance, MaintenanceSchedule):
             self.fields["equipment"].read_only = True
             self.fields["kind"].read_only = True
-            self.fields["requested_date"].read_only = True
 
     def create(self, validated_data):
         request = self.context.get("request")

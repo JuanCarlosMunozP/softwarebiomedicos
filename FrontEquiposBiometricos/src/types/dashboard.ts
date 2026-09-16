@@ -152,6 +152,11 @@ export interface DashboardSummary {
       in_progress: number;
       resolved: number;
     };
+    series?: {
+      status: string;
+      start_date: string;
+      end_date: string | null;
+    }[];
     recent: {
       id: number;
       number: string;

@@ -23,6 +23,7 @@ import { getApiErrorMessage } from "@/lib/api";
 import { schedulingService } from "@/services/scheduling.service";
 import { equipmentService } from "@/services/equipment.service";
 import { usersService } from "@/services/users.service";
+import { workOrdersService } from "@/services/workorders.service";
 import {
   assignableUserOptions,
   assignedUserName,
@@ -31,6 +32,7 @@ import {
 import type { ScheduleKind, ScheduledMaintenance } from "@/types/scheduling";
 import type { Equipment } from "@/types/equipment";
 import type { Usuario } from "@/types/auth";
+import type { WorkOrderDetail } from "@/types/workorder";
 
 const KIND_OPTS: SelectOption<ScheduleKind>[] = [
   { label: "Preventivo", value: "PREVENTIVE" },
@@ -69,6 +71,7 @@ export function AgendamientosScreen() {
   const canEdit = can(role, "scheduling", "edit");
   const canDelete = can(role, "scheduling", "delete");
   const showRequestingArea = role === "superadmin" || role === "ingeniero";
+  const isEngineer = role === "ingeniero";
   const isCoordinatorOrSuperadmin =
     role === "coordinador" || role === "superadmin";
 
@@ -83,6 +86,7 @@ export function AgendamientosScreen() {
     null,
   );
   const [viewing, setViewing] = useState<ScheduledMaintenance | null>(null);
+  const [woDetail, setWoDetail] = useState<WorkOrderDetail | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
@@ -117,6 +121,26 @@ export function AgendamientosScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const workOrderId = viewing?.work_order?.id;
+  useEffect(() => {
+    if (!isEngineer || !workOrderId) {
+      setWoDetail(null);
+      return;
+    }
+    let cancelled = false;
+    workOrdersService
+      .details(workOrderId)
+      .then((d) => {
+        if (!cancelled) setWoDetail(d);
+      })
+      .catch(() => {
+        if (!cancelled) setWoDetail(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isEngineer, workOrderId]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -408,6 +432,111 @@ export function AgendamientosScreen() {
                     ? new Date(viewing.work_order.end_date).toLocaleString()
                     : "—"}
                 </Text>
+              </View>
+            )}
+            {isEngineer && woDetail && (
+              <View className="gap-3 border-t border-app pt-3">
+                <Text className="text-xs font-medium uppercase text-app-text-muted dark:text-app-dark-text-muted">
+                  Intervención · Orden {woDetail.number}
+                </Text>
+                <View>
+                  <Text className="text-sm font-semibold text-app-text dark:text-app-dark-text">
+                    Repuestos
+                  </Text>
+                  {(woDetail.spare_parts ?? []).length === 0 ? (
+                    <Text className="mt-0.5 text-xs text-app-text-muted dark:text-app-dark-text-muted">
+                      Sin registros.
+                    </Text>
+                  ) : (
+                    (woDetail.spare_parts ?? []).map((r) => (
+                      <Text
+                        key={r.id}
+                        className="mt-0.5 text-sm text-app-text dark:text-app-dark-text"
+                      >
+                        {r.name} · {r.reference} · x{r.quantity} · ${r.total_cost}
+                      </Text>
+                    ))
+                  )}
+                </View>
+                <View>
+                  <Text className="text-sm font-semibold text-app-text dark:text-app-dark-text">
+                    Mediciones
+                  </Text>
+                  {(woDetail.measurements ?? []).length === 0 ? (
+                    <Text className="mt-0.5 text-xs text-app-text-muted dark:text-app-dark-text-muted">
+                      Sin registros.
+                    </Text>
+                  ) : (
+                    (woDetail.measurements ?? []).map((r) => (
+                      <Text
+                        key={r.id}
+                        className="mt-0.5 text-sm text-app-text dark:text-app-dark-text"
+                      >
+                        {r.parameter}: {r.measured_value} {r.unit} (esp.{" "}
+                        {r.expected_value}) {r.passed ? "OK" : "No"}
+                      </Text>
+                    ))
+                  )}
+                </View>
+                <View>
+                  <Text className="text-sm font-semibold text-app-text dark:text-app-dark-text">
+                    Evidencias
+                  </Text>
+                  {(woDetail.evidences ?? []).length === 0 ? (
+                    <Text className="mt-0.5 text-xs text-app-text-muted dark:text-app-dark-text-muted">
+                      Sin registros.
+                    </Text>
+                  ) : (
+                    (woDetail.evidences ?? []).map((r) => (
+                      <Text
+                        key={r.id}
+                        className="mt-0.5 text-sm text-app-text dark:text-app-dark-text"
+                      >
+                        {r.evidence_type}: {r.description}
+                      </Text>
+                    ))
+                  )}
+                </View>
+                <View>
+                  <Text className="text-sm font-semibold text-app-text dark:text-app-dark-text">
+                    Firmas
+                  </Text>
+                  {(woDetail.signatures ?? []).length === 0 ? (
+                    <Text className="mt-0.5 text-xs text-app-text-muted dark:text-app-dark-text-muted">
+                      Sin registros.
+                    </Text>
+                  ) : (
+                    (woDetail.signatures ?? []).map((r) => (
+                      <Text
+                        key={r.id}
+                        className="mt-0.5 text-sm text-app-text dark:text-app-dark-text"
+                      >
+                        {r.signed_by}
+                        {r.signed_at
+                          ? ` · ${new Date(r.signed_at).toLocaleString()}`
+                          : ""}
+                      </Text>
+                    ))
+                  )}
+                </View>
+                <View>
+                  <Text className="text-sm font-semibold text-app-text dark:text-app-dark-text">
+                    Costos
+                  </Text>
+                  {woDetail.cost ? (
+                    <Text className="mt-0.5 text-sm text-app-text dark:text-app-dark-text">
+                      Mano de obra ${woDetail.cost.labor_cost} · Repuestos $
+                      {woDetail.cost.spare_parts_cost} · Transporte $
+                      {woDetail.cost.transport_cost} · Otros $
+                      {woDetail.cost.other_cost} · Total $
+                      {woDetail.cost.total ?? "—"}
+                    </Text>
+                  ) : (
+                    <Text className="mt-0.5 text-xs text-app-text-muted dark:text-app-dark-text-muted">
+                      Sin costos registrados.
+                    </Text>
+                  )}
+                </View>
               </View>
             )}
           </View>

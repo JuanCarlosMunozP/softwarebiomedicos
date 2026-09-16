@@ -17,4 +17,15 @@ export interface ScheduleEmailSentEvent {
   sent_at: string;
 }
 
-export type NotificationEvent = ScheduleEmailSentEvent;
+export interface OverdueMaintenanceEvent {
+  type: "overdue_maintenance";
+  schedule_id: number;
+  equipment_asset_tag: string;
+  equipment_name: string;
+  /** ISO date (YYYY-MM-DD). */
+  scheduled_date: string;
+  days_overdue: number;
+  kind: string;
+}
+
+export type NotificationEvent = ScheduleEmailSentEvent | OverdueMaintenanceEvent;

@@ -19,6 +19,8 @@ import {
   Pie,
   PieChart,
   ResponsiveContainer,
+  Scatter,
+  ScatterChart,
   Tooltip,
   XAxis,
   YAxis,
@@ -267,38 +269,26 @@ export function DashboardPage() {
             <MyTasksSection schedules={data.my_tasks?.schedules ?? []} />
           )}
 
-          <KpiRow
+          {canViewScheduling && data.kpis.scheduling.overdue > 0 && (
+            <div
+              role="alert"
+              className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
+            >
+              Hay {data.kpis.scheduling.overdue} solicitud
+              {data.kpis.scheduling.overdue === 1 ? "" : "es"} vencida
+              {data.kpis.scheduling.overdue === 1 ? "" : "s"}: pendientes cuya
+              fecha de fin ya llegó o ya pasó.
+            </div>
+          )}
+
+          <AdminOverview
             data={data}
+            role={role}
             canViewEquipment={canViewEquipment}
             canViewFailures={canViewFailures}
             canViewScheduling={canViewScheduling}
             canViewMaintenance={canViewMaintenance}
           />
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            {canViewEquipment && (
-              <EquipmentStatusChart
-                data={data.distributions.equipment_by_status}
-              />
-            )}
-            {canViewFailures && (
-              <FailuresSeverityChart
-                data={data.distributions.failures_by_severity}
-              />
-            )}
-          </div>
-
-          {canViewMaintenance && role === "coordinador" && (
-            <CoordinatorSolicitudesChart
-              series={data.time_series.schedules ?? []}
-              costs={data.time_series.maintenance_costs ?? []}
-            />
-          )}
-          {canViewMaintenance && role !== "coordinador" && (
-            <MaintenanceTimeSeriesChart
-              data={data.time_series.maintenance_by_month}
-            />
-          )}
 
           <div className="grid gap-6 lg:grid-cols-2">
             {canViewScheduling && (
@@ -334,13 +324,116 @@ function EngineerTasksDashboard({
     FINISHED: "Terminada",
     CANCELLED: "Cancelada",
   };
+  const [fromDraft, setFromDraft] = useState("");
+  const [toDraft, setToDraft] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  const applyFilters = () => {
+    let from = fromDraft;
+    let to = toDraft;
+    if (from && to && from > to) {
+      const swap = from;
+      from = to;
+      to = swap;
+      setFromDraft(from);
+      setToDraft(to);
+    }
+    setFromDate(from);
+    setToDate(to);
+  };
+
+  const filteredSeries = useMemo(() => {
+    const series = tasks.series ?? [];
+    if (!fromDate && !toDate) return series;
+    return series.filter((row) => {
+      const d =
+        row.status === "FINISHED" && row.end_date
+          ? row.end_date
+          : row.start_date;
+      return inDateRange(d, fromDate, toDate);
+    });
+  }, [tasks.series, fromDate, toDate]);
+
+  const kpis = useMemo(() => {
+    if (!tasks.series || (!fromDate && !toDate)) return tasks.kpis;
+    return {
+      assigned: filteredSeries.length,
+      pending: filteredSeries.filter((row) => row.status === "PENDING").length,
+      in_progress: filteredSeries.filter((row) => row.status === "IN_PROGRESS")
+        .length,
+      resolved: filteredSeries.filter((row) => row.status === "FINISHED")
+        .length,
+    };
+  }, [tasks.kpis, tasks.series, filteredSeries, fromDate, toDate]);
+
+  const scatterGroups = useMemo(() => {
+    const yOf: Record<string, number> = {
+      PENDING: 1,
+      IN_PROGRESS: 2,
+      FINISHED: 3,
+    };
+    const toPoint = (row: { status: string; start_date: string; end_date: string | null }) => {
+      const d =
+        row.status === "FINISHED" && row.end_date
+          ? row.end_date
+          : row.start_date;
+      const key = dateKey(d);
+      return {
+        x: Date.parse(`${key}T12:00:00`),
+        y: yOf[row.status] ?? 0,
+        date: key,
+        status:
+          row.status === "PENDING"
+            ? "Pendiente"
+            : row.status === "IN_PROGRESS"
+              ? "En proceso"
+              : row.status === "FINISHED"
+                ? "Resuelta"
+                : row.status,
+      };
+    };
+    return {
+      pending: filteredSeries.filter((row) => row.status === "PENDING").map(toPoint),
+      inProgress: filteredSeries
+        .filter((row) => row.status === "IN_PROGRESS")
+        .map(toPoint),
+      resolved: filteredSeries
+        .filter((row) => row.status === "FINISHED")
+        .map(toPoint),
+    };
+  }, [filteredSeries]);
+
+  const xDomain = useMemo((): [number, number] => {
+    const fromTs = fromDate ? Date.parse(`${fromDate}T00:00:00`) : Number.NaN;
+    const toTs = toDate ? Date.parse(`${toDate}T23:59:59`) : Number.NaN;
+    if (Number.isFinite(fromTs) && Number.isFinite(toTs)) {
+      return fromTs === toTs
+        ? [fromTs - 12 * 3600000, toTs + 12 * 3600000]
+        : [fromTs, toTs];
+    }
+    const xs = filteredSeries.map((row) => {
+      const d =
+        row.status === "FINISHED" && row.end_date
+          ? row.end_date
+          : row.start_date;
+      return Date.parse(`${dateKey(d)}T12:00:00`);
+    }).filter((n) => Number.isFinite(n));
+    let min = Number.isFinite(fromTs) ? fromTs : (xs.length ? Math.min(...xs) : Date.now());
+    let max = Number.isFinite(toTs) ? toTs : (xs.length ? Math.max(...xs) : Date.now());
+    if (min === max) {
+      min -= 12 * 3600000;
+      max += 12 * 3600000;
+    }
+    return [min, max];
+  }, [filteredSeries, fromDate, toDate]);
+
   const pie = [
-    { name: "Pendientes", count: tasks.kpis.pending, fill: "#f59e0b" },
-    { name: "En proceso", count: tasks.kpis.in_progress, fill: "#3b82f6" },
-    { name: "Resueltas", count: tasks.kpis.resolved, fill: "#10b981" },
+    { name: "Pendientes", count: kpis.pending, fill: "#f59e0b" },
+    { name: "En proceso", count: kpis.in_progress, fill: "#3b82f6" },
+    { name: "Resueltas", count: kpis.resolved, fill: "#10b981" },
   ];
-  const pieTotal =
-    tasks.kpis.pending + tasks.kpis.in_progress + tasks.kpis.resolved;
+  const pieTotal = kpis.pending + kpis.in_progress + kpis.resolved;
 
   return (
     <>
@@ -350,7 +443,7 @@ function EngineerTasksDashboard({
             <div>
               <p className="text-xs text-app-muted">Tareas asignadas</p>
               <p className="mt-1 text-2xl font-bold text-app">
-                {tasks.kpis.assigned}
+                {kpis.assigned}
               </p>
               <p className="mt-1 text-xs text-app-muted">
                 Órdenes de trabajo a tu cargo
@@ -366,7 +459,7 @@ function EngineerTasksDashboard({
             <div>
               <p className="text-xs text-app-muted">Tareas pendientes</p>
               <p className="mt-1 text-2xl font-bold text-app">
-                {tasks.kpis.pending}
+                {kpis.pending}
               </p>
               <p className="mt-1 text-xs text-app-muted">
                 Estado pendiente
@@ -382,7 +475,7 @@ function EngineerTasksDashboard({
             <div>
               <p className="text-xs text-app-muted">En proceso</p>
               <p className="mt-1 text-2xl font-bold text-app">
-                {tasks.kpis.in_progress}
+                {kpis.in_progress}
               </p>
               <p className="mt-1 text-xs text-app-muted">
                 Mantenimiento en curso
@@ -398,7 +491,7 @@ function EngineerTasksDashboard({
             <div>
               <p className="text-xs text-app-muted">Tareas resueltas</p>
               <p className="mt-1 text-2xl font-bold text-app">
-                {tasks.kpis.resolved}
+                {kpis.resolved}
               </p>
               <p className="mt-1 text-xs text-app-muted">
                 Mantenimientos ya realizados
@@ -410,6 +503,129 @@ function EngineerTasksDashboard({
           </div>
         </Card>
       </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Input
+          type="date"
+          label="Desde"
+          value={fromDraft}
+          max={toDraft || undefined}
+          onChange={(e) => {
+            const value = e.target.value;
+            setFromDraft(value);
+            setFromDate(value);
+          }}
+        />
+        <Input
+          type="date"
+          label="Hasta"
+          value={toDraft}
+          min={fromDraft || undefined}
+          onChange={(e) => {
+            const value = e.target.value;
+            setToDraft(value);
+            setToDate(value);
+          }}
+        />
+        <div className="flex items-end">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={applyFilters}
+            className="w-full"
+          >
+            Aplicar filtros
+          </Button>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader
+          title="Tareas por fecha"
+          subtitle={
+            fromDate || toDate
+              ? `Dispersión de tareas${fromDate ? ` desde ${fromDate}` : ""}${
+                  toDate ? ` hasta ${toDate}` : ""
+                }`
+              : "Dispersión de tareas asignadas, pendientes, en proceso y resueltas"
+          }
+        />
+        <div className="h-72">
+          {filteredSeries.length === 0 && !fromDate && !toDate ? (
+            <p className="py-8 text-center text-sm text-app-muted">
+              No hay tareas para graficar.
+            </p>
+          ) : (
+            <ResponsiveContainer
+              key={`${fromDate}|${toDate}`}
+              width="100%"
+              height={256}
+              minWidth={0}
+            >
+              <ScatterChart margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  type="number"
+                  dataKey="x"
+                  domain={xDomain}
+                  allowDataOverflow
+                  tickCount={6}
+                  tickFormatter={(value: number) =>
+                    new Date(value).toLocaleDateString("es-CO", {
+                      day: "numeric",
+                      month: "short",
+                    })
+                  }
+                  allowDecimals={false}
+                />
+                <YAxis
+                  type="number"
+                  dataKey="y"
+                  domain={[0.5, 3.5]}
+                  ticks={[1, 2, 3]}
+                  tickFormatter={(value: number) =>
+                    value === 1
+                      ? "Pendiente"
+                      : value === 2
+                        ? "En proceso"
+                        : value === 3
+                          ? "Resuelta"
+                          : ""
+                  }
+                  width={90}
+                  allowDecimals={false}
+                />
+                <Tooltip
+                  cursor={{ strokeDasharray: "3 3" }}
+                  formatter={(_value, _name, item) => {
+                    const payload = item?.payload as
+                      | { date?: string; status?: string }
+                      | undefined;
+                    return [payload?.status ?? "", payload?.date ?? ""];
+                  }}
+                  labelFormatter={() => ""}
+                />
+                <Legend />
+                <Scatter
+                  name="Pendientes"
+                  data={scatterGroups.pending}
+                  fill="#f59e0b"
+                />
+                <Scatter
+                  name="En proceso"
+                  data={scatterGroups.inProgress}
+                  fill="#3b82f6"
+                />
+                <Scatter
+                  name="Resueltas"
+                  data={scatterGroups.resolved}
+                  fill="#10b981"
+                />
+              </ScatterChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </Card>
 
       <div className="grid gap-3 lg:grid-cols-2">
         <Card padding="sm">
@@ -1033,26 +1249,154 @@ function AreaOpsDashboard({
   );
 }
 
-function CoordinatorSolicitudesChart({
-  series,
-  costs,
+function AdminOverview({
+  data,
+  role,
+  canViewEquipment,
+  canViewFailures,
+  canViewScheduling,
+  canViewMaintenance,
 }: {
-  series: { date: string; kind?: string; resolved: boolean }[];
-  costs: { date: string; cost: string }[];
+  data: DashboardSummary;
+  role: string | undefined;
+  canViewEquipment: boolean;
+  canViewFailures: boolean;
+  canViewScheduling: boolean;
+  canViewMaintenance: boolean;
 }) {
+  const showDateFilter =
+    canViewMaintenance && (role === "coordinador" || role === "superadmin");
+  const [fromDraft, setFromDraft] = useState("");
+  const [toDraft, setToDraft] = useState("");
+  const [grainDraft, setGrainDraft] = useState<DateGrain>("month");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [grain, setGrain] = useState<DateGrain>("month");
   const [chartKey, setChartKey] = useState(0);
 
   const applyFilters = () => {
-    if (fromDate && toDate && fromDate > toDate) {
-      setFromDate(toDate);
-      setToDate(fromDate);
+    let from = fromDraft;
+    let to = toDraft;
+    if (from && to && from > to) {
+      const swap = from;
+      from = to;
+      to = swap;
+      setFromDraft(from);
+      setToDraft(to);
     }
+    setFromDate(from);
+    setToDate(to);
+    setGrain(grainDraft);
     setChartKey((k) => k + 1);
   };
 
+  const maintenanceFiltered = useMemo(() => {
+    if (!showDateFilter || (!fromDate && !toDate)) return null;
+    const costs = data.time_series.maintenance_costs ?? [];
+    const rows = costs.filter((c) => inDateRange(c.date, fromDate, toDate));
+    const total = rows.reduce((sum, c) => {
+      const n = Number(c.cost);
+      return Number.isFinite(n) ? sum + n : sum;
+    }, 0);
+    return { count: rows.length, cost: String(total) };
+  }, [showDateFilter, data.time_series.maintenance_costs, fromDate, toDate]);
+
+  return (
+    <>
+      <KpiRow
+        data={data}
+        canViewEquipment={canViewEquipment}
+        canViewFailures={canViewFailures}
+        canViewScheduling={canViewScheduling}
+        canViewMaintenance={canViewMaintenance}
+        maintenanceCount={maintenanceFiltered?.count}
+        maintenanceCost={maintenanceFiltered?.cost}
+      />
+
+      {showDateFilter && (
+        <div className="grid gap-3 sm:grid-cols-4">
+          <Input
+            type="date"
+            label="Desde"
+            value={fromDraft}
+            max={toDraft || undefined}
+            onChange={(e) => setFromDraft(e.target.value)}
+          />
+          <Input
+            type="date"
+            label="Hasta"
+            value={toDraft}
+            min={fromDraft || undefined}
+            onChange={(e) => setToDraft(e.target.value)}
+          />
+          <Select
+            label="Fechas"
+            value={grainDraft}
+            onChange={(e) => setGrainDraft(e.target.value as DateGrain)}
+            options={[
+              { value: "day", label: "Día" },
+              { value: "month", label: "Mes" },
+              { value: "year", label: "Año" },
+            ]}
+          />
+          <div className="flex items-end">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={applyFilters}
+              className="w-full"
+            >
+              Aplicar filtros
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {canViewFailures && (
+          <FailuresSeverityChart
+            data={data.distributions.failures_by_severity}
+          />
+        )}
+      </div>
+
+      {canViewMaintenance &&
+        (role === "coordinador" || role === "superadmin") && (
+          <CoordinatorSolicitudesChart
+            series={data.time_series.schedules ?? []}
+            costs={data.time_series.maintenance_costs ?? []}
+            fromDate={fromDate}
+            toDate={toDate}
+            grain={grain}
+            chartKey={chartKey}
+          />
+        )}
+      {canViewMaintenance &&
+        role !== "coordinador" &&
+        role !== "superadmin" && (
+          <MaintenanceTimeSeriesChart
+            data={data.time_series.maintenance_by_month}
+          />
+        )}
+    </>
+  );
+}
+
+function CoordinatorSolicitudesChart({
+  series,
+  costs,
+  fromDate,
+  toDate,
+  grain,
+  chartKey,
+}: {
+  series: { date: string; kind?: string; resolved: boolean }[];
+  costs: { date: string; cost: string }[];
+  fromDate: string;
+  toDate: string;
+  grain: DateGrain;
+  chartKey: number;
+}) {
   const chartData = useMemo(
     () => buildCoordinatorChartData(series, costs, fromDate, toDate, grain),
     [series, costs, fromDate, toDate, grain],
@@ -1066,43 +1410,6 @@ function CoordinatorSolicitudesChart({
 
   return (
     <>
-      <div className="grid gap-3 sm:grid-cols-4">
-        <Input
-          type="date"
-          label="Desde"
-          value={fromDate}
-          max={toDate || undefined}
-          onChange={(e) => setFromDate(e.target.value)}
-        />
-        <Input
-          type="date"
-          label="Hasta"
-          value={toDate}
-          min={fromDate || undefined}
-          onChange={(e) => setToDate(e.target.value)}
-        />
-        <Select
-          label="Fechas"
-          value={grain}
-          onChange={(e) => setGrain(e.target.value as DateGrain)}
-          options={[
-            { value: "day", label: "Día" },
-            { value: "month", label: "Mes" },
-            { value: "year", label: "Año" },
-          ]}
-        />
-        <div className="flex items-end">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={applyFilters}
-            className="w-full"
-          >
-            Aplicar filtros
-          </Button>
-        </div>
-      </div>
-
       <Card>
         <CardHeader
           title="Solicitudes"
@@ -1455,14 +1762,30 @@ function KpiRow({
   canViewFailures,
   canViewScheduling,
   canViewMaintenance,
+  maintenanceCount,
+  maintenanceCost,
 }: {
   data: DashboardSummary;
   canViewEquipment: boolean;
   canViewFailures: boolean;
   canViewScheduling: boolean;
   canViewMaintenance: boolean;
+  maintenanceCount?: number;
+  maintenanceCost?: string;
 }) {
   const { equipment, failures, scheduling, maintenance } = data.kpis;
+  const monthCount = maintenanceCount ?? maintenance.this_month_count;
+  const monthCost = maintenanceCost ?? maintenance.this_month_cost;
+  const statusBuckets = data.distributions.equipment_by_status;
+  const countOf = (status: EquipmentStatus) =>
+    statusBuckets.find((row) => row.status === status)?.count ?? 0;
+  const statusPie = statusBuckets
+    .filter((row) => row.count > 0)
+    .map((row) => ({
+      status: row.status,
+      count: row.count,
+      name: STATUS_LABEL[row.status],
+    }));
   const cards: Array<{
     label: string;
     value: string;
@@ -1475,7 +1798,7 @@ function KpiRow({
     {
       label: "Equipos operativos",
       value: String(equipment.active),
-      delta: `${equipment.total} en total`,
+      delta: `${countOf("IN_MAINTENANCE")} en mant. · ${countOf("IN_REPAIR")} en repar. · ${countOf("INACTIVE")} fuera`,
       Icon: ClipboardList,
       tone: "text-blue-600 bg-blue-50 dark:bg-blue-950/40",
       show: canViewEquipment,
@@ -1493,20 +1816,24 @@ function KpiRow({
       alert: failures.critical_open > 0,
     },
     {
-      label: "Próximos 7 días",
-      value: String(scheduling.next_7_days),
+      label: "Vencidos",
+      value: String(scheduling.overdue),
       delta:
         scheduling.overdue > 0
-          ? `${scheduling.overdue} vencidos sin cumplir`
+          ? "Pendientes con fecha de fin vencida"
           : "Sin vencidos",
       Icon: CalendarClock,
-      tone: "text-amber-600 bg-amber-50 dark:bg-amber-950/40",
+      tone:
+        scheduling.overdue > 0
+          ? "text-red-600 bg-red-50 dark:bg-red-950/40"
+          : "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40",
       show: canViewScheduling,
+      alert: scheduling.overdue > 0,
     },
     {
       label: "Mantenimientos del mes",
-      value: String(maintenance.this_month_count),
-      delta: `Costo: ${formatCost(maintenance.this_month_cost)}`,
+      value: String(monthCount),
+      delta: `Costo: ${formatCost(monthCost)}`,
       Icon: Wrench,
       tone: "text-violet-600 bg-violet-50 dark:bg-violet-950/40",
       show: canViewMaintenance,
@@ -1519,15 +1846,46 @@ function KpiRow({
         .filter((c) => c.show)
         .map(({ label, value, delta, Icon, tone, alert }) => (
           <Card key={label} className={alert ? "ring-2 ring-red-200 dark:ring-red-900/60" : ""}>
-            <div className="flex items-start justify-between">
-              <div>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
                 <p className="text-xs text-app-muted">{label}</p>
                 <p className="mt-1 text-2xl font-bold text-app">{value}</p>
                 <p className="mt-1 text-xs text-app-muted">{delta}</p>
               </div>
-              <div className={`rounded-lg p-2.5 ${tone}`}>
-                <Icon size={20} />
-              </div>
+              {label === "Equipos operativos" && statusPie.length > 0 ? (
+                <div className="h-16 w-16 shrink-0">
+                  <ResponsiveContainer width={64} height={64} minWidth={0}>
+                    <PieChart>
+                      <Pie
+                        data={statusPie}
+                        dataKey="count"
+                        nameKey="name"
+                        innerRadius={16}
+                        outerRadius={28}
+                        paddingAngle={1}
+                        stroke="none"
+                      >
+                        {statusPie.map((row) => (
+                          <Cell
+                            key={row.status}
+                            fill={STATUS_COLOR[row.status]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value, name) => [
+                          String(value ?? 0),
+                          String(name ?? ""),
+                        ]}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className={`rounded-lg p-2.5 ${tone}`}>
+                  <Icon size={20} />
+                </div>
+              )}
             </div>
           </Card>
         ))}

@@ -103,6 +103,15 @@ class TestSchedulingKpis:
         kpis = auth_client.get(SUMMARY_URL).json()["kpis"]["scheduling"]
         assert kpis["overdue"] == 2
 
+    def test_overdue_includes_due_today(self, auth_client, equipment):
+        today = timezone.localdate()
+        MaintenanceScheduleFactory(equipment=equipment, scheduled_date=today)
+        MaintenanceScheduleFactory(
+            equipment=equipment, scheduled_date=today + timedelta(days=1)
+        )
+        kpis = auth_client.get(SUMMARY_URL).json()["kpis"]["scheduling"]
+        assert kpis["overdue"] == 1
+
 
 class TestMaintenanceKpis:
     def test_this_month_count_and_cost(self, auth_client, equipment):

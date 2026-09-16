@@ -44,6 +44,17 @@ function toastFromEvent(event: NotificationEvent): Omit<ToastData, "id"> {
         meta: `${event.branch_name} · ${sentAtLocal}`,
       };
     }
+    case "overdue_maintenance": {
+      const delay =
+        event.days_overdue === 0
+          ? "Vence hoy"
+          : `${event.days_overdue} día${event.days_overdue === 1 ? "" : "s"} de retraso`;
+      return {
+        title: "Mantenimiento vencido",
+        body: `${event.equipment_asset_tag} · fecha de fin ${event.scheduled_date}`,
+        meta: delay,
+      };
+    }
     default:
       return { title: "Notificación", body: JSON.stringify(event) };
   }

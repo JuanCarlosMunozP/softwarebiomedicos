@@ -41,32 +41,6 @@ from .serializers import (
     WorkOrderSparePartSerializer,
 )
 
-# Roles "de campo": ejecutan órdenes de trabajo, no las administran. Solo ven
-# y editan las que tienen asignadas (technician == ellos).
-_FIELD_ROLES = (User.Role.TECNICO, User.Role.INGENIERO)
-
-
-def _only_own_work_orders(user) -> bool:
-    return bool(
-        user and user.is_authenticated and getattr(user, "role", None) in _FIELD_ROLES
-    )
-
-
-def _maintenance_record_for(work_order: EquipmentWorkOrder):
-    """El registro de mantenimiento que esta orden dejó (o cerró) en el
-    historial del equipo, sin importar su origen: enlace directo
-    (`maintenance_record`) o vía la solicitud de origen (`schedule`)."""
-    if work_order.maintenance_record_id:
-        return work_order.maintenance_record
-    if work_order.schedule_id:
-        # Import local: apps.maintenance.models ya importa apps.equipment.models.
-        from apps.maintenance.models import MaintenanceRecord
-
-        return MaintenanceRecord.objects.filter(
-            scheduled_maintenance_id=work_order.schedule_id
-        ).first()
-    return None
-
 
 class EquipmentViewSet(AuditLogMixin, viewsets.ModelViewSet):
     """
@@ -254,6 +228,33 @@ class EquipmentInstructionViewSet(viewsets.ModelViewSet):
     )
 
     ordering = ("instruction_type","sequence",)
+
+
+# Roles "de campo": ejecutan órdenes de trabajo, no las administran. Solo ven
+# y editan las que tienen asignadas (technician == ellos).
+_FIELD_ROLES = (User.Role.TECNICO, User.Role.INGENIERO)
+
+
+def _only_own_work_orders(user) -> bool:
+    return bool(
+        user and user.is_authenticated and getattr(user, "role", None) in _FIELD_ROLES
+    )
+
+
+def _maintenance_record_for(work_order: EquipmentWorkOrder):
+    """El registro de mantenimiento que esta orden dejó (o cerró) en el
+    historial del equipo, sin importar su origen: enlace directo
+    (`maintenance_record`) o vía la solicitud de origen (`schedule`)."""
+    if work_order.maintenance_record_id:
+        return work_order.maintenance_record
+    if work_order.schedule_id:
+        # Import local: apps.maintenance.models ya importa apps.equipment.models.
+        from apps.maintenance.models import MaintenanceRecord
+
+        return MaintenanceRecord.objects.filter(
+            scheduled_maintenance_id=work_order.schedule_id
+        ).first()
+    return None
 
 
 class EquipmentWorkOrderViewSet(AuditLogMixin, viewsets.ModelViewSet):

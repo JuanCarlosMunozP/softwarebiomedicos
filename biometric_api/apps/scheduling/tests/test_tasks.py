@@ -92,3 +92,98 @@ class TestSendScheduleNotification:
 
         assert result == "sent"
         assert "ingeniero@clinic.test" in mail.outbox[0].to
+
+
+class TestOverdueAlerts:
+    def test_queues_only_overdue_with_stagger(self, monkeypatch, equipment):
+        from django.core.cache import cache
+        from django.utils import timezone
+
+        from apps.scheduling.tasks import (
+            OVERDUE_ALERT_STAGGER_SECONDS,
+            queue_overdue_alerts,
+        )
+
+        cache.clear()
+        today = timezone.localdate()
+        past = MaintenanceScheduleFactory(
+            equipment=equipment, scheduled_date=today - timedelta(days=2)
+        )
+        due_today = MaintenanceScheduleFactory(
+            equipment=equipment, scheduled_date=today
+        )
+        MaintenanceScheduleFactory(
+            equipment=equipment, scheduled_date=today + timedelta(days=1)
+        )
+        MaintenanceScheduleFactory(
+            equipment=equipment,
+            scheduled_date=today - timedelta(days=3),
+            is_completed=True,
+        )
+
+        queued = []
+
+        def fake_apply_async(*, args, countdown):
+            queued.append((args[0], countdown))
+
+        monkeypatch.setattr(
+            "apps.scheduling.tasks.send_overdue_alert.apply_async",
+            fake_apply_async,
+        )
+
+        result = queue_overdue_alerts()
+        assert result == "queued:2"
+        assert queued == [
+            (past.pk, 0),
+            (due_today.pk, OVERDUE_ALERT_STAGGER_SECONDS),
+        ]
+
+    def test_enqueue_lock_avoids_burst(self, monkeypatch, equipment):
+        from django.core.cache import cache
+        from django.utils import timezone
+
+        from apps.scheduling.tasks import queue_overdue_alerts
+
+        cache.clear()
+        MaintenanceScheduleFactory(
+            equipment=equipment, scheduled_date=timezone.localdate()
+        )
+        monkeypatch.setattr(
+            "apps.scheduling.tasks.send_overdue_alert.apply_async",
+            lambda **kwargs: None,
+        )
+        assert queue_overdue_alerts().startswith("queued:")
+        assert queue_overdue_alerts() == "already_queued"
+
+    def test_send_overdue_alert_broadcasts_once(self, monkeypatch, equipment):
+        from django.core.cache import cache
+        from django.utils import timezone
+
+        from apps.scheduling.tasks import send_overdue_alert
+
+        cache.clear()
+        captured = {}
+        monkeypatch.setattr(
+            "apps.scheduling.tasks.broadcast_notification",
+            lambda payload: captured.update(payload),
+        )
+        schedule = MaintenanceScheduleFactory(
+            equipment=equipment, scheduled_date=timezone.localdate()
+        )
+        assert send_overdue_alert(schedule.pk) == "sent"
+        assert captured["type"] == "overdue_maintenance"
+        assert captured["schedule_id"] == schedule.pk
+        assert send_overdue_alert(schedule.pk) == "already_sent"
+
+    def test_send_overdue_alert_skips_future(self, equipment):
+        from django.core.cache import cache
+        from django.utils import timezone
+
+        from apps.scheduling.tasks import send_overdue_alert
+
+        cache.clear()
+        schedule = MaintenanceScheduleFactory(
+            equipment=equipment,
+            scheduled_date=timezone.localdate() + timedelta(days=2),
+        )
+        assert send_overdue_alert(schedule.pk) == "not_overdue"

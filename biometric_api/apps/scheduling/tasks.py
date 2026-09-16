@@ -96,3 +96,81 @@ def _broadcast_email_sent(schedule, equipment, branch, subject, sent_at) -> None
         )
     except Exception:  # pragma: no cover - best-effort
         pass
+
+
+# Segundos entre alertas de vencidos para no disparar un aluvión de toasts.
+OVERDUE_ALERT_STAGGER_SECONDS = 8
+_OVERDUE_ENQUEUE_LOCK = "overdue_alerts_enqueue"
+
+
+@shared_task
+def queue_overdue_alerts() -> str:
+    """Encola una alerta por cada mantenimiento vencido, en serie."""
+    from django.core.cache import cache
+
+    from .models import MaintenanceSchedule
+
+    if not cache.add(_OVERDUE_ENQUEUE_LOCK, 1, timeout=60):
+        return "already_queued"
+
+    today = timezone.localdate()
+    ids = list(
+        MaintenanceSchedule.objects.filter(
+            is_completed=False,
+            scheduled_date__isnull=False,
+            scheduled_date__lte=today,
+        )
+        .order_by("scheduled_date", "id")
+        .values_list("pk", flat=True)
+    )
+    for index, pk in enumerate(ids):
+        send_overdue_alert.apply_async(
+            args=[pk],
+            countdown=index * OVERDUE_ALERT_STAGGER_SECONDS,
+        )
+    return f"queued:{len(ids)}"
+
+
+@shared_task
+def send_overdue_alert(schedule_id: int) -> str:
+    """Publica una alerta WS de un mantenimiento vencido (una al día)."""
+    from django.core.cache import cache
+
+    from .models import MaintenanceSchedule
+
+    today = timezone.localdate()
+    try:
+        schedule = MaintenanceSchedule.objects.select_related(
+            "equipment",
+            "equipment__branch",
+        ).get(pk=schedule_id)
+    except MaintenanceSchedule.DoesNotExist:
+        return "schedule_not_found"
+
+    if (
+        schedule.is_completed
+        or schedule.scheduled_date is None
+        or schedule.scheduled_date > today
+    ):
+        return "not_overdue"
+
+    cache_key = f"overdue_alert:{schedule.pk}:{today.isoformat()}"
+    if not cache.add(cache_key, 1, timeout=60 * 60 * 24):
+        return "already_sent"
+
+    equipment = schedule.equipment
+    try:
+        broadcast_notification(
+            {
+                "type": "overdue_maintenance",
+                "schedule_id": schedule.pk,
+                "equipment_asset_tag": equipment.asset_tag,
+                "equipment_name": equipment.name,
+                "scheduled_date": schedule.scheduled_date.isoformat(),
+                "days_overdue": (today - schedule.scheduled_date).days,
+                "kind": schedule.kind,
+            }
+        )
+    except Exception:  # pragma: no cover - best-effort
+        pass
+    return "sent"

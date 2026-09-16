@@ -131,8 +131,8 @@ class TestScheduleCreate:
         assert body["requested_by"] == admin_user.id
         assert body["requested_by_detail"]["id"] == admin_user.id
 
-    def test_create_accepts_requested_date(self, auth_client, equipment):
-        """La fecha de solicitud se puede indicar; no queda fija en hoy."""
+    def test_create_ignores_requested_date(self, auth_client, equipment):
+        """La fecha de solicitud la genera el sistema; no se puede indicar."""
         chosen = (date.today() - timedelta(days=3)).isoformat()
         payload = {
             "equipment": equipment.id,
@@ -142,7 +142,7 @@ class TestScheduleCreate:
         }
         response = auth_client.post(LIST_URL, payload, format="json")
         assert response.status_code == 201, response.json()
-        assert response.json()["requested_date"] == chosen
+        assert response.json()["requested_date"] == date.today().isoformat()
 
 
 class TestRequestingArea:

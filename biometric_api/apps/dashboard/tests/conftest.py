@@ -4,6 +4,14 @@ from rest_framework.test import APIClient
 from apps.users.tests.factories import AdminFactory, IngenieroFactory, TecnicoFactory
 
 
+@pytest.fixture(autouse=True)
+def skip_overdue_alert_queue(monkeypatch):
+    monkeypatch.setattr(
+        "api.v1.dashboard.views.queue_overdue_alerts.delay",
+        lambda: "skipped",
+    )
+
+
 @pytest.fixture
 def api_client():
     return APIClient()

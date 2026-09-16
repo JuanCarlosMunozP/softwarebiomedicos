@@ -509,3 +509,4 @@ class EquipmentWorkOrderDetailSerializer(EquipmentWorkOrderSerializer):
     def get_cost(self, obj):
         cost = getattr(obj, "cost", None)
         return WorkOrderCostSerializer(cost).data if cost is not None else None
+
