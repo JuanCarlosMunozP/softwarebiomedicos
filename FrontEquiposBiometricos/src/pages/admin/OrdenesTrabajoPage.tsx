@@ -234,13 +234,8 @@ export function OrdenesTrabajoPage() {
     }
   };
 
-  // Cada aplicación de filtros (Enter o botón) vuelve a la página 1.
-  const applyFilters = () => void load(1);
-
   useEffect(() => {
     void Promise.all([
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      load(1),
       equipmentService
         .list({ ordering: "name" })
         .then((data) => {
@@ -253,8 +248,15 @@ export function OrdenesTrabajoPage() {
         .then(setTechnicians)
         .catch(() => setTechnicians([])),
     ]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      void load(1);
+    }, 300);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, statusFilter, typeFilter]);
 
   const openCreate = () => {
     setForm({
@@ -437,14 +439,11 @@ export function OrdenesTrabajoPage() {
       </div>
 
       <Card>
-        <div className="mb-4 grid gap-2 sm:grid-cols-4">
+        <div className="mb-4 grid gap-2 sm:grid-cols-3">
           <Input
             placeholder="Buscar por número, equipo, técnico..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") applyFilters();
-            }}
           />
           <Select
             placeholder="Todo estado"
@@ -464,9 +463,6 @@ export function OrdenesTrabajoPage() {
               label,
             }))}
           />
-          <Button variant="secondary" onClick={applyFilters}>
-            Aplicar filtros
-          </Button>
         </div>
 
         {error && (

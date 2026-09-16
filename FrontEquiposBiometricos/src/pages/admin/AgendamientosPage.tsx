@@ -194,22 +194,23 @@ export function AgendamientosPage() {
     }
   };
 
-  // Cada aplicación de filtros (Enter o botón) vuelve a la página 1.
-  const applyFilters = () => void load(1);
+  useEffect(() => {
+    equipmentService
+      .list({ ordering: "name" })
+      .then((data) => {
+        setEquipment(data);
+        setEquipmentError(false);
+      })
+      .catch(() => setEquipmentError(true));
+  }, []);
 
   useEffect(() => {
-    void Promise.all([
-      load(1),
-      equipmentService
-        .list({ ordering: "name" })
-        .then((data) => {
-          setEquipment(data);
-          setEquipmentError(false);
-        })
-        .catch(() => setEquipmentError(true)),
-    ]);
+    const id = window.setTimeout(() => {
+      void load(1);
+    }, 300);
+    return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [search, completedFilter]);
 
   // Coordinador e ingeniero pueden listar ingenieros/operativos activos
   // (selector de responsable). Admin ve el catálogo completo.
@@ -361,14 +362,11 @@ export function AgendamientosPage() {
       </div>
 
       <Card>
-        <div className="mb-4 grid gap-2 sm:grid-cols-3">
+        <div className="mb-4 grid gap-2 sm:grid-cols-2">
           <Input
             placeholder="Buscar por nota o tag..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") applyFilters();
-            }}
           />
           <Select
             placeholder="Todas"
@@ -379,9 +377,6 @@ export function AgendamientosPage() {
               { value: "true", label: "Cumplidas" },
             ]}
           />
-          <Button variant="secondary" onClick={applyFilters}>
-            Aplicar filtros
-          </Button>
         </div>
 
         {error && (

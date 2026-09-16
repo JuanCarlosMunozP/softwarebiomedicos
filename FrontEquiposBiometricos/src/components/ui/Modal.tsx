@@ -14,11 +14,11 @@ interface ModalProps {
 }
 
 const sizes: Record<NonNullable<ModalProps["size"]>, string> = {
-  xs: "max-w-xs",
-  sm: "max-w-md",
-  md: "max-w-lg",
-  lg: "max-w-2xl",
-  xl: "max-w-4xl",
+  xs: "w-max max-w-[15rem]",
+  sm: "w-full max-w-md",
+  md: "w-full max-w-lg",
+  lg: "w-full max-w-2xl",
+  xl: "w-full max-w-4xl",
 };
 
 const closeStack: Array<() => void> = [];
@@ -66,14 +66,14 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         className={cn(
-          "relative z-10 w-full rounded-xl border border-app bg-surface shadow-xl",
+          "relative z-10 rounded-xl border border-app bg-surface shadow-xl",
           sizes[size],
         )}
       >
         <div
           className={cn(
             "flex items-center justify-between border-b border-app",
-            size === "xs" ? "px-3 py-2" : "px-5 py-3",
+            size === "xs" ? "px-2.5 py-1.5" : "px-5 py-3",
           )}
         >
           <h2
@@ -96,7 +96,7 @@ export function Modal({
         <div
           className={cn(
             "max-h-[75vh] overflow-y-auto",
-            size === "xs" ? "p-3" : "p-5",
+            size === "xs" ? "p-2.5" : "p-5",
           )}
         >
           {children}

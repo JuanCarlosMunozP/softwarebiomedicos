@@ -162,12 +162,8 @@ export function MantenimientosPage() {
     }
   };
 
-  // Cada aplicación de filtros (Enter o botón) vuelve a la página 1.
-  const applyFilters = () => void load(1);
-
   useEffect(() => {
     void Promise.all([
-      load(1),
       equipmentService
         .list({ ordering: "name" })
         .then((data) => {
@@ -180,8 +176,15 @@ export function MantenimientosPage() {
         .then(setPendingSchedules)
         .catch(() => null),
     ]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      void load(1);
+    }, 300);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, kindFilter, equipmentFilter]);
 
   // Si entramos desde "Realizar mantenimiento" de un agendamiento, abrimos
   // el modal pre-llenado con sus datos (equipo, tipo, asignado, FK) y la
@@ -361,14 +364,11 @@ export function MantenimientosPage() {
       </div>
 
       <Card>
-        <div className="mb-4 grid gap-2 sm:grid-cols-4">
+        <div className="mb-4 grid gap-2 sm:grid-cols-3">
           <Input
             placeholder="Buscar descripción, técnico..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") applyFilters();
-            }}
           />
           <Select
             placeholder="Todos los equipos"
@@ -385,9 +385,6 @@ export function MantenimientosPage() {
               label,
             }))}
           />
-          <Button variant="secondary" onClick={applyFilters}>
-            Aplicar filtros
-          </Button>
         </div>
 
         {error && (

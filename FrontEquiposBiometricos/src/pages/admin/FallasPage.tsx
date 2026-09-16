@@ -125,22 +125,23 @@ export function FallasPage() {
     }
   };
 
-  // Cada aplicación de filtros (Enter o botón) vuelve a la página 1.
-  const applyFilters = () => void load(1);
+  useEffect(() => {
+    equipmentService
+      .list({ ordering: "name" })
+      .then((data) => {
+        setEquipment(data);
+        setEquipmentError(false);
+      })
+      .catch(() => setEquipmentError(true));
+  }, []);
 
   useEffect(() => {
-    void Promise.all([
-      load(1),
-      equipmentService
-        .list({ ordering: "name" })
-        .then((data) => {
-          setEquipment(data);
-          setEquipmentError(false);
-        })
-        .catch(() => setEquipmentError(true)),
-    ]);
+    const id = window.setTimeout(() => {
+      void load(1);
+    }, 300);
+    return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [search, severityFilter, resolvedFilter]);
 
   const openCreate = () => {
     setForm({ ...empty, equipment: equipment[0]?.id ?? 0 });
@@ -241,14 +242,11 @@ export function FallasPage() {
       </div>
 
       <Card>
-        <div className="mb-4 grid gap-2 sm:grid-cols-4">
+        <div className="mb-4 grid gap-2 sm:grid-cols-3">
           <Input
             placeholder="Buscar..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") applyFilters();
-            }}
           />
           <Select
             placeholder="Toda severidad"
@@ -268,9 +266,6 @@ export function FallasPage() {
               { value: "true", label: "Resueltas" },
             ]}
           />
-          <Button variant="secondary" onClick={applyFilters}>
-            Aplicar filtros
-          </Button>
         </div>
 
         {error && (
