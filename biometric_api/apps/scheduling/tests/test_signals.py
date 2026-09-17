@@ -6,6 +6,7 @@ import pytest
 from apps.equipment.models import EquipmentStatus
 from apps.scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
 from apps.users.tests.factories import IngenieroFactory
+
 from .factories import MaintenanceScheduleFactory
 
 pytestmark = pytest.mark.django_db
