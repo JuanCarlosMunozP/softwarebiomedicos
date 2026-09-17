@@ -1,3 +1,4 @@
+import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
@@ -91,8 +92,18 @@ def test_authenticated_user_via_bearer_header_connects():
 
 def test_channel_layer_outage_closes_with_1013(monkeypatch):
     class BoomLayer:
+        """Suficiente para Channels 4.2 AsyncConsumer.__call__.
+
+        El consumer pide new_channel + receive al arrancar, y luego group_add
+        en connect(). El fallo de Redis se simula ahí, que es el try/except
+        que cierra con 1013.
+        """
+
         async def new_channel(self, *args, **kwargs):
             return "test.channel"
+
+        async def receive(self, *args, **kwargs):
+            await asyncio.get_running_loop().create_future()
 
         async def group_add(self, *args, **kwargs):
             raise ConnectionError("redis down")
@@ -100,8 +111,6 @@ def test_channel_layer_outage_closes_with_1013(monkeypatch):
         async def group_discard(self, *args, **kwargs):
             return None
 
-    # Channels 4 asigna `self.channel_layer = get_channel_layer(...)` en
-    # AsyncConsumer.__call__, usando el nombre importado en channels.consumer.
     monkeypatch.setattr(
         "channels.consumer.get_channel_layer",
         lambda *a, **k: BoomLayer(),
