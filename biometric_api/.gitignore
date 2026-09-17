@@ -4,6 +4,8 @@ __pycache__/
 *$py.class
 *.so
 
+biometric_api/apps/workorders/
+
 # Distribution / packaging
 .Python
 build/
