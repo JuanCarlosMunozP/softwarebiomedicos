@@ -102,6 +102,7 @@ def test_channel_layer_outage_closes_with_1013(monkeypatch):
         NotificationConsumer,
         "channel_layer",
         property(lambda self: BoomLayer()),
+        raising=False,
     )
     token = str(AccessToken.for_user(TecnicoFactory()))
     out = _close_code_for(_cookie_header(token))
