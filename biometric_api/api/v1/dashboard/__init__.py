@@ -19,5 +19,5 @@ fechas para filtrar en cliente.
 
 Si el KPI de vencidos es mayor que cero, se encola en Celery
 `queue_overdue_alerts` (alertas WS una a una, no en ráfaga).
-La agregación está en `helpers.py`; `views.py` arma el payload por rol.
+La agregación y el payload por rol están en `views.py`.
 """

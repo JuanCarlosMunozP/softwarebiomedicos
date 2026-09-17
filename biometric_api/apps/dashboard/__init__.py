@@ -2,7 +2,7 @@
 
 No está en INSTALLED_APPS y no define modelos, señales ni tareas.
 El endpoint y la agregación viven en `api.v1.dashboard` (`views.py`
-arma el payload por rol; `helpers.py` calcula KPIs, series y listas).
+arma el payload por rol y calcula KPIs, series y listas).
 
 Este paquete solo agrupa tests de integración de
 `GET /api/v1/dashboard/summary/` (alcance por rol, vencidos, cola
