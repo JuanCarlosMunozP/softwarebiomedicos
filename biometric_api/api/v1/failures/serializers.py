@@ -2,8 +2,8 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from apps.failures.models import FailureRecord
 from api.v1.common.area_scope import operativo_area
+from apps.failures.models import FailureRecord
 
 
 class FailureRecordSerializer(serializers.ModelSerializer):

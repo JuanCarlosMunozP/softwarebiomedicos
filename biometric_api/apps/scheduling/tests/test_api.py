@@ -113,7 +113,7 @@ class TestScheduleCreate:
         for required in ("equipment", "kind"):
             assert required in body
 
-    def test_create_without_scheduled_date_returns_201(
+    def test_create_without_scheduled_date_sets_requested_by(
         self, auth_client, admin_user, equipment
     ):
         """Una solicitud nace sin fecha programada."""

@@ -4,7 +4,6 @@ from django.utils.translation import gettext_lazy as _
 from apps.equipment.models import EquipmentWorkOrder
 
 class EvidenceType(models.TextChoices):
-
     PHOTO = "PHOTO",_("Fotografía")
 
     VIDEO = "VIDEO",_("Video")
@@ -14,7 +13,6 @@ class EvidenceType(models.TextChoices):
     AUDIO = "AUDIO",_("Audio")
 
 class SignatureRole(models.TextChoices):
-
     TECHNICIAN = "TECHNICIAN"
 
     ENGINEER = "ENGINEER"
