@@ -4,7 +4,6 @@ __pycache__/
 *$py.class
 *.so
 
-biometric_api/apps/workorders/
 
 # Distribution / packaging
 .Python
@@ -29,9 +28,6 @@ media/
 staticfiles/
 .staticfiles_cache/
 
-# Migraciones numeradas (0001 en adelante): cada entorno las genera.
-# Se conservan las carpetas y los __init__.py.
-**/migrations/[0-9]*.py
 
 # Environments
 .env
