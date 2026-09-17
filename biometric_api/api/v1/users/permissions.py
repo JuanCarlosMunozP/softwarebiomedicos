@@ -13,7 +13,7 @@ class CanListAssignableUsers(permissions.BasePermission):
 
     message = _("No tienes permisos para esta acción.")
 
-    _ALLOWED = {
+    _ALLOWED_PERMISSIONS = {
         User.Role.SUPERADMIN,
         User.Role.ADMIN,
         User.Role.COORDINADOR,
@@ -22,7 +22,7 @@ class CanListAssignableUsers(permissions.BasePermission):
 
     def has_permission(self, request, view) -> bool:
         u = request.user
-        return bool(u and u.is_authenticated and u.role in self._ALLOWED)
+        return bool(u and u.is_authenticated and u.role in self._ALLOWED_PERMISSIONS)
 
 
 class IsAdminRole(permissions.BasePermission):
