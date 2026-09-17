@@ -1,8 +1,8 @@
 from decimal import Decimal
 
+from django.db.models import Sum
 from django.db.models.signals import post_delete, post_save, pre_delete
 from django.dispatch import receiver
-from django.db.models import Sum
 
 from .models import Equipment, WorkOrderCost, WorkOrderSparePart
 from .services import generate_qr_for_equipment
