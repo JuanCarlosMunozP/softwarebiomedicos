@@ -12,7 +12,6 @@ from apps.realtime.consumers import (
     AUTH_CLOSE_CODE,
     CHANNEL_LAYER_CLOSE_CODE,
     NOTIFICATIONS_GROUP,
-    NotificationConsumer,
 )
 from apps.realtime.events import broadcast_notification
 from apps.realtime.middleware import CookieJWTAuthMiddleware
@@ -98,11 +97,11 @@ def test_channel_layer_outage_closes_with_1013(monkeypatch):
         async def group_discard(self, *args, **kwargs):
             return None
 
+    # Channels 4 asigna `self.channel_layer = get_channel_layer(...)` en
+    # AsyncConsumer.__call__, usando el nombre importado en channels.consumer.
     monkeypatch.setattr(
-        NotificationConsumer,
-        "channel_layer",
-        property(lambda self: BoomLayer()),
-        raising=False,
+        "channels.consumer.get_channel_layer",
+        lambda *a, **k: BoomLayer(),
     )
     token = str(AccessToken.for_user(TecnicoFactory()))
     out = _close_code_for(_cookie_header(token))
