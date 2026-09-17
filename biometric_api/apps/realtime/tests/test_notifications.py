@@ -12,6 +12,7 @@ from apps.realtime.consumers import (
     AUTH_CLOSE_CODE,
     CHANNEL_LAYER_CLOSE_CODE,
     NOTIFICATIONS_GROUP,
+    NotificationConsumer,
 )
 from apps.realtime.events import broadcast_notification
 from apps.realtime.middleware import CookieJWTAuthMiddleware
@@ -97,7 +98,11 @@ def test_channel_layer_outage_closes_with_1013(monkeypatch):
         async def group_discard(self, *args, **kwargs):
             return None
 
-    monkeypatch.setattr("channels.layers.get_channel_layer", lambda *a, **k: BoomLayer())
+    monkeypatch.setattr(
+        NotificationConsumer,
+        "channel_layer",
+        property(lambda self: BoomLayer()),
+    )
     token = str(AccessToken.for_user(TecnicoFactory()))
     out = _close_code_for(_cookie_header(token))
     assert out["type"] == "websocket.close"

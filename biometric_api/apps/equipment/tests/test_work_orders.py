@@ -170,14 +170,10 @@ class TestWorkOrderChildren:
 
 
 class TestWorkOrderPermissions:
-    def test_tecnico_can_create_and_edit(self, api_client, equipment):
+    def test_tecnico_cannot_create(self, api_client, equipment):
         api_client.force_authenticate(user=TecnicoFactory())
         created = api_client.post(WO_LIST, _wo_payload(equipment), format="json")
-        assert created.status_code == 201
-        patched = api_client.patch(
-            wo_detail(created.json()["id"]), {"status": "IN_PROGRESS"}, format="json"
-        )
-        assert patched.status_code == 200
+        assert created.status_code == status.HTTP_403_FORBIDDEN
 
     def test_tecnico_cannot_delete(self, api_client, equipment):
         wo = EquipmentWorkOrder.objects.create(
@@ -219,15 +215,15 @@ class TestWorkOrderScopedByRole:
         assert auth_client.get(WO_LIST).json()["count"] == 2
 
     def test_field_role_created_order_is_self_assigned(self, api_client, equipment):
-        tec = TecnicoFactory()
-        api_client.force_authenticate(user=tec)
+        ing = IngenieroFactory()
+        api_client.force_authenticate(user=ing)
 
         created = api_client.post(
             WO_LIST, _wo_payload(equipment, number="OT-AUTO"), format="json"
         )
 
         assert created.status_code == 201
-        assert created.json()["technician"] == tec.id
+        assert created.json()["technician"] == ing.id
         assert api_client.get(WO_LIST).json()["count"] == 1
 
     def test_field_role_cannot_touch_others_order(self, api_client, equipment):
@@ -251,9 +247,9 @@ class TestWorkOrderScopedByRole:
         assert resp.status_code == status.HTTP_403_FORBIDDEN
 
     def test_field_role_can_work_on_own_order_children(self, api_client, equipment):
-        tec = TecnicoFactory()
-        wo = self._wo(equipment, "OT-PROPIA", technician=tec)
-        api_client.force_authenticate(user=tec)
+        ing = IngenieroFactory()
+        wo = self._wo(equipment, "OT-PROPIA", technician=ing)
+        api_client.force_authenticate(user=ing)
 
         resp = api_client.post(
             SP_LIST,

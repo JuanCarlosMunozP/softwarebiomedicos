@@ -96,7 +96,7 @@ class TestScheduleAssignmentCreate:
         assert response.status_code == 400
         body = response.json()
         assert (
-            "El usuario asignado debe tener el rol de técnico."
+            "El usuario asignado debe tener el rol de usuario operativo."
             in body["assigned_technician"][0]
         )
 

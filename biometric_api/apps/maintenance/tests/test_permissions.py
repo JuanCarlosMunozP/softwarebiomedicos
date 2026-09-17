@@ -19,7 +19,14 @@ class TestMaintenanceRecordDeletePermissions:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_admin_delete_leaves_audit_log(self, auth_client, maintenance_record, admin_user):
+    def test_admin_cannot_delete(self, api_client, maintenance_record, admin_user):
+        api_client.force_authenticate(user=admin_user)
+        response = api_client.delete(detail_url(maintenance_record.id))
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_superadmin_delete_leaves_audit_log(
+        self, auth_client, maintenance_record, superadmin_user
+    ):
         record_id = maintenance_record.id
 
         response = auth_client.delete(detail_url(record_id))
@@ -29,4 +36,4 @@ class TestMaintenanceRecordDeletePermissions:
             model_label="maintenance.maintenancerecord", object_id=str(record_id)
         )
         assert log.action == "delete"
-        assert log.actor_id == admin_user.id
+        assert log.actor_id == superadmin_user.id

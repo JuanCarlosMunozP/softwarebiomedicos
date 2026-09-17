@@ -65,7 +65,9 @@ class TestEquipmentRolePermissions:
         assert resp.status_code == status.HTTP_403_FORBIDDEN
 
     def test_tecnico_can_view(self, api_client, equipment):
-        api_client.force_authenticate(user=TecnicoFactory())
+        equipment.area = "Radiología"
+        equipment.save(update_fields=["area"])
+        api_client.force_authenticate(user=TecnicoFactory(area="Radiología"))
         assert api_client.get(detail_url(equipment.id)).status_code == (
             status.HTTP_200_OK
         )

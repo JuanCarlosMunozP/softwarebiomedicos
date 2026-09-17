@@ -149,8 +149,7 @@ class TestMaintenanceListScopedByRole:
         api_client.force_authenticate(user=tecnico)
         response = api_client.get(LIST_URL)
 
-        assert response.status_code == 200
-        assert response.json()["count"] == 2
+        assert response.status_code == 403
 
     def test_open_work_order_hides_record_from_technician_history(
         self, api_client, tecnico, equipment
@@ -158,7 +157,7 @@ class TestMaintenanceListScopedByRole:
         MaintenanceRecordFactory(equipment=equipment, assigned_technician=tecnico)
 
         api_client.force_authenticate(user=tecnico)
-        assert api_client.get(LIST_URL).json()["count"] == 0
+        assert api_client.get(LIST_URL).status_code == 403
 
     def test_management_sees_all_including_in_progress(
         self, auth_client, tecnico, equipment
@@ -195,8 +194,7 @@ class TestMaintenanceListScopedByRole:
         api_client.force_authenticate(user=ingeniero)
         response = api_client.get(LIST_URL)
 
-        assert response.status_code == 200
-        assert response.json()["count"] == 2
+        assert response.status_code == 403
 
 
 class TestMaintenanceList:
