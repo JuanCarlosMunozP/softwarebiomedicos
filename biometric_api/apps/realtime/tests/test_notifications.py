@@ -91,6 +91,9 @@ def test_authenticated_user_via_bearer_header_connects():
 
 def test_channel_layer_outage_closes_with_1013(monkeypatch):
     class BoomLayer:
+        async def new_channel(self, *args, **kwargs):
+            return "test.channel"
+
         async def group_add(self, *args, **kwargs):
             raise ConnectionError("redis down")
 
