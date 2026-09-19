@@ -2,8 +2,8 @@ import { assignedUserName } from "@/lib/users";
 import type {
   ScheduleKind,
   ScheduledMaintenance,
-} from "@/types/agendamientos/scheduling";
-import type { FormState } from "@/types/agendamientos/form";
+} from "@/types/scheduling/scheduling";
+import type { FormState } from "@/types/scheduling/form";
 
 export const TECHNICIAN_ROLES = ["tecnico", "ingeniero"];
 

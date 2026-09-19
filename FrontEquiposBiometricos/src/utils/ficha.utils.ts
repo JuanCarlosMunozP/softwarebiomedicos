@@ -1,6 +1,6 @@
 import type { EquipmentStatus } from "@/types/equipment/equipment";
 import type { MaintenanceKind } from "@/types/maintenance/maintenance";
-import type { ScheduleKind } from "@/types/agendamientos/scheduling";
+import type { ScheduleKind } from "@/types/scheduling/scheduling";
 
 export const STATUS_LABEL: Record<EquipmentStatus, string> = {
   ACTIVE: "Activo",

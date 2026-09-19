@@ -1,5 +1,5 @@
 import type { AssignedUser } from "@/types/authentication/auth";
-import type { ScheduledMaintenance } from "@/types/agendamientos/scheduling";
+import type { ScheduledMaintenance } from "@/types/scheduling/scheduling";
 
 export type MaintenanceKind =
   | "PREVENTIVE"

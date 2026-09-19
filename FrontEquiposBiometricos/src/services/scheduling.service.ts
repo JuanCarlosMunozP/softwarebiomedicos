@@ -4,7 +4,7 @@ import type {
   ScheduleCreateInput,
   ScheduleUpdateInput,
   ScheduledMaintenance,
-} from "@/types/agendamientos/scheduling";
+} from "@/types/scheduling/scheduling";
 
 export interface ScheduleListParams {
   ordering?: string;

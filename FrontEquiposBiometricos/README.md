@@ -26,8 +26,8 @@ src/
 ├── context/        # AuthContext, ThemeContext, NotificationContext
 ├── lib/            # cliente axios (api.ts), permisos, feature flags, websocket
 ├── pages/          # páginas públicas y del panel admin
-│   └── admin/      # una carpeta por módulo (agendamientos, dashboard, equipos,
-│                   #   mantenimientos, reportesfalla, usuarios): la página, sus
+│   └── admin/      # una carpeta por módulo (scheduling, dashboard, equipment,
+│                   #   maintenance, failures, users): la página, sus
 │                   #   componentes y su hook de lógica (useXxx.ts), todo al mismo nivel
 ├── routes/         # ProtectedRoute (guard de autenticación/roles)
 ├── services/       # un archivo por recurso de la API (equipment, users, ...), sin subcarpetas

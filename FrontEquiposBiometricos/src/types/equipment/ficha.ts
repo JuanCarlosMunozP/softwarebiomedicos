@@ -1,6 +1,6 @@
 import type { Equipment } from "@/types/equipment/equipment";
 import type { MaintenanceRecord } from "@/types/maintenance/maintenance";
-import type { ScheduledMaintenance } from "@/types/agendamientos/scheduling";
+import type { ScheduledMaintenance } from "@/types/scheduling/scheduling";
 import type { Dispatch, SetStateAction, RefObject } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import type { Rol } from "@/types/authentication/auth";

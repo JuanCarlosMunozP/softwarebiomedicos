@@ -13,15 +13,15 @@ import { RegistroPage } from "@/pages/RegistroPage";
 import { RecuperarPasswordPage } from "@/pages/RecuperarPasswordPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { DashboardPage } from "@/pages/admin/dashboard/DashboardPage";
-import { SedesPage } from "@/pages/admin/equipos/SedesPage";
-import { EquiposPage } from "@/pages/admin/equipos/EquiposPage";
-import { EquipoDetallePage } from "@/pages/admin/equipos/EquipoDetallePage";
-import { EtiquetasQrPage } from "@/pages/admin/equipos/EtiquetasQrPage";
-import { UsuariosPage } from "@/pages/admin/usuarios/UsuariosPage";
-import { MantenimientosPage } from "@/pages/admin/mantenimientos/MantenimientosPage";
-import { OrdenesTrabajoPage } from "@/pages/admin/equipos/workorders/OrdenesTrabajoPage";
-import { AgendamientosPage } from "@/pages/admin/agendamientos/AgendamientosPage";
-import { FallasPage } from "@/pages/admin/reportesfalla/FallasPage";
+import { SedesPage } from "@/pages/admin/equipment/SedesPage";
+import { EquiposPage } from "@/pages/admin/equipment/EquiposPage";
+import { EquipoDetallePage } from "@/pages/admin/equipment/EquipoDetallePage";
+import { EtiquetasQrPage } from "@/pages/admin/equipment/EtiquetasQrPage";
+import { UsuariosPage } from "@/pages/admin/users/UsuariosPage";
+import { MantenimientosPage } from "@/pages/admin/maintenance/MantenimientosPage";
+import { OrdenesTrabajoPage } from "@/pages/admin/equipment/workorders/OrdenesTrabajoPage";
+import { AgendamientosPage } from "@/pages/admin/scheduling/AgendamientosPage";
+import { FallasPage } from "@/pages/admin/failures/FallasPage";
 import { PerfilPage } from "@/pages/admin/PerfilPage";
 
 function App() {
