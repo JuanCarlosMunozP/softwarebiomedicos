@@ -1,6 +1,7 @@
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from api.v1.common.file_validation import EVIDENCE_EXTENSIONS, validate_uploaded_file
 from apps.workorders.models import (
     WorkOrderSparePart,
     WorkOrderMeasurement,
@@ -8,7 +9,6 @@ from apps.workorders.models import (
     WorkOrderSignature,
     WorkOrderCost
 )
-from api.v1.common.file_validation import EVIDENCE_EXTENSIONS, validate_uploaded_file
 
 class WorkOrderSparePartSerializer(serializers.ModelSerializer):
     # calcula el costo total: cantidad x costo unitario

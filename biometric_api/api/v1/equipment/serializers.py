@@ -9,15 +9,6 @@ from api.v1.common.file_validation import (
     MAX_IMAGE_BYTES,
     validate_uploaded_file,
 )
-from apps.branches.models import Branch
-from apps.catalog.models import EquipmentModel
-from apps.equipment.models import (
-    Equipment,
-    EquipmentAttachment,
-    EquipmentCertificate,
-    EquipmentInstruction,
-    EquipmentWorkOrder,
-)
 
 
 from api.v1.workorders.serializers import (
@@ -26,6 +17,15 @@ from api.v1.workorders.serializers import (
     WorkOrderEvidenceSerializer,
     WorkOrderSignatureSerializer,
     WorkOrderCostSerializer
+)
+from apps.branches.models import Branch
+from apps.catalog.models import EquipmentModel
+from apps.equipment.models import (
+    Equipment,
+    EquipmentAttachment,
+    EquipmentCertificate,
+    EquipmentInstruction,
+    EquipmentWorkOrder,
 )
 
 

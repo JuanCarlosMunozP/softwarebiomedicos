@@ -1,12 +1,5 @@
 from rest_framework.routers import DefaultRouter
 
-from .views import (
-    EquipmentAttachmentViewSet,
-    EquipmentCertificateViewSet,
-    EquipmentInstructionViewSet,
-    EquipmentViewSet,
-    EquipmentWorkOrderViewSet
-)
 
 from api.v1.workorders.views import (
     WorkOrderSparePartViewSet,
@@ -14,6 +7,14 @@ from api.v1.workorders.views import (
     WorkOrderEvidenceViewSet,
     WorkOrderSignatureViewSet,
     WorkOrderCostViewSet
+)
+
+from .views import (
+    EquipmentAttachmentViewSet,
+    EquipmentCertificateViewSet,
+    EquipmentInstructionViewSet,
+    EquipmentViewSet,
+    EquipmentWorkOrderViewSet
 )
 
 app_name = "equipment"

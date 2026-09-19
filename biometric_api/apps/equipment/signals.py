@@ -5,6 +5,7 @@ from django.db.models.signals import post_delete, post_save, pre_delete
 from django.dispatch import receiver
 
 from apps.workorders.models import WorkOrderCost,WorkOrderSparePart
+
 from .models import Equipment
 from .services import generate_qr_for_equipment
 

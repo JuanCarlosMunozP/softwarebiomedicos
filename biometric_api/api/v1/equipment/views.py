@@ -17,8 +17,6 @@ from apps.equipment.models import (
     EquipmentWorkOrder,
     WorkOrderStatus,
 )
-from api.v1.workorders.views import _WorkOrderChildScopedMixin
-
 from apps.equipment.services import generate_qr_for_equipment
 from apps.failures.models import FailureRecord, FailureSeverity
 from apps.users.models import User

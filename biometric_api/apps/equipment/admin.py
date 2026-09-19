@@ -1,6 +1,13 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
+from apps.workorders.admin import (
+    WorkOrderEvidenceInline,
+    WorkOrderCostInline,
+    WorkOrderSparePartInline,
+    WorkOrderMeasurementInline
+)
+
 from .models import (
     Equipment,
     EquipmentAttachment,
@@ -9,12 +16,6 @@ from .models import (
     EquipmentWorkOrder,
 )
 
-from apps.workorders.admin import (
-    WorkOrderEvidenceInline,
-    WorkOrderCostInline,
-    WorkOrderSparePartInline,
-    WorkOrderMeasurementInline
-)
 
 # =====================================
 # INSTRUCIONES DEL EQUIPO
