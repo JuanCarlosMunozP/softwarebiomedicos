@@ -22,13 +22,17 @@ comparte los mismos servicios, tipos y reglas de permisos.
 
 ```
 src/
-├── components/     # UI reutilizable (ui/, layout/, equipment/)
+├── components/     # UI reutilizable (ui/, layout/)
 ├── context/        # AuthContext, ThemeContext, NotificationContext
 ├── lib/            # cliente axios (api.ts), permisos, feature flags, websocket
-├── pages/          # páginas públicas y del panel admin (pages/admin/)
+├── pages/          # páginas públicas y del panel admin
+│   └── admin/      # una carpeta por módulo (agendamientos, dashboard, equipos,
+│                   #   mantenimientos, reportesfalla, usuarios): la página, sus
+│                   #   componentes y su hook de lógica (useXxx.ts), todo al mismo nivel
 ├── routes/         # ProtectedRoute (guard de autenticación/roles)
-├── services/       # una función por recurso de la API (equipment, users, ...)
-└── types/          # tipos TypeScript que reflejan los serializers del backend
+├── services/       # un archivo por recurso de la API (equipment, users, ...), sin subcarpetas
+├── types/          # tipos TypeScript por módulo (una carpeta por módulo)
+└── utils/          # constantes y funciones puras por módulo (*.utils.ts)
 ```
 
 ## Requisitos previos

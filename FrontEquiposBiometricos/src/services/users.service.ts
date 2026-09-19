@@ -1,7 +1,7 @@
 import { api } from "@/lib/api";
-import type { Paginated } from "@/types/api";
-import type { Usuario } from "@/types/auth";
-import type { CreateUserInput, SetPasswordInput, UpdateUserInput } from "@/types/user";
+import type { Paginated } from "@/types/api/api";
+import type { Usuario } from "@/types/authentication/auth";
+import type { CreateUserInput, SetPasswordInput, UpdateUserInput } from "@/types/authentication/user";
 
 export interface UsersListParams {
   ordering?: string;

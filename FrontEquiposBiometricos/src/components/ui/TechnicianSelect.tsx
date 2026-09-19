@@ -3,7 +3,7 @@ import { ChevronDown, Search, User as UserIcon, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { fullNameOf } from "@/lib/users";
 import { ROLE_LABEL } from "@/lib/permissions";
-import type { Usuario } from "@/types/auth";
+import type { Usuario } from "@/types/authentication/auth";
 
 interface Props {
   label?: string;

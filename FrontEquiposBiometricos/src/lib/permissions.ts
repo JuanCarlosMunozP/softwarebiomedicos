@@ -1,4 +1,4 @@
-import type { Rol } from "@/types/auth";
+import type { Rol } from "@/types/authentication/auth";
 
 export type Resource =
   | "users"

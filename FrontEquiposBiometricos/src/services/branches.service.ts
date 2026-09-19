@@ -1,6 +1,6 @@
 import { api } from "@/lib/api";
-import type { Paginated } from "@/types/api";
-import type { Branch, BranchInput } from "@/types/branch";
+import type { Paginated } from "@/types/api/api";
+import type { Branch, BranchInput } from "@/types/equipment/branch";
 
 export interface BranchesListParams {
   ordering?: string;

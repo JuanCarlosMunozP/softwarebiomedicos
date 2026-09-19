@@ -1,4 +1,4 @@
-import type { AssignedUser, Usuario } from "@/types/auth";
+import type { AssignedUser, Usuario } from "@/types/authentication/auth";
 import { ROLE_LABEL } from "@/lib/permissions";
 
 function compact(value: string): string {

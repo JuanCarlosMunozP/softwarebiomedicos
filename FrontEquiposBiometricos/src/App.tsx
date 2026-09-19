@@ -12,16 +12,16 @@ import { LoginPage } from "@/pages/LoginPage";
 import { RegistroPage } from "@/pages/RegistroPage";
 import { RecuperarPasswordPage } from "@/pages/RecuperarPasswordPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
-import { DashboardPage } from "@/pages/admin/DashboardPage";
-import { SedesPage } from "@/pages/admin/SedesPage";
-import { EquiposPage } from "@/pages/admin/EquiposPage";
-import { EquipoDetallePage } from "@/pages/admin/EquipoDetallePage";
-import { EtiquetasQrPage } from "@/pages/admin/EtiquetasQrPage";
-import { UsuariosPage } from "@/pages/admin/UsuariosPage";
-import { MantenimientosPage } from "@/pages/admin/MantenimientosPage";
-import { OrdenesTrabajoPage } from "@/pages/admin/OrdenesTrabajoPage";
-import { AgendamientosPage } from "@/pages/admin/AgendamientosPage";
-import { FallasPage } from "@/pages/admin/FallasPage";
+import { DashboardPage } from "@/pages/admin/dashboard/DashboardPage";
+import { SedesPage } from "@/pages/admin/equipos/SedesPage";
+import { EquiposPage } from "@/pages/admin/equipos/EquiposPage";
+import { EquipoDetallePage } from "@/pages/admin/equipos/EquipoDetallePage";
+import { EtiquetasQrPage } from "@/pages/admin/equipos/EtiquetasQrPage";
+import { UsuariosPage } from "@/pages/admin/usuarios/UsuariosPage";
+import { MantenimientosPage } from "@/pages/admin/mantenimientos/MantenimientosPage";
+import { OrdenesTrabajoPage } from "@/pages/admin/equipos/workorders/OrdenesTrabajoPage";
+import { AgendamientosPage } from "@/pages/admin/agendamientos/AgendamientosPage";
+import { FallasPage } from "@/pages/admin/reportesfalla/FallasPage";
 import { PerfilPage } from "@/pages/admin/PerfilPage";
 
 function App() {

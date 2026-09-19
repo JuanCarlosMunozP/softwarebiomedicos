@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fullNameOf } from "./users";
-import type { Usuario } from "@/types/auth";
+import type { Usuario } from "@/types/authentication/auth";
 
 function user(overrides: Partial<Usuario>): Usuario {
   return {

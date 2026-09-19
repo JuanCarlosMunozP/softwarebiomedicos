@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { userCache } from "@/lib/api";
 import { authService } from "@/services/auth.service";
-import type { LoginRequest, Usuario } from "@/types/auth";
+import type { LoginRequest, Usuario } from "@/types/authentication/auth";
 
 interface AuthContextValue {
   usuario: Usuario | null;

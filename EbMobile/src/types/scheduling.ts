@@ -1,4 +1,4 @@
-import type { AssignedUser } from "@/types/auth";
+import type { AssignedUser } from "@/types/auth/auth";
 
 export type ScheduleKind = "PREVENTIVE" | "REPAIR";
 

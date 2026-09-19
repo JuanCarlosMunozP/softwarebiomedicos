@@ -1,6 +1,6 @@
 import { api } from "@/lib/api";
-import type { Paginated } from "@/types/api";
-import type { EquipmentModel, ModelInput } from "@/types/brand";
+import type { Paginated } from "@/types/api/api";
+import type { EquipmentModel, ModelInput } from "@/types/equipment/brand";
 
 export interface ModelsListParams {
   ordering?: string;

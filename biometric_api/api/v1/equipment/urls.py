@@ -5,12 +5,15 @@ from .views import (
     EquipmentCertificateViewSet,
     EquipmentInstructionViewSet,
     EquipmentViewSet,
-    EquipmentWorkOrderViewSet,
-    WorkOrderCostViewSet,
-    WorkOrderEvidenceViewSet,
-    WorkOrderMeasurementViewSet,
-    WorkOrderSignatureViewSet,
+    EquipmentWorkOrderViewSet
+)
+
+from api.v1.workorders.views import (
     WorkOrderSparePartViewSet,
+    WorkOrderMeasurementViewSet,
+    WorkOrderEvidenceViewSet,
+    WorkOrderSignatureViewSet,
+    WorkOrderCostViewSet
 )
 
 app_name = "equipment"

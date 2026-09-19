@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { Paginated } from "@/types/api";
+import type { Paginated } from "@/types/api/api";
 import type {
   WorkOrder,
   WorkOrderCost,
@@ -10,7 +10,7 @@ import type {
   WorkOrderSignature,
   WorkOrderSparePart,
   WorkOrderStatus,
-} from "@/types/workorder";
+} from "@/types/equipment/workorder";
 
 function unwrap<T>(data: Paginated<T> | T[]): T[] {
   return Array.isArray(data) ? data : data.results;

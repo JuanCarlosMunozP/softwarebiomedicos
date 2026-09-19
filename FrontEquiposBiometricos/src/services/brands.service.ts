@@ -1,6 +1,6 @@
 import { api } from "@/lib/api";
-import type { Paginated } from "@/types/api";
-import type { Brand, BrandInput } from "@/types/brand";
+import type { Paginated } from "@/types/api/api";
+import type { Brand, BrandInput } from "@/types/equipment/brand";
 
 export interface BrandsListParams {
   ordering?: string;

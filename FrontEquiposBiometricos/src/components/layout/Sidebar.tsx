@@ -16,7 +16,7 @@ import type { ComponentType } from "react";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/context/AuthContext";
 import { can, type Resource } from "@/lib/permissions";
-import type { Rol } from "@/types/auth";
+import type { Rol } from "@/types/authentication/auth";
 
 interface SidebarProps {
   open: boolean;

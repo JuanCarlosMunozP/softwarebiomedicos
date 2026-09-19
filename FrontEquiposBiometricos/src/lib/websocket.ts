@@ -15,7 +15,7 @@
  *   reintenta: el usuario tendrá que loguearse de nuevo. Para cualquier
  *   otro cierre sí se reintenta.
  */
-import type { NotificationEvent } from "@/types/notifications";
+import type { NotificationEvent } from "@/types/notify/notifications";
 
 type Handler = (event: NotificationEvent) => void;
 

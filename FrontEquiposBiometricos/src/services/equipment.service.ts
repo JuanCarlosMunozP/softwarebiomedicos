@@ -1,6 +1,6 @@
 import { api } from "@/lib/api";
-import type { Paginated } from "@/types/api";
-import type { Equipment, EquipmentInput } from "@/types/equipment";
+import type { Paginated } from "@/types/api/api";
+import type { Equipment, EquipmentInput } from "@/types/equipment/equipment";
 
 export interface EquipmentListParams {
   ordering?: string;

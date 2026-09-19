@@ -17,7 +17,7 @@ import {
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import type { ToastData } from "@/components/ui/Toast";
 import { notificationsSocket } from "@/lib/websocket";
-import type { NotificationEvent } from "@/types/notifications";
+import type { NotificationEvent } from "@/types/notify/notifications";
 import { useAuth } from "./AuthContext";
 
 interface NotificationContextValue {

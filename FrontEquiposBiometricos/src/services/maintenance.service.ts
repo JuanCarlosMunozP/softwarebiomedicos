@@ -1,6 +1,6 @@
 import { api } from "@/lib/api";
-import type { Paginated } from "@/types/api";
-import type { MaintenanceInput, MaintenanceRecord } from "@/types/maintenance";
+import type { Paginated } from "@/types/api/api";
+import type { MaintenanceInput, MaintenanceRecord } from "@/types/maintenance/maintenance";
 
 export interface MaintenanceListParams {
   ordering?: string;

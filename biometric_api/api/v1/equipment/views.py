@@ -3,7 +3,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -15,13 +15,10 @@ from apps.equipment.models import (
     EquipmentCertificate,
     EquipmentInstruction,
     EquipmentWorkOrder,
-    WorkOrderCost,
-    WorkOrderEvidence,
-    WorkOrderMeasurement,
-    WorkOrderSignature,
-    WorkOrderSparePart,
     WorkOrderStatus,
 )
+from api.v1.workorders.views import _WorkOrderChildScopedMixin
+
 from apps.equipment.services import generate_qr_for_equipment
 from apps.failures.models import FailureRecord, FailureSeverity
 from apps.users.models import User
@@ -34,11 +31,6 @@ from .serializers import (
     EquipmentSerializer,
     EquipmentWorkOrderDetailSerializer,
     EquipmentWorkOrderSerializer,
-    WorkOrderCostSerializer,
-    WorkOrderEvidenceSerializer,
-    WorkOrderMeasurementSerializer,
-    WorkOrderSignatureSerializer,
-    WorkOrderSparePartSerializer,
 )
 
 
@@ -229,16 +221,12 @@ class EquipmentInstructionViewSet(viewsets.ModelViewSet):
 
     ordering = ("instruction_type","sequence",)
 
-
-# Roles "de campo": ejecutan órdenes de trabajo, no las administran. Solo ven
-# y editan las que tienen asignadas (technician == ellos).
-_FIELD_ROLES = (User.Role.TECNICO, User.Role.INGENIERO)
-
+_FIELD_ROLES = (User.Role.TECNICO,User.Role.INGENIERO)
 
 def _only_own_work_orders(user) -> bool:
     return bool(
-        user and user.is_authenticated and getattr(user, "role", None) in _FIELD_ROLES
-    )
+        user and user.is_authenticated and getattr(user,"role",None) in _FIELD_ROLES
+)
 
 
 def _maintenance_record_for(work_order: EquipmentWorkOrder):
@@ -427,175 +415,3 @@ class EquipmentWorkOrderViewSet(AuditLogMixin, viewsets.ModelViewSet):
         return Response(self.get_serializer(work_order).data)
 
 
-class _WorkOrderChildScopedMixin:
-    """Los roles de campo solo ven y editan los elementos (repuestos,
-    mediciones, evidencias, firmas, costos) de sus propias órdenes de
-    trabajo."""
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        if _only_own_work_orders(self.request.user):
-            qs = qs.filter(work_order__technician=self.request.user)
-        return qs
-
-    def _ensure_work_order_open(self, work_order) -> None:
-        if work_order is not None and work_order.status == WorkOrderStatus.FINISHED:
-            raise ValidationError(
-                {
-                    "detail": _(
-                        "La orden está terminada; el detalle es solo histórico."
-                    )
-                }
-            )
-
-    def perform_create(self, serializer):
-        user = self.request.user
-        work_order = serializer.validated_data.get("work_order")
-        if (
-            _only_own_work_orders(user)
-            and work_order is not None
-            and work_order.technician_id != user.id
-        ):
-            raise PermissionDenied(
-                _("Solo puedes editar los elementos de tus propias órdenes de trabajo.")
-            )
-        self._ensure_work_order_open(work_order)
-        serializer.save()
-
-    def perform_update(self, serializer):
-        self._ensure_work_order_open(serializer.instance.work_order)
-        serializer.save()
-
-    def perform_destroy(self, instance):
-        self._ensure_work_order_open(instance.work_order)
-        instance.delete()
-
-
-class WorkOrderSparePartViewSet(_WorkOrderChildScopedMixin, viewsets.ModelViewSet):
-
-    """ CRUD de repuestos utilizados en una orden de trabajo."""
-
-    queryset = WorkOrderSparePart.objects.select_related(
-                "work_order",
-                "work_order__equipment",
-            )
-
-    serializer_class = WorkOrderSparePartSerializer
-    permission_classes = (IsAuthenticated, HasRolePermission)
-    permission_resource = "work_orders"
-
-    filterset_fields = ("work_order",)
-    search_fields = ("name","reference","work_order__number")
-
-    ordering_fields = ("name","quantity","unit_cost","total_cost")
-
-    ordering = ("name",)
-
-
-class WorkOrderMeasurementViewSet(_WorkOrderChildScopedMixin, viewsets.ModelViewSet):
-
-    "CRUD de mediciones realizadas durante una orden de trabajo"
-
-    queryset = WorkOrderMeasurement.objects.select_related(
-        "work_order",
-        "work_order__equipment",
-    )
-
-    serializer_class = WorkOrderMeasurementSerializer
-    permission_classes = (IsAuthenticated, HasRolePermission)
-    permission_resource = "work_orders"
-
-    filterset_fields = ("work_order", "passed")
-    search_fields = (
-        "parameter",
-        "measured_value",
-        "expected_value",
-        "unit",
-        "work_order__number",
-    )
-
-    ordering_fields = (
-        "parameter",
-        "passed",
-    )
-
-    ordering = ("parameter",)
-
-
-class WorkOrderEvidenceViewSet(_WorkOrderChildScopedMixin, viewsets.ModelViewSet):
-
-    """CRUD de evidencias de una orden de trabajo."""
-
-    queryset = WorkOrderEvidence.objects.select_related(
-        "work_order",
-        "work_order__equipment",
-    )
-
-    serializer_class = WorkOrderEvidenceSerializer
-    permission_classes = (IsAuthenticated, HasRolePermission)
-    permission_resource = "work_orders"
-
-    filterset_fields = ("work_order", "evidence_type")
-    search_fields = (
-        "description",
-        "work_order__number",
-    )
-
-    ordering_fields = ("evidence_type", "id")
-    ordering = ("id",)
-
-
-class WorkOrderSignatureViewSet(_WorkOrderChildScopedMixin, viewsets.ModelViewSet):
-
-    """CRUD de firmas de una orden de trabajo."""
-
-    queryset = WorkOrderSignature.objects.select_related(
-        "work_order",
-        "work_order__equipment",
-    )
-
-    serializer_class = WorkOrderSignatureSerializer
-    permission_classes = (IsAuthenticated, HasRolePermission)
-    permission_resource = "work_orders"
-
-    filterset_fields = ("work_order", "role")
-    search_fields = ("signed_by","role","work_order__number")
-    ordering_fields = (
-        "role",
-        "signed_at",
-    )
-
-    ordering = ("-signed_at",)
-
-class WorkOrderCostViewSet(_WorkOrderChildScopedMixin, viewsets.ModelViewSet):
-
-    """
-
-    CRUD de costos asociados a una orden de trabajo.
-
-    Cada orden puede tener un único registro de costos.
-    """
-
-    queryset = WorkOrderCost.objects.select_related(
-        "work_order",
-        "work_order__equipment",
-    )
-
-    serializer_class = WorkOrderCostSerializer
-    permission_classes = (IsAuthenticated, HasRolePermission)
-    permission_resource = "work_orders"
-
-    filterset_fields = ("work_order",)
-    search_fields = (
-        "work_order__number",
-        "work_order__equipment__name",
-    )
-
-    ordering_fields = (
-        "labor_cost",
-        "spare_parts_cost",
-        "transport_cost",
-        "other_cost",
-    )
-
-    ordering = ("work_order",)

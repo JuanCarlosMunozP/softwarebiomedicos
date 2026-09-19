@@ -1,6 +1,6 @@
 import { api } from "@/lib/api";
-import type { Paginated } from "@/types/api";
-import type { FailureInput, FailureReport } from "@/types/failure";
+import type { Paginated } from "@/types/api/api";
+import type { FailureInput, FailureReport } from "@/types/failure/failure";
 
 export interface FailuresListParams {
   ordering?: string;
