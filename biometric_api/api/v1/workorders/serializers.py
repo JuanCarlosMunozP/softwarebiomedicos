@@ -36,7 +36,7 @@ class WorkOrderSparePartSerializer(serializers.ModelSerializer):
         instance.total_cost = (instance.quantity or 0) * (instance.unit_cost or 0)
         return instance
 
-    def create(self,instance,validated_data):
+    def create(self,validated_data):
         instance = WorkOrderSparePart(**validated_data)
         self._apply_total(instance)
         instance.save()

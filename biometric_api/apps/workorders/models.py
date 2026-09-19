@@ -36,7 +36,7 @@ class WorkOrderSparePart(models.Model):
 
     quantity = models.PositiveIntegerField()
 
-    unit = models.DecimalField(
+    unit_cost = models.DecimalField(
         max_digits=12,
         decimal_places=2,
     )
