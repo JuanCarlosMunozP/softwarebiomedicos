@@ -3,12 +3,13 @@ from rest_framework import serializers
 
 from api.v1.common.file_validation import EVIDENCE_EXTENSIONS, validate_uploaded_file
 from apps.workorders.models import (
-    WorkOrderSparePart,
-    WorkOrderMeasurement,
+    WorkOrderCost,
     WorkOrderEvidence,
+    WorkOrderMeasurement,
     WorkOrderSignature,
-    WorkOrderCost
+    WorkOrderSparePart,
 )
+
 
 class WorkOrderSparePartSerializer(serializers.ModelSerializer):
     # calcula el costo total: cantidad x costo unitario
@@ -108,4 +109,3 @@ class WorkOrderCostSerializer(serializers.ModelSerializer):
             + (obj.other_cost or 0)
         )
         return f"{value:.2f}"
-    

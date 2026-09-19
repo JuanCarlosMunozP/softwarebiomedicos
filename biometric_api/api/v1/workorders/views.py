@@ -1,27 +1,25 @@
 from django.utils.translation import gettext_lazy as _
-
-from rest_framework.exceptions import PermissionDenied,ValidationError
 from rest_framework import viewsets
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
-
 
 from api.v1.common.permissions import HasRolePermission
 from api.v1.workorders.serializers import (
-    WorkOrderMeasurementSerializer,
-    WorkOrderEvidenceSerializer,
     WorkOrderCostSerializer,
+    WorkOrderEvidenceSerializer,
+    WorkOrderMeasurementSerializer,
     WorkOrderSignatureSerializer,
-    WorkOrderSparePartSerializer
+    WorkOrderSparePartSerializer,
 )
+from apps.equipment.models import WorkOrderStatus
+from apps.users.models import User
 from apps.workorders.models import (
     WorkOrderCost,
     WorkOrderEvidence,
     WorkOrderMeasurement,
     WorkOrderSignature,
-    WorkOrderSparePart
+    WorkOrderSparePart,
 )
-from apps.users.models import User
-from apps.equipment.models import WorkOrderStatus
 
 _FIELD_ROLES = (User.Role.TECNICO,User.Role.INGENIERO)
 
@@ -49,7 +47,7 @@ class _WorkOrderChildScopedMixin:
             )
 
     def perform_create(self,serializer):
-        user = self.request.user 
+        user = self.request.user
         work_order = serializer.validated_data.get("work_order")
         if (
             _only_own_work_orders(user)

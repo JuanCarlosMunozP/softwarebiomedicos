@@ -3,6 +3,7 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.equipment.models import EquipmentWorkOrder
 
+
 class EvidenceType(models.TextChoices):
 
     PHOTO = "PHOTO",_("Fotografía")

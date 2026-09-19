@@ -9,14 +9,12 @@ from api.v1.common.file_validation import (
     MAX_IMAGE_BYTES,
     validate_uploaded_file,
 )
-
-
 from api.v1.workorders.serializers import (
-    WorkOrderSparePartSerializer,
-    WorkOrderMeasurementSerializer,
+    WorkOrderCostSerializer,
     WorkOrderEvidenceSerializer,
+    WorkOrderMeasurementSerializer,
     WorkOrderSignatureSerializer,
-    WorkOrderCostSerializer
+    WorkOrderSparePartSerializer,
 )
 from apps.branches.models import Branch
 from apps.catalog.models import EquipmentModel

@@ -1,6 +1,12 @@
 from django.contrib import admin
 
-from apps.workorders.models import WorkOrderEvidence, WorkOrderMeasurement, WorkOrderSignature, WorkOrderSparePart, WorkOrderCost
+from apps.workorders.models import (
+    WorkOrderCost,
+    WorkOrderEvidence,
+    WorkOrderMeasurement,
+    WorkOrderSignature,
+    WorkOrderSparePart,
+)
 
 # =====================================================================
 # INLINE: REPUESTOS
@@ -49,8 +55,8 @@ class WorkOrderSignatureInline(admin.TabularInline):
 
 
 # =============================================================================
-# INLINE: COSTOS 
-# ============================================================================= 
+# INLINE: COSTOS
+# =============================================================================
 
 class WorkOrderCostInline(admin.TabularInline):
 
