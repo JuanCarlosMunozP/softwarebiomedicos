@@ -8,6 +8,8 @@ from pathlib import Path
 
 import environ
 
+from celery.schedules import crontab
+
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
@@ -350,6 +352,12 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULE = {
+    "verify-equipment-expiry-daily": {
+        "task":"apps.equipment.tasks.verify_equipment_expiry",
+        "schedule":crontab(hour=8,minute=0),
+    }
+}
 
 # ---------------------------------------------------------------------------
 # Channels (WebSockets) — canal `/ws/notifications/`
@@ -372,6 +380,13 @@ CHANNEL_LAYERS = {
         },
     }
 }
+
+# ----------------------------------------------------------------------------
+# Notificaciones de vencimiento de garantia
+# ----------------------------------------------------------------------------
+EXPIRED_NOTIFICATION_EMAILS = env.list(
+    "EXPIRED_NOTIFICATION_EMAILS",default=[]
+)
 
 # ---------------------------------------------------------------------------
 # Notificaciones de mantenimiento

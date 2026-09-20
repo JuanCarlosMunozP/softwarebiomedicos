@@ -80,6 +80,25 @@ services:
         condition: service_healthy
     command: celery -A config worker -l info
 
+  celery_beat:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        REQUIREMENTS: dev 
+    container_name: biometric_celery_beat
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      RUN_MIGRATIONS: "false"
+    volumes:
+      - .:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: celery -A config beat -l info
+
   # UI de monitoreo de Celery (workers, tasks, colas) — http://localhost:5555
   flower:
     build:

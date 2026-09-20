@@ -80,7 +80,7 @@ class EquipmentAdmin(admin.ModelAdmin):
         (_("Identificación"), {"fields": ("name", "asset_tag","serial","internal_code","software_identifier")}),
         (_("Clasificación"),{"fields":("equipment_model","branch","branch_text","technology_type","biomedical_classification","risk_class",)}),
         (_("Información del equipo"),{"fields":("manufacturer","owner","client_name","department","city","area","location","observations")}),
-        (_("Adquisición"),{"fields":("purchase_date","supplier_acquisition","equipment_cost","manufacture_date","start_use_date")}),
+        (_("Adquisición"),{"fields":("purchase_date","equipment_cost","manufacture_date","start_use_date")}),
         (_("Garantía"),{"fields":("warranty_start_date","warranty_end_date")}),
         (_("Mantenimiento"),{"fields":("maintenance_provider","maintenance_frequency_months","last_preventive","next_preventive","corrective_count")},),
         (_("Calibración"),{"fields":("calibration_date","calibration_frequency_months","last_calibration","next_calibration")},),

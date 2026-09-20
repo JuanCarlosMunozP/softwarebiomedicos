@@ -26,7 +26,7 @@ export function equipmentToForm(e: Equipment, inferredBrand: number): FormState 
     owner: e.owner ?? "",
     client_name: e.client_name ?? "",
 
-    purchase_date: e.purchase_date,
+    purchase_date: e.purchase_date ?? "",
     manufacture_date:e.manufacture_date ?? "",
     supplier_acquisition: e.supplier_acquisition ?? "",
     start_use_date:e.start_use_date ?? "",
@@ -35,8 +35,8 @@ export function equipmentToForm(e: Equipment, inferredBrand: number): FormState 
         ? String(e.equipment_cost)
         : "",
       
-    warranty_start_date: e.warranty_start_date ?? "",
-    warranty_end_date: e.warranty_end_date ?? "",
+    warranty_start_date: e.warranty_start_date?.slice(0,10) ?? "",
+    warranty_end_date: e.warranty_end_date?.slice(0,10) ?? "",
 
     maintenance_provider: e.maintenance_provider ?? "",
     maintenance_frequency_months:

@@ -3,6 +3,14 @@
 from django.db import migrations, models
 
 
+def recreate_schedule_table(apps, schema_editor):
+    # Al retroceder, devuelve la tabla que esta migracion elimino para que
+    # maintenance.0002 y maintenance.0001 puedan deshacerse sin error.
+    model = apps.get_model("maintenance", "EquipmentMaintenanceSchedule")
+    if model._meta.db_table not in schema_editor.connection.introspection.table_names():
+        schema_editor.create_model(model)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -25,6 +33,10 @@ class Migration(migrations.Migration):
                 migrations.RunSQL(
                     sql='DROP TABLE IF EXISTS "maintenance_equipmentmaintenanceschedule" CASCADE;',
                     reverse_sql=migrations.RunSQL.noop,
+                ),
+                migrations.RunPython(
+                    migrations.RunPython.noop,
+                    reverse_code=recreate_schedule_table,
                 ),
             ],
         ),

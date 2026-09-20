@@ -1,3 +1,5 @@
+from django.utils import timezone
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -5,13 +7,11 @@ from apps.branches.models import Branch
 
 from .managers import EquipmentManager
 
-
 class EquipmentStatus(models.TextChoices):
     ACTIVE = "ACTIVE", _("Operativo")
     INACTIVE = "INACTIVE", _("Fuera de servicio")
     IN_MAINTENANCE = "IN_MAINTENANCE", _("En mantenimiento")
     IN_REPAIR = "IN_REPAIR", _("En reparación")
-
 
 class RiskClass(models.TextChoices):
     I = "I", _("Clase I — riesgo bajo")  # noqa: E741
@@ -26,68 +26,56 @@ class TechnologyType(models.TextChoices):
     MIXED = "MIXED",_("Mixto")
     OTHER = "OTHER",_("Otro")
 
-class InstructionType(models.TextChoices):
+class ProviderType(models.TextChoices):
+    IMPORMESAN = "IMPORMESAN",_("Impormesan")
+    INVERMEDICA = "INVERMEDICA",_("Invermedica")
+    SIEMENS = "SIEMENS",_("SIEMENS")
+    GENERAL_ELECTRIC_HEALTHRARE = "GENERAL_ELECTRIC_HEALTHRARE",_("General electric healthare")
+    TOP_MEDICAL_SYSTEMS = "TOP_MEDICAL_SYSTEMS",_("Top Medical Systems")
+    STRYKER = "STRYKER",_("Stryker")
+    BIOTRONITECH = "BIOTRONITECH",_("Biotronitech")
+    C_MEDICAL = "C_MEDICAL",_("C Medical")
+    MEDICAH = "MEDICAH",_("Medicah")
+    RX_SAS = "RX_SAS",_("Rx S.A.S")
+    DRAGER_COLOMBIA = "DRAGER_COLOMBIA",_("Drager Colombia")
 
+class InstructionType(models.TextChoices):
     PREVENTIVE = "PREVENTIVE",_("Preventivo")
     CORRECTIVE = "CORRECTIVE",_("Correctivo")
     CALIBRATION = "CALIBRATION",_("Calibración")
 
 class AttachmentType(models.TextChoices):
-
     LIFE_SHEET = "LIFE_SHEET",_("Hoja de Vida")
-
     MANUAL = "MANUAL",_("Manual")
-
     PHOTO = "PHOTO", _("Fotografía")
-
     CERTIFICATE = "CERTIFICATE", _("Certificado")
-
     WARRANTY = "WARRANTY", _("Garantía")
-
     PURCHASE = "PURCHASE", _("Compra")
-
     OTHER = "OTHER",_("Otro")
 
 class WorkOrderType(models.TextChoices):
-
     PREVENTIVE = "PREVENTIVE", _("Preventivo")
-
     CORRECTIVE = "CORRECTIVE", _("Correctivo")
-
     CALIBRATION = "CALIBRATION",_("Calibración")
-
     INSTALLATION = "INSTALLATION",_("Instalación")
-
     INSPECTION = "INSPECTION",_("Inspección")
 
 class WorkOrderStatus(models.TextChoices):
-
     PENDING = "PENDING",_("Pendiente")
-
     IN_PROGRESS = "IN_PROGRESS",_("En proceso")
-
     FINISHED = "FINISHED", _("Terminada")
-
     CANCELLED = "CANCELLED",_("Cancelada")
 
 class EvidenceType(models.TextChoices):
-
     PHOTO = "PHOTO",_("Fotografía")
-
     VIDEO = "VIDEO",_("Video")
-
     DOCUMENT = "DOCUMENT",_("Documento")
-
     AUDIO = "AUDIO",_("Audio")
 
 class SignatureRole(models.TextChoices):
-
     TECHNICIAN = "TECHNICIAN"
-
     ENGINEER = "ENGINEER"
-
     CLIENT = "CLIENT"
-
     SUPERVISOR = "SUPERVISOR"
 
 class Equipment(models.Model):
@@ -161,7 +149,12 @@ class Equipment(models.Model):
     location = models.CharField(_("Ubicación"), max_length=120, blank=True)
     observations = models.TextField(_("Observaciones"),blank=True)
     purchase_date = models.DateField(_("Fecha de compra"), null=True, blank=True)
-    supplier_acquisition = models.CharField(_("Proveedor de adquisión"),max_length=150,blank=True)
+    supplier_acquisition = models.CharField(
+        _("Proveedor de acquisión"),
+        choices=ProviderType.choices,
+        max_length=150,
+        blank=True
+    )
     start_use_date = models.DateField(_("Fecha inicia funcionamiento"),null=True,blank=True)
     equipment_cost = models.DecimalField(
         _("Costo equipo"),
@@ -171,8 +164,8 @@ class Equipment(models.Model):
         blank=True,
     )
     maintenance_provider = models.CharField(_("Proveedor de mantenimiento"),max_length=150,blank=True)
-    warranty_start_date = models.DateField(_("Fecha inicia garantía"),null=True,blank=True)
-    warranty_end_date = models.DateField(_("Fecha finaliza garantía"),null=True,blank=True)
+    warranty_start_date = models.DateTimeField(_("Fecha inicia garantía"),null=True,blank=True)
+    warranty_end_date = models.DateTimeField(_("Fecha finaliza garantía"),null=True,blank=True)
     calibration_frequency_months = models.PositiveIntegerField(
         _("Frecuencia calibración (meses)"),
         null=True,
@@ -196,10 +189,10 @@ class Equipment(models.Model):
         db_index=True,
     )
 
-    last_calibration = models.CharField(_("Última calibración"),max_length=120,blank=True)
-    last_preventive = models.CharField(_("Último preventivo"),max_length=120,blank=True)
-    next_preventive = models.CharField(_("Próximo preventivo"),max_length=120,blank=True)
-    next_calibration = models.CharField(_("Próxima calibración"),max_length=120,blank=True)
+    last_calibration = models.DateTimeField(_("Última calibración"),max_length=120,blank=True,null=True)
+    last_preventive = models.DateTimeField(_("Último preventivo"),max_length=120,blank=True,null=True)
+    next_preventive = models.DateTimeField(_("Próximo preventivo"),max_length=120,blank=True,null=True)
+    next_calibration = models.DateTimeField(_("Próxima calibración"),max_length=120,blank=True,null=True)
     corrective_count = models.PositiveIntegerField(_("Número de correctivos."),default=0)
 
     qr_code = models.FileField(_("Código QR"), upload_to="equipment/qr/", blank=True)
@@ -230,6 +223,9 @@ class Equipment(models.Model):
 
     objects = EquipmentManager()
 
+    # field temp
+    _warranty_changed:bool = False
+
     class Meta:
         verbose_name = _("Equipo biomédico")
         verbose_name_plural = _("Equipos biomédicos")
@@ -247,7 +243,25 @@ class Equipment(models.Model):
     def __str__(self) -> str:
         return f"{self.name} ({self.asset_tag})"
 
+    def estado_garantia(self):
 
+        if self.warranty_end_date is None:
+            return None
+
+        today = timezone.now()
+
+        days_to_expiration = (self.warranty_end_date - today).days 
+
+        if days_to_expiration <= 0:
+            return 'Fecha de garantia vencida'
+        elif days_to_expiration <= 10:
+            return 'Por vencer (renovar garantia)'
+        elif days_to_expiration == 30:
+            return 'Cerca de vencimiento'
+        else:
+            pass 
+
+        
 class EquipmentInstruction(models.Model):
 
     equipment = models.ForeignKey(

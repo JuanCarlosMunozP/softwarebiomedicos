@@ -1,5 +1,5 @@
-from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
 from rest_framework import serializers
 
 from api.v1.common.file_validation import (
@@ -32,6 +32,7 @@ class EquipmentSerializer(serializers.ModelSerializer):
     equipment_model_name = serializers.CharField(source="equipment_model.name", read_only=True)
     brand_name = serializers.CharField(source="equipment_model.brand.name", read_only=True)
     qr_code_url = serializers.SerializerMethodField()
+    days_to_expiration = serializers.SerializerMethodField()
     status_display = serializers.CharField(source="get_status_display",read_only=True)
     risk_class_display = serializers.CharField(source="get_risk_class_display",read_only=True)
 
@@ -69,7 +70,6 @@ class EquipmentSerializer(serializers.ModelSerializer):
 
             # Adquisición
             "purchase_date",
-            "supplier_acquisition",
             "equipment_cost",
             "manufacture_date",
             "start_use_date",
@@ -77,6 +77,7 @@ class EquipmentSerializer(serializers.ModelSerializer):
             # Garantía
             "warranty_start_date",
             "warranty_end_date",
+            "days_to_expiration",
 
             # Mantenimiento
             "maintenance_provider",
@@ -152,6 +153,12 @@ class EquipmentSerializer(serializers.ModelSerializer):
         if not url.startswith(("http://", "https://", "/")):
             url = f"/{url}"
         return request.build_absolute_uri(url) if request else url
+
+    def get_days_to_expiration(self,obj:Equipment) -> int | None:
+        if obj.warranty_end_date is None:
+            return None
+        end_date = timezone.localtime(obj.warranty_end_date).date()
+        return (end_date - timezone.localdate()).days
 
     def validate_asset_tag(self, value: str) -> str:
         normalized = value.strip().upper()

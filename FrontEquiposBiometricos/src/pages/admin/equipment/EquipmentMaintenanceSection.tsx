@@ -35,6 +35,7 @@ export function EquipmentMaintenanceSection({ form, setForm }: EquipmentSectionP
         }
         />
         <Input
+        type="date"
         label="Último preventivo"
         value={form.last_preventive}
         onChange={(e) =>
@@ -45,6 +46,7 @@ export function EquipmentMaintenanceSection({ form, setForm }: EquipmentSectionP
         }
         />
         <Input
+        type="date"
         label="Próximo preventivo"
         value={form.next_preventive}
         onChange={(e) =>

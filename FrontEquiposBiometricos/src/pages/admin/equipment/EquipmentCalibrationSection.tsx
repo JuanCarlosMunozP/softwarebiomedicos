@@ -22,6 +22,7 @@ export function EquipmentCalibrationSection({ form, setForm }: EquipmentSectionP
         }
         />
         <Input
+        type="date"
         label="Última calibración"
         value={form.last_calibration}
         onChange={(e) => 
@@ -32,6 +33,7 @@ export function EquipmentCalibrationSection({ form, setForm }: EquipmentSectionP
         }
         />
         <Input
+        type="date"
         label="Próxima Calibración"
         value={form.next_calibration}
         onChange={(e) =>

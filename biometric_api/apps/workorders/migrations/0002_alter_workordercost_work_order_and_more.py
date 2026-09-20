@@ -17,6 +17,12 @@ class Migration(migrations.Migration):
             name='work_order',
             field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='cost', to='equipment.equipmentworkorder'),
         ),
+        # En bases creadas con una version anterior de 0001 este indice ya
+        # existe; AlterField lo vuelve a crear identico justo despues.
+        migrations.RunSQL(
+            sql='DROP INDEX IF EXISTS "workorders_workordersparepart_work_order_id_49ca5529";',
+            reverse_sql=migrations.RunSQL.noop,
+        ),
         migrations.AlterField(
             model_name='workordersparepart',
             name='work_order',
