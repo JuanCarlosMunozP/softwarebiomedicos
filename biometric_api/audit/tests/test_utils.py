@@ -1,9 +1,10 @@
 import pytest
 
-from ..models import AuditAction, AuditLog
-from ..utils import log_audit_event
 from branches.tests.factories import BranchFactory
 from users.tests.factories import TecnicoFactory
+
+from ..models import AuditAction, AuditLog
+from ..utils import log_audit_event
 
 pytestmark = pytest.mark.django_db
 

@@ -12,6 +12,7 @@ from common.permissions import HasRolePermission
 from failures.models import FailureRecord, FailureSeverity
 from users.models import User
 
+from .filters import EquipmentFilter
 from .models import (
     Equipment,
     EquipmentAttachment,
@@ -20,8 +21,6 @@ from .models import (
     EquipmentWorkOrder,
     WorkOrderStatus,
 )
-from .services import generate_qr_for_equipment
-from .filters import EquipmentFilter
 from .serializers import (
     EquipmentAttachmentSerializer,
     EquipmentCertificateSerializer,
@@ -30,6 +29,7 @@ from .serializers import (
     EquipmentWorkOrderDetailSerializer,
     EquipmentWorkOrderSerializer,
 )
+from .services import generate_qr_for_equipment
 
 
 class EquipmentViewSet(AuditLogMixin, viewsets.ModelViewSet):

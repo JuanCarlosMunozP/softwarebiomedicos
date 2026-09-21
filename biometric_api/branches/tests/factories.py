@@ -1,7 +1,9 @@
 import factory
 from factory.django import DjangoModelFactory
-from ..models import Branch
+
 from users.tests.factories import UserFactory  # noqa: F401  (re-exportado)
+
+from ..models import Branch
 
 
 class BranchFactory(DjangoModelFactory):

@@ -4,6 +4,8 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 
 from common.permissions import HasRolePermission
+from equipment.models import WorkOrderStatus
+from users.models import User
 from workorders.serializers import (
     WorkOrderCostSerializer,
     WorkOrderEvidenceSerializer,
@@ -11,8 +13,6 @@ from workorders.serializers import (
     WorkOrderSignatureSerializer,
     WorkOrderSparePartSerializer,
 )
-from equipment.models import WorkOrderStatus
-from users.models import User
 
 from .models import (
     WorkOrderCost,

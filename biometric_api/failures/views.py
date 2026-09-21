@@ -6,8 +6,8 @@ from rest_framework.response import Response
 from common.mixins import AuditLogMixin
 from common.permissions import HasRolePermission
 
-from .models import FailureRecord
 from .filters import FailureRecordFilter
+from .models import FailureRecord
 from .serializers import FailureRecordSerializer, ResolveFailureSerializer
 
 

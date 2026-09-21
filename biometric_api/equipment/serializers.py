@@ -19,7 +19,6 @@ from workorders.serializers import (
     WorkOrderSparePartSerializer,
 )
 
-
 from .models import (
     Equipment,
     EquipmentAttachment,

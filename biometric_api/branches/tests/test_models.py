@@ -2,7 +2,6 @@ import pytest
 from django.core.exceptions import ValidationError
 
 from ..models import Branch
-
 from .factories import BranchFactory
 
 pytestmark = pytest.mark.django_db
