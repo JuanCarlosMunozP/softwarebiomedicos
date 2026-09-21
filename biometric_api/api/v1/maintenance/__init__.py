@@ -4,8 +4,8 @@ CRUD de `MaintenanceRecord`: el registro ya cerrado (tipo, fecha,
 descripción, observaciones, responsables, costo, PDF opcional), no la
 ejecución en curso de una orden de trabajo.
 
-ROLE_MATRIX recurso `maintenance`: solo superadmin muta
-(create/edit/delete); admin y coordinador tienen VIEW. Ingeniero,
+ROLE_MATRIX recurso `maintenance`: solo coordinador muta
+(create/edit/delete); superadmin y admin tienen VIEW. Ingeniero,
 técnico y usuario no tienen el recurso en la matriz. El queryset, por
 si acaso, recorta técnico/ingeniero a lo asignado a ellos y excluye
 registros cuya OT sigue PENDING, IN_PROGRESS o CANCELLED (eso se

@@ -5,6 +5,7 @@ from apps.branches.tests.factories import BranchFactory
 from apps.equipment.tests.factories import EquipmentFactory
 from apps.users.tests.factories import (
     AdminFactory,
+    CoordinadorFactory,
     IngenieroFactory,
     SuperadminFactory,
     TecnicoFactory,
@@ -42,8 +43,14 @@ def superadmin_user(db):
 
 
 @pytest.fixture
-def auth_client(api_client, superadmin_user):
-    api_client.force_authenticate(user=superadmin_user)
+def coordinador_user(db):
+    return CoordinadorFactory()
+
+
+@pytest.fixture
+def auth_client(api_client, coordinador_user):
+    """Cliente del coordinador: es quien registra/edita/borra mantenimientos."""
+    api_client.force_authenticate(user=coordinador_user)
     return api_client
 
 

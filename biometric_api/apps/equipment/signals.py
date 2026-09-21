@@ -1,11 +1,9 @@
 from decimal import Decimal
 
 from django.db import transaction
-from django.utils.timezone import datetime
 from django.db.models import Sum
-from django.db.models.signals import post_delete, post_save, pre_delete,pre_save
+from django.db.models.signals import post_delete, post_save, pre_delete, pre_save
 from django.dispatch import receiver
-from pytz import timezone
 
 from apps.workorders.models import WorkOrderCost, WorkOrderSparePart
 
@@ -33,10 +31,10 @@ def remember_warranty_change(sender,instance:Equipment,**kwargs) -> None:
 @receiver(post_save,sender=Equipment)
 def alert_when_warranty_is_near(sender,instance:Equipment,created:bool,**kwargs) -> None:
     if instance.warranty_end_date is None:
-        return 
+        return
     if not (created or getattr(instance, "_warranty_changed", False)):
-        return 
-    from .tasks import check_equipment_expiry 
+        return
+    from .tasks import check_equipment_expiry
     transaction.on_commit(lambda: check_equipment_expiry.delay(instance.pk))
 
 

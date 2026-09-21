@@ -22,7 +22,9 @@ ROLE_MATRIX: dict[str, dict[str, frozenset[str]]] = {
     Role.SUPERADMIN: {
         "branches": _ALL,
         "equipment": _ALL,
-        "maintenance": _ALL,
+        # Registrar / editar / borrar mantenimientos en el historial es
+        # exclusivo del coordinador. El superadmin solo lo consulta.
+        "maintenance": frozenset({VIEW}),
         "scheduling": _ALL,
         "failures": _ALL,
         "work_orders": _ALL,
@@ -31,7 +33,7 @@ ROLE_MATRIX: dict[str, dict[str, frozenset[str]]] = {
         "branches": _ALL,
         "equipment": _ALL,
         # Registrar / editar / borrar mantenimientos en el historial es
-        # exclusivo del superadmin. El resto de la gestión solo lo consulta
+        # exclusivo del coordinador. El resto de la gestión solo lo consulta
         # (hoja de vida del equipo, KPIs).
         "maintenance": frozenset({VIEW}),
         "scheduling": _ALL,
@@ -41,7 +43,7 @@ ROLE_MATRIX: dict[str, dict[str, frozenset[str]]] = {
     Role.COORDINADOR: {
         "branches": frozenset({VIEW}),
         "equipment": frozenset({VIEW, CREATE, EDIT}),
-        "maintenance": frozenset({VIEW}),
+        "maintenance": _ALL,
         "scheduling": _ALL,
         "failures": frozenset({VIEW, CREATE, EDIT}),
         "work_orders": _ALL,

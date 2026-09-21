@@ -86,6 +86,12 @@ class EquipmentViewSet(AuditLogMixin, viewsets.ModelViewSet):
         serializer = self.get_serializer(equipment)
         return Response(serializer.data)
 
+    @action(detail=False,methods=["get"],url_path="names",url_name="names")
+    def names(self,request):
+        qs = self.filter_queryset(self.get_queryset())
+        names = qs.order_by("name").values_list("name",flat=True).distinct()
+        return Response(list(names))
+
     @action(detail=True, methods=["post"], url_path="regenerate-qr")
     def regenerate_qr(self, request, pk: int = None):
         """Regenera el código QR del equipo."""

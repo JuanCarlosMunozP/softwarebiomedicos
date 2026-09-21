@@ -1,11 +1,11 @@
-from django.utils import timezone
-
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.branches.models import Branch
 
 from .managers import EquipmentManager
+
 
 class EquipmentStatus(models.TextChoices):
     ACTIVE = "ACTIVE", _("Operativo")
@@ -250,7 +250,7 @@ class Equipment(models.Model):
 
         today = timezone.now()
 
-        days_to_expiration = (self.warranty_end_date - today).days 
+        days_to_expiration = (self.warranty_end_date - today).days
 
         if days_to_expiration <= 0:
             return 'Fecha de garantia vencida'
@@ -259,9 +259,9 @@ class Equipment(models.Model):
         elif days_to_expiration == 30:
             return 'Cerca de vencimiento'
         else:
-            pass 
+            pass
 
-        
+
 class EquipmentInstruction(models.Model):
 
     equipment = models.ForeignKey(

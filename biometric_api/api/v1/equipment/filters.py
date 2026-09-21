@@ -12,6 +12,7 @@ class EquipmentFilter(filters.FilterSet):
     risk_class__isnull = filters.BooleanFilter(field_name="risk_class", lookup_expr="isnull")
     purchase_date_after = filters.DateFilter(field_name="purchase_date", lookup_expr="gte")
     purchase_date_before = filters.DateFilter(field_name="purchase_date", lookup_expr="lte")
+    name_startswith = filters.CharFilter(field_name="name",lookup_expr="istartswith")
 
     class Meta:
         model = Equipment
@@ -24,4 +25,5 @@ class EquipmentFilter(filters.FilterSet):
             "risk_class__isnull",
             "purchase_date_after",
             "purchase_date_before",
+            "name_startswith",
         )

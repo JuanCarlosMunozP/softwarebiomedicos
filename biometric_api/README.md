@@ -103,7 +103,7 @@ Al asignar responsable se crea o reasigna la orden de trabajo y se actualiza el 
 
 ### `maintenance`
 
-Historial ya cerrado (`MaintenanceRecord`): tipo (preventivo, correctivo, reparación, calibración, inspección), fecha, descripción, observaciones, responsables, costo, PDF opcional. No es el flujo “en proceso”: eso vive en la OT. Solo el superadmin muta este recurso. HTTP en `/api/v1/maintenance/`.
+Historial ya cerrado (`MaintenanceRecord`): tipo (preventivo, correctivo, reparación, calibración, inspección), fecha, descripción, observaciones, responsables, costo, PDF opcional. No es el flujo “en proceso”: eso vive en la OT. Solo el coordinador muta este recurso (el superadmin y el admin solo lo consultan). HTTP en `/api/v1/maintenance/`.
 
 ### `failures`
 
