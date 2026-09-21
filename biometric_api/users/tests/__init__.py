@@ -5,5 +5,5 @@
   solo superadmin opera sobre otro superadmin, no auto-cambiar rol.
 - `test_auth_security.py`: JWT cookie/body, CSRF, axes.
 - `test_models.py`: roles, email único, `is_admin_role`, `area`.
-Factories y conftest.
+Factories y conftest,security.
 """
