@@ -6,4 +6,5 @@
 - `0004`: etiqueta visible “Usuario operativo” para `tecnico`.
 - `0005`: reintroduce el choice `usuario` (solicitante) distinto del
   operativo.
+  - Las migraciones de users
 """
