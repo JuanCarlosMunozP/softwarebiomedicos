@@ -68,16 +68,16 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS: list[str] = [
-    "apps.users",
-    "apps.branches",
-    "apps.catalog",
-    "apps.equipment",
-    "apps.workorders",
-    "apps.maintenance",
-    "apps.scheduling",
-    "apps.failures",
-    "apps.audit",
-    "apps.realtime",
+    "users",
+    "branches",
+    "catalog",
+    "equipment",
+    "workorders",
+    "maintenance",
+    "scheduling",
+    "failures",
+    "audit",
+    "realtime",
     # Las apps de dominio se irán agregando incrementalmente:
     # "apps.core",
 ]
@@ -176,7 +176,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 # ---------------------------------------------------------------------------
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "api.v1.common.authentication.CookieJWTAuthentication",
+        "common.authentication.CookieJWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
@@ -186,7 +186,7 @@ REST_FRAMEWORK = {
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ),
-    "DEFAULT_PAGINATION_CLASS": "api.v1.common.pagination.DefaultPagination",
+    "DEFAULT_PAGINATION_CLASS": "common.pagination.DefaultPagination",
     "PAGE_SIZE": 20,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_THROTTLE_CLASSES": (

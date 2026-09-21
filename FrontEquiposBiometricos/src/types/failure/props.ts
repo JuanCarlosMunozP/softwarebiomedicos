@@ -2,6 +2,8 @@ import type { FailureInput, FailureReport } from "@/types/failure/failure";
 import type { Dispatch, SetStateAction, FormEvent } from "react";
 import type { Rol, Usuario } from "@/types/authentication/auth";
 
+type SelectOption = {value:string; label:string};
+
 export interface FailureHeaderProps {
   role: Rol | undefined;
   usuario: Usuario | null;
@@ -16,6 +18,9 @@ export interface FailureFiltersProps {
   setSeverityFilter: Dispatch<SetStateAction<string>>;
   resolvedFilter: string;
   setResolvedFilter: Dispatch<SetStateAction<string>>;
+  branchFilter: string;
+  setBranchFilter: Dispatch<SetStateAction<string>>;
+  branchOptions: SelectOption[];
 }
 
 export interface FailureRowProps {

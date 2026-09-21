@@ -16,6 +16,9 @@ import { FailureTable } from "@/pages/admin/failures/FailureTable";
 import { FailurePagination } from "@/pages/admin/failures/FailurePagination";
 import { FailureFormModal } from "@/pages/admin/failures/FailureFormModal";
 import { ResolveFailureModal } from "@/pages/admin/failures/ResolveFailureModal";
+import type { Branch } from "@/types/equipment/branch";
+import { branchesService } from "@/services/branches.service";
+
 
 export function FallasPage() {
   const { usuario } = useAuth();
@@ -26,6 +29,8 @@ export function FallasPage() {
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [branches,setBranches] = useState<Branch[]>([]);
+ 
   // Si la carga (silenciosa) de equipos falla, lo avisamos en el <Select> del
   // formulario en vez de dejar un desplegable vacío sin explicación.
   const [equipmentError, setEquipmentError] = useState(false);
@@ -34,6 +39,7 @@ export function FallasPage() {
   const [search, setSearch] = useState("");
   const [severityFilter, setSeverityFilter] = useState("");
   const [resolvedFilter, setResolvedFilter] = useState("");
+  const [branchFilter,setBranchFilter] = useState("");
 
   const [editing, setEditing] = useState<FailureReport | null>(null);
   const [creating, setCreating] = useState(false);
@@ -59,6 +65,15 @@ export function FallasPage() {
       })),
     [equipment],
   );
+
+  const branchOptions = useMemo(
+    () => 
+      branches.map((b) => ({
+        value: String(b.id),
+        label: `${b.name} (${b.city})`
+      })),
+      [branches]
+  )
 
   const equipmentLabel = (id: number) => {
     const e = equipment.find((x) => x.id === id);
@@ -103,12 +118,20 @@ export function FallasPage() {
   }, []);
 
   useEffect(() => {
+    branchesService
+      .list({ordering:"name"})
+      .then((setBranches))
+      .catch(() => null);
+    void load();
+  },[]);
+
+  useEffect(() => {
     const id = window.setTimeout(() => {
       void load(1);
     }, 300);
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, severityFilter, resolvedFilter]);
+  }, [search, severityFilter, resolvedFilter,branchFilter]);
 
   const openCreate = () => {
     setForm({ ...empty, equipment: equipment[0]?.id ?? 0 });
@@ -203,6 +226,9 @@ export function FallasPage() {
           setSeverityFilter={setSeverityFilter}
           resolvedFilter={resolvedFilter}
           setResolvedFilter={setResolvedFilter}
+          branchFilter={branchFilter}
+          setBranchFilter={setBranchFilter}
+          branchOptions={branchOptions}
         />
 
         {error && (

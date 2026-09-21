@@ -16,7 +16,7 @@ export function FailureRow({
 }: FailureRowProps) {
   return (
     <tr className="text-app">
-      <td className="py-3">
+      <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
             <AlertTriangle size={14} />
@@ -27,13 +27,15 @@ export function FailureRow({
                 ? f.equipment_asset_tag
                 : equipmentLabel(f.equipment)}
             </p>
-            {f.branch_name && (
-              <p className="text-xs text-app-muted">{f.branch_name}</p>
-            )}
           </div>
         </div>
       </td>
-      <td className="py-3">
+      <td className="px-4 py-3">
+         {f.branch_name && (
+              <p className="text-xs">{f.branch_name}</p>
+            )}
+      </td>
+      <td className="px-4 py-3">
         <Badge tone={SEV_TONE[f.severity]}>
           {SEV_LABEL[f.severity]}
         </Badge>

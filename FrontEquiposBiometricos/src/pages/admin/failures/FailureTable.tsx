@@ -17,11 +17,12 @@ export function FailureTable({
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-app text-left text-xs uppercase tracking-wider text-app-muted">
-            <th className="pb-2 font-medium">Equipo</th>
-            <th className="pb-2 font-medium">Severidad</th>
-            <th className="pb-2 font-medium">Reportada</th>
-            <th className="pb-2 font-medium">Estado</th>
+          <tr className="border-b border-app text-left text-xs uppercase tracking-wider text-app-muted [&>th]:pb-2 [&>th]:pr-6 [&>th]:font-medium [&>th]:whitespace-nowrap">
+            <th className="px-4 py-3 font-medium">Equipo</th>
+            <th className="px-4 py-3 font-medium">Sede</th>
+            <th className="px-4 py-3 font-medium">Severidad</th>
+            <th className="px-4 py-3 font-medium">Reportada</th>
+            <th className="px-4 py-3 font-medium">Estado</th>
             {(canEdit || canDelete) && (
               <th className="pb-2 font-medium text-right">Acciones</th>
             )}

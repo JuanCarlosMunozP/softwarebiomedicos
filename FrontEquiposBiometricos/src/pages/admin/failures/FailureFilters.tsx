@@ -10,9 +10,12 @@ export function FailureFilters({
   setSeverityFilter,
   resolvedFilter,
   setResolvedFilter,
+  branchFilter,
+  setBranchFilter,
+  branchOptions,
 }: FailureFiltersProps) {
   return (
-    <div className="mb-4 grid gap-2 sm:grid-cols-3">
+    <div className="mb-4 grid gap-2 sm:grid-cols-5">
       <Input
         placeholder="Buscar..."
         value={search}
@@ -35,6 +38,12 @@ export function FailureFilters({
           { value: "false", label: "Sin resolver" },
           { value: "true", label: "Resueltas" },
         ]}
+      />
+      <Select 
+      placeholder="Todas las sedes "
+      value={branchFilter}
+      onChange={(e) => setBranchFilter(e.target.value)}
+      options={branchOptions}
       />
     </div>
   );
