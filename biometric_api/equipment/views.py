@@ -65,7 +65,7 @@ class EquipmentViewSet(AuditLogMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        from api.v1.common.area_scope import operativo_area
+        from common.area_scope import operativo_area
 
         area = operativo_area(self.request.user)
         if area is not None:
@@ -130,8 +130,8 @@ class EquipmentViewSet(AuditLogMixin, viewsets.ModelViewSet):
         """Historial paginado de mantenimientos del equipo."""
         # Imports locales para evitar cualquier riesgo de import circular:
         # apps.maintenance ya importa apps.equipment.models en su FK.
-        from api.v1.maintenance.serializers import MaintenanceRecordSerializer
-        from apps.maintenance.models import MaintenanceRecord
+        from maintenance.serializers import MaintenanceRecordSerializer
+        from maintenance.models import MaintenanceRecord
 
         equipment = self.get_object()
         queryset = (

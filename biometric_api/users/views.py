@@ -6,8 +6,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from audit.utils import AuditAction, log_audit_event
-from users.models import User
 
+from .models import User
 from .filters import UserFilter
 from .permissions import CanListAssignableUsers, IsAdminRole
 from .serializers import (

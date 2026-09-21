@@ -295,7 +295,7 @@ class TestEquipmentRegenerateQr:
         del with_qr
 
     def test_regenerate_all_forbidden_for_tecnico(self, api_client, branch):
-        from apps.users.tests.factories import TecnicoFactory
+        from users.tests.factories import TecnicoFactory
 
         api_client.force_authenticate(user=TecnicoFactory())
         assert api_client.post(REGENERATE_ALL_URL).status_code == 403

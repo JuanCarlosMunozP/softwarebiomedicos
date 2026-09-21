@@ -32,7 +32,7 @@ def _sync_equipment_status_from_schedules(equipment) -> None:
     No pisa un equipo Fuera de servicio. Si hay preventivo y reparación
     abiertos a la vez, gana En reparación.
     """
-    from apps.equipment.models import Equipment, EquipmentStatus
+    from equipment.models import Equipment, EquipmentStatus
 
     equipment_id = getattr(equipment, "pk", None) or getattr(
         equipment, "id", equipment

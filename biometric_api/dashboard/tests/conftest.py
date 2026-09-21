@@ -7,7 +7,7 @@ from users.tests.factories import AdminFactory, IngenieroFactory, TecnicoFactory
 @pytest.fixture(autouse=True)
 def skip_overdue_alert_queue(monkeypatch):
     monkeypatch.setattr(
-        "api.v1.dashboard.views.queue_overdue_alerts.delay",
+        "dashboard.views.queue_overdue_alerts.delay",
         lambda: "skipped",
     )
 
