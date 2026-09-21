@@ -4,9 +4,9 @@ from datetime import date
 import pytest
 from django.urls import reverse
 
-from apps.maintenance.models import MaintenanceKind, MaintenanceRecord
-from apps.users.models import User
-from apps.users.tests.factories import (
+from maintenance.models import MaintenanceKind, MaintenanceRecord
+from users.models import User
+from users.tests.factories import (
     CoordinadorFactory,
     IngenieroFactory,
     TecnicoFactory,

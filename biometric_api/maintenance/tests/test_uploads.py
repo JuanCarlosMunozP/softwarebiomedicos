@@ -11,7 +11,7 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from apps.maintenance.models import MaintenanceKind, MaintenanceRecord
+from maintenance.models import MaintenanceKind, MaintenanceRecord
 
 from .factories import MaintenanceRecordFactory
 

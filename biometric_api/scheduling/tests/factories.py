@@ -3,7 +3,7 @@ from datetime import date, timedelta
 import factory
 from factory.django import DjangoModelFactory
 
-from apps.equipment.tests.factories import EquipmentFactory
+from equipment.tests.factories import EquipmentFactory
 from apps.scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
 
 

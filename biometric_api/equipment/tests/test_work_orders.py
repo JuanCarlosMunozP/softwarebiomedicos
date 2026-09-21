@@ -5,8 +5,8 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 
-from apps.equipment.models import EquipmentWorkOrder
-from apps.users.tests.factories import IngenieroFactory, TecnicoFactory
+from equipment.models import EquipmentWorkOrder
+from users.tests.factories import IngenieroFactory, TecnicoFactory
 
 pytestmark = pytest.mark.django_db
 

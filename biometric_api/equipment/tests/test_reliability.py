@@ -5,9 +5,9 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.equipment.reliability import compute_metrics, recompute_for
-from apps.failures.models import FailureSeverity
-from apps.failures.tests.factories import FailureRecordFactory
+from equipment.reliability import compute_metrics, recompute_for
+from failures.models import FailureSeverity
+from failures.tests.factories import FailureRecordFactory
 
 pytestmark = pytest.mark.django_db
 

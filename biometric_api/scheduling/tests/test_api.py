@@ -4,10 +4,10 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
-from apps.equipment.models import EquipmentStatus
-from apps.equipment.tests.factories import EquipmentFactory
-from apps.scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
-from apps.users.tests.factories import TecnicoFactory
+from equipment.models import EquipmentStatus
+from equipment.tests.factories import EquipmentFactory
+from scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
+from users.tests.factories import TecnicoFactory
 
 from .factories import MaintenanceScheduleFactory
 

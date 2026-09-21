@@ -5,8 +5,8 @@ import pytest
 from django.urls import reverse
 from rest_framework import status
 
-from apps.scheduling.models import ScheduledMaintenanceKind
-from apps.users.tests.factories import IngenieroFactory, TecnicoFactory, UsuarioFactory
+from scheduling.models import ScheduledMaintenanceKind
+from users.tests.factories import IngenieroFactory, TecnicoFactory, UsuarioFactory
 
 from .factories import MaintenanceScheduleFactory
 

@@ -4,7 +4,7 @@ import pytest
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from apps.failures.models import FailureRecord, FailureSeverity
+from failures.models import FailureRecord, FailureSeverity
 
 from .factories import FailureRecordFactory
 

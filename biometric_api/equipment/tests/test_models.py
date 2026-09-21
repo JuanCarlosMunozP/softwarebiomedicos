@@ -1,7 +1,7 @@
 import pytest
 
-from apps.catalog.tests.factories import EquipmentModelFactory
-from apps.equipment.models import Equipment, EquipmentStatus, RiskClass
+from catalog.tests.factories import EquipmentModelFactory
+from equipment.models import Equipment, EquipmentStatus, RiskClass
 
 from .factories import EquipmentFactory
 

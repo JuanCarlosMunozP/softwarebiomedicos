@@ -3,9 +3,9 @@ from unittest import mock
 
 import pytest
 
-from apps.equipment.models import EquipmentStatus
-from apps.scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
-from apps.users.tests.factories import IngenieroFactory
+from equipment.models import EquipmentStatus
+from scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
+from users.tests.factories import IngenieroFactory
 
 from .factories import MaintenanceScheduleFactory
 

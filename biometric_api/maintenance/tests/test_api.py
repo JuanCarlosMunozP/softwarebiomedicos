@@ -4,8 +4,8 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.equipment.tests.factories import EquipmentFactory
-from apps.maintenance.models import MaintenanceKind, MaintenanceRecord
+from equipment.tests.factories import EquipmentFactory
+from maintenance.models import MaintenanceKind, MaintenanceRecord
 
 from .factories import MaintenanceRecordFactory
 

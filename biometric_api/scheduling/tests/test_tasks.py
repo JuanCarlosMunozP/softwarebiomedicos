@@ -3,8 +3,8 @@ from datetime import date, timedelta
 import pytest
 from django.core import mail
 
-from apps.scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
-from apps.scheduling.tasks import send_schedule_notification
+from scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
+from scheduling.tasks import send_schedule_notification
 
 from .factories import MaintenanceScheduleFactory
 

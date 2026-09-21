@@ -2,7 +2,7 @@ import pytest
 from django.core.cache import cache
 from django.urls import reverse
 
-from api.v1.common.views import ThrottledTokenObtainPairView
+from common.views import ThrottledTokenObtainPairView
 
 from .factories import UserFactory
 

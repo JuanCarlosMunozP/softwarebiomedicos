@@ -1,7 +1,7 @@
 import pytest
 from django.urls import reverse
 
-from apps.users.models import User
+from users.models import User
 
 from .factories import (
     IngenieroFactory,

@@ -3,8 +3,8 @@ from datetime import date
 import factory
 from factory.django import DjangoModelFactory
 
-from apps.equipment.tests.factories import EquipmentFactory
-from apps.maintenance.models import MaintenanceKind, MaintenanceRecord
+from equipment.tests.factories import EquipmentFactory
+from maintenance.models import MaintenanceKind, MaintenanceRecord
 
 
 class MaintenanceRecordFactory(DjangoModelFactory):

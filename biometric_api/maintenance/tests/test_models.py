@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from apps.maintenance.models import MaintenanceKind, MaintenanceRecord
+from maintenance.models import MaintenanceKind, MaintenanceRecord
 
 from .factories import MaintenanceRecordFactory
 

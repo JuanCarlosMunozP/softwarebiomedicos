@@ -1,6 +1,6 @@
 import pytest
 
-from apps.equipment.services import build_qr_payload, generate_qr_for_equipment
+from equipment.services import build_qr_payload, generate_qr_for_equipment
 
 from .factories import EquipmentFactory
 

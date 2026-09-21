@@ -2,8 +2,8 @@ import pytest
 from django.urls import reverse
 from rest_framework import status
 
-from apps.audit.models import AuditLog
-from apps.users.tests.factories import (
+from audit.models import AuditLog
+from users.tests.factories import (
     CoordinadorFactory,
     IngenieroFactory,
     TecnicoFactory,

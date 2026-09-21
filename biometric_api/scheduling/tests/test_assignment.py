@@ -5,10 +5,10 @@ import pytest
 from django.core import mail
 from django.urls import reverse
 
-from apps.scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
-from apps.scheduling.tasks import send_schedule_notification
-from apps.users.models import User
-from apps.users.tests.factories import (
+from scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
+from scheduling.tasks import send_schedule_notification
+from users.models import User
+from users.tests.factories import (
     CoordinadorFactory,
     IngenieroFactory,
 )

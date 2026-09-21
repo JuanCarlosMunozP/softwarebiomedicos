@@ -1,9 +1,9 @@
 import pytest
 from django.urls import reverse
 
-from apps.equipment.tests.factories import EquipmentFactory
-from apps.maintenance.models import MaintenanceKind, MaintenanceRecord
-from apps.scheduling.tests.factories import MaintenanceScheduleFactory
+from equipment.tests.factories import EquipmentFactory
+from maintenance.models import MaintenanceKind, MaintenanceRecord
+from scheduling.tests.factories import MaintenanceScheduleFactory
 
 from .factories import MaintenanceRecordFactory
 

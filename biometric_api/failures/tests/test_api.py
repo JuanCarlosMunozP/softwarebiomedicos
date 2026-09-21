@@ -4,9 +4,9 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.equipment.tests.factories import EquipmentFactory
-from apps.failures.models import FailureRecord, FailureSeverity
-from apps.users.tests.factories import TecnicoFactory
+from equipment.tests.factories import EquipmentFactory
+from failures.models import FailureRecord, FailureSeverity
+from users.tests.factories import TecnicoFactory
 
 from .factories import FailureRecordFactory
 

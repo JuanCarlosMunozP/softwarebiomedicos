@@ -4,9 +4,9 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.branches.tests.factories import BranchFactory
-from apps.catalog.tests.factories import BrandFactory, EquipmentModelFactory
-from apps.equipment.models import Equipment, EquipmentStatus
+from branches.tests.factories import BranchFactory
+from catalog.tests.factories import BrandFactory, EquipmentModelFactory
+from equipment.models import Equipment, EquipmentStatus
 
 from .factories import EquipmentFactory
 

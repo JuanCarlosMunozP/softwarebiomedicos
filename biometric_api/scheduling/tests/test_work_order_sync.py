@@ -2,8 +2,8 @@
 solicitud queda cumplida y entra al historial de mantenimientos."""
 import pytest
 
-from apps.equipment.models import EquipmentWorkOrder
-from apps.maintenance.models import MaintenanceRecord
+from equipment.models import EquipmentWorkOrder
+from maintenance.models import MaintenanceRecord
 
 from .factories import MaintenanceScheduleFactory
 

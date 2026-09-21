@@ -1,9 +1,9 @@
 import pytest
 from rest_framework.test import APIClient
 
-from apps.branches.tests.factories import BranchFactory
-from apps.equipment.tests.factories import EquipmentFactory
-from apps.users.tests.factories import (
+from branches.tests.factories import BranchFactory
+from equipment.tests.factories import EquipmentFactory
+from users.tests.factories import (
     AdminFactory,
     CoordinadorFactory,
     IngenieroFactory,

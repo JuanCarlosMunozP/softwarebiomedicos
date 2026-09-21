@@ -2,8 +2,8 @@
 crea su orden de trabajo para que el asignado la ejecute."""
 import pytest
 
-from apps.equipment.models import EquipmentWorkOrder
-from apps.maintenance.models import MaintenanceKind
+from equipment.models import EquipmentWorkOrder
+from maintenance.models import MaintenanceKind
 
 from .factories import MaintenanceRecordFactory
 

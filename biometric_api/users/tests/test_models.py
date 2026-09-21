@@ -2,7 +2,7 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
-from apps.users.models import User
+from users.models import User
 
 from .factories import UserFactory
 

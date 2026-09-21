@@ -4,8 +4,8 @@ import factory
 from django.utils import timezone
 from factory.django import DjangoModelFactory
 
-from apps.equipment.tests.factories import EquipmentFactory
-from apps.failures.models import FailureRecord, FailureSeverity
+from equipment.tests.factories import EquipmentFactory
+from failures.models import FailureRecord, FailureSeverity
 
 
 class FailureRecordFactory(DjangoModelFactory):

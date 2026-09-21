@@ -1,6 +1,6 @@
 import pytest
 
-from apps.equipment.models import Equipment
+from equipment.models import Equipment
 
 
 @pytest.mark.django_db
