@@ -12,15 +12,15 @@ from .factories import MaintenanceScheduleFactory
 
 pytestmark = pytest.mark.django_db
 
-LIST_URL = reverse("v1:scheduling:maintenance-list")
+LIST_URL = reverse("scheduling:maintenance-list")
 
 
 def detail_url(pk: int) -> str:
-    return reverse("v1:scheduling:maintenance-detail", args=[pk])
+    return reverse("scheduling:maintenance-detail", args=[pk])
 
 
 def complete_url(pk: int) -> str:
-    return reverse("v1:scheduling:maintenance-complete", args=[pk])
+    return reverse("scheduling:maintenance-complete", args=[pk])
 
 
 class TestSchedulingRolePermissions:

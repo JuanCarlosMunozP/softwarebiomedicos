@@ -2,7 +2,7 @@ from datetime import date, timedelta
 
 import pytest
 
-from apps.scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
+from scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
 
 from .factories import MaintenanceScheduleFactory
 

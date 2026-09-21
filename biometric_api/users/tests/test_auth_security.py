@@ -17,7 +17,7 @@ COOKIE_TOKEN_URL = reverse("token-obtain-cookie")
 COOKIE_REFRESH_URL = reverse("token-refresh-cookie")
 COOKIE_LOGOUT_URL = reverse("token-logout-cookie")
 
-ME_URL = reverse("v1:users:user-me")
+ME_URL = reverse("users:user-me")
 
 
 @pytest.fixture(autouse=True)
