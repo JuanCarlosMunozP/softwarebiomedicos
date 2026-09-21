@@ -12,7 +12,7 @@ LIST_URL = reverse("branches:branch-list")
 
 
 def detail_url(branch_id: int) -> str:
-    return reverse("v1:branches:branch-detail", args=[branch_id])
+    return reverse("branches:branch-detail", args=[branch_id])
 
 
 class TestBranchAuth:
