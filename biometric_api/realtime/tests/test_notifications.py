@@ -8,16 +8,16 @@ from channels.routing import URLRouter
 from channels.testing import WebsocketCommunicator
 from rest_framework_simplejwt.tokens import AccessToken
 
-from apps.realtime import events
-from apps.realtime.consumers import (
+from realtime import events
+from realtime.consumers import (
     AUTH_CLOSE_CODE,
     CHANNEL_LAYER_CLOSE_CODE,
     NOTIFICATIONS_GROUP,
 )
-from apps.realtime.events import broadcast_notification
-from apps.realtime.middleware import CookieJWTAuthMiddleware
-from apps.realtime.routing import websocket_urlpatterns
-from apps.users.tests.factories import TecnicoFactory
+from realtime.events import broadcast_notification
+from realtime.middleware import CookieJWTAuthMiddleware
+from realtime.routing import websocket_urlpatterns
+from users.tests.factories import TecnicoFactory
 
 pytestmark = pytest.mark.django_db
 
