@@ -3,7 +3,6 @@ from django.urls import reverse
 from rest_framework import status
 
 from ..models import Branch
-
 from .factories import BranchFactory
 
 pytestmark = pytest.mark.django_db

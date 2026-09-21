@@ -28,6 +28,7 @@ from django.db import transaction
 
 from branches.models import Branch
 from catalog.models import Brand, EquipmentModel
+
 from ...models import Equipment
 
 _NULL_TOKENS = {

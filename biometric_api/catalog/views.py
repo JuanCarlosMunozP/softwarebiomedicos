@@ -5,9 +5,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from common.permissions import HasRolePermission
-from .models import Brand, EquipmentModel
 
 from .filters import BrandFilter, EquipmentModelFilter
+from .models import Brand, EquipmentModel
 from .serializers import BrandSerializer, EquipmentModelSerializer
 
 

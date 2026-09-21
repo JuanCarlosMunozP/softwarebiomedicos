@@ -2,6 +2,8 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from branches.models import Branch
+from catalog.models import EquipmentModel
 from common.file_validation import (
     ATTACHMENT_EXTENSIONS,
     CERTIFICATE_EXTENSIONS,
@@ -16,8 +18,8 @@ from workorders.serializers import (
     WorkOrderSignatureSerializer,
     WorkOrderSparePartSerializer,
 )
-from branches.models import Branch
-from catalog.models import EquipmentModel
+
+
 from .models import (
     Equipment,
     EquipmentAttachment,

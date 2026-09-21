@@ -2,7 +2,6 @@ import pytest
 from django.db import IntegrityError
 
 from ..models import Brand, EquipmentModel
-
 from .factories import BrandFactory, EquipmentModelFactory
 
 pytestmark = pytest.mark.django_db

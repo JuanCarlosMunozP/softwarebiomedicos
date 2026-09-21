@@ -2,8 +2,8 @@ from celery import shared_task
 from django.conf import settings
 from django.core.mail import send_mail
 
-from .serializers import EquipmentSerializer
 from .models import Equipment
+from .serializers import EquipmentSerializer
 
 
 def _send_alert(equipment:dict) -> None:

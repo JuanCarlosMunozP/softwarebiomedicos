@@ -5,9 +5,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from common.permissions import HasRolePermission
-from .models import Branch
 
 from .filters import BranchFilter
+from .models import Branch
 from .serializers import BranchSerializer
 
 
