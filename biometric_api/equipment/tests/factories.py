@@ -1,9 +1,9 @@
 import factory
 from factory.django import DjangoModelFactory
 
-from apps.branches.tests.factories import BranchFactory
-from apps.catalog.tests.factories import EquipmentModelFactory
-from apps.equipment.models import Equipment, EquipmentStatus
+from branches.tests.factories import BranchFactory
+from catalog.tests.factories import EquipmentModelFactory
+from equipment.models import Equipment, EquipmentStatus
 
 
 class EquipmentFactory(DjangoModelFactory):
