@@ -10,7 +10,7 @@ from .factories import (
     UserFactory,
 )
 
-
+# pytest
 @pytest.fixture
 def api_client():
     return APIClient()
