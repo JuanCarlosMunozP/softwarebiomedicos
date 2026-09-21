@@ -10,12 +10,12 @@ from users.tests.factories import IngenieroFactory, TecnicoFactory
 
 pytestmark = pytest.mark.django_db
 
-WO_LIST = reverse("v1:equipment:equipment-work-order-list")
-SP_LIST = reverse("v1:equipment:work-order-spare-part-list")
-MS_LIST = reverse("v1:equipment:work-order-measurement-list")
-EV_LIST = reverse("v1:equipment:work-order-evidence-list")
-SG_LIST = reverse("v1:equipment:work-order-signature-list")
-CO_LIST = reverse("v1:equipment:work-order-cost-list")
+WO_LIST = reverse("equipment:equipment-work-order-list")
+SP_LIST = reverse("equipment:work-order-spare-part-list")
+MS_LIST = reverse("equipment:work-order-measurement-list")
+EV_LIST = reverse("equipment:work-order-evidence-list")
+SG_LIST = reverse("equipment:work-order-signature-list")
+CO_LIST = reverse("equipment:work-order-cost-list")
 
 
 def wo_detail(pk):

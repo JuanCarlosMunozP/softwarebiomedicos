@@ -5,10 +5,10 @@ from django.urls import reverse
 from equipment.models import AttachmentType, EvidenceType, WorkOrderType
 from users.tests.factories import UserFactory
 
-ATTACHMENTS_URL = reverse("v1:equipment:equipment-attachment-list")
-CERTIFICATES_URL = reverse("v1:equipment:equipment-certificate-list")
-WORK_ORDERS_URL = reverse("v1:equipment:equipment-work-order-list")
-EVIDENCES_URL = reverse("v1:equipment:work-order-evidence-list")
+ATTACHMENTS_URL = reverse("equipment:equipment-attachment-list")
+CERTIFICATES_URL = reverse("equipment:equipment-certificate-list")
+WORK_ORDERS_URL = reverse("equipment:equipment-work-order-list")
+EVIDENCES_URL = reverse("equipment:work-order-evidence-list")
 
 
 def _pdf_file(name="doc.pdf"):

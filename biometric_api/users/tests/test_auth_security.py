@@ -8,14 +8,14 @@ from .factories import UserFactory
 
 # Endpoints "clásicos" (tokens en el body) — usados por la app móvil y
 # cualquier cliente sin cookies del navegador.
-TOKEN_URL = reverse("v1:token-obtain")
-REFRESH_URL = reverse("v1:token-refresh")
-BLACKLIST_URL = reverse("v1:token-blacklist")
+TOKEN_URL = reverse("token-obtain")
+REFRESH_URL = reverse("token-refresh")
+BLACKLIST_URL = reverse("token-blacklist")
 
 # Endpoints por cookie httpOnly — usados solo por el frontend web.
-COOKIE_TOKEN_URL = reverse("v1:token-obtain-cookie")
-COOKIE_REFRESH_URL = reverse("v1:token-refresh-cookie")
-COOKIE_LOGOUT_URL = reverse("v1:token-logout-cookie")
+COOKIE_TOKEN_URL = reverse("token-obtain-cookie")
+COOKIE_REFRESH_URL = reverse("token-refresh-cookie")
+COOKIE_LOGOUT_URL = reverse("token-logout-cookie")
 
 ME_URL = reverse("v1:users:user-me")
 

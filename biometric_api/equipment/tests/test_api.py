@@ -14,18 +14,18 @@ LIST_URL = reverse("equipment:equipment-list")
 
 
 def detail_url(pk):
-    return reverse("v1:equipment:equipment-detail", args=[pk])
+    return reverse("equipment:equipment-detail", args=[pk])
 
 
 def by_tag_url(tag):
-    return reverse("v1:equipment:equipment-by-asset-tag", args=[tag])
+    return reverse("equipment:equipment-by-asset-tag", args=[tag])
 
 
 def regenerate_url(pk):
-    return reverse("v1:equipment:equipment-regenerate-qr", args=[pk])
+    return reverse("equipment:equipment-regenerate-qr", args=[pk])
 
 
-REGENERATE_ALL_URL = reverse("v1:equipment:equipment-regenerate-qr-all")
+REGENERATE_ALL_URL = reverse("equipment:equipment-regenerate-qr-all")
 
 
 @pytest.mark.django_db

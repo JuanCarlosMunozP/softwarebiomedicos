@@ -17,10 +17,10 @@ def detail_url(pk):
 
 
 def set_password_url(pk):
-    return reverse("v1:users:user-set-password", args=[pk])
+    return reverse("users:user-set-password", args=[pk])
 
 
-ME_URL = reverse("v1:users:user-me")
+ME_URL = reverse("users:user-me")
 
 
 @pytest.mark.django_db

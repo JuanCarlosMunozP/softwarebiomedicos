@@ -10,7 +10,7 @@ from .factories import MaintenanceRecordFactory
 pytestmark = pytest.mark.django_db
 
 
-LIST_URL = reverse("v1:maintenance:record-list")
+LIST_URL = reverse("maintenance:record-list")
 
 
 def detail_url(pk: int) -> str:

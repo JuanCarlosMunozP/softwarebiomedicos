@@ -20,7 +20,7 @@ from users.tests.factories import TecnicoFactory
 pytestmark = pytest.mark.django_db
 
 
-SUMMARY_URL = reverse("v1:dashboard:summary")
+SUMMARY_URL = reverse("dashboard:summary")
 
 
 class TestAuth:
