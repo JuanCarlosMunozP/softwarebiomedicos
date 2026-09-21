@@ -130,8 +130,8 @@ class EquipmentViewSet(AuditLogMixin, viewsets.ModelViewSet):
         """Historial paginado de mantenimientos del equipo."""
         # Imports locales para evitar cualquier riesgo de import circular:
         # apps.maintenance ya importa apps.equipment.models en su FK.
-        from maintenance.serializers import MaintenanceRecordSerializer
         from maintenance.models import MaintenanceRecord
+        from maintenance.serializers import MaintenanceRecordSerializer
 
         equipment = self.get_object()
         queryset = (

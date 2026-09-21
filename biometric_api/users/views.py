@@ -7,8 +7,8 @@ from rest_framework.response import Response
 
 from audit.utils import AuditAction, log_audit_event
 
-from .models import User
 from .filters import UserFilter
+from .models import User
 from .permissions import CanListAssignableUsers, IsAdminRole
 from .serializers import (
     PasswordChangeSerializer,
