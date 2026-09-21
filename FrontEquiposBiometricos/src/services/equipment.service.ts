@@ -12,6 +12,7 @@ export interface EquipmentListParams {
   search?: string;
   page?: number;
   page_size?: number;
+  name_startswith?:string;
 }
 
 function unwrapList<T>(data: Paginated<T> | T[]): T[] {
@@ -99,4 +100,8 @@ export const equipmentService = {
     );
     return res.data;
   },
+  async names(params:{name_startswith?:string; branch?:number} = {}) {
+    const res = await api.get<string[]>("/equipment/names/",{params});
+    return res.data;
+  }
 };

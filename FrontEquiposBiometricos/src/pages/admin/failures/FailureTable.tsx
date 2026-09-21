@@ -19,11 +19,9 @@ export function FailureTable({
         <thead>
           <tr className="border-b border-app text-left text-xs uppercase tracking-wider text-app-muted">
             <th className="pb-2 font-medium">Equipo</th>
-            <th className="pb-2 font-medium">Descripción</th>
             <th className="pb-2 font-medium">Severidad</th>
             <th className="pb-2 font-medium">Reportada</th>
             <th className="pb-2 font-medium">Estado</th>
-            <th className="pb-2 font-medium">Solución</th>
             {(canEdit || canDelete) && (
               <th className="pb-2 font-medium text-right">Acciones</th>
             )}

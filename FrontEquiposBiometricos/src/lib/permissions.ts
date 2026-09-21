@@ -18,7 +18,9 @@ const matrix: Matrix = {
     users: ["view", "create", "edit", "delete"],
     branches: ["view", "create", "edit", "delete"],
     equipment: ["view", "create", "edit", "delete"],
-    maintenance: ["view", "create", "edit", "delete"],
+    // Registrar/editar/borrar en el historial de mantenimientos es exclusivo
+    // del coordinador; el superadmin solo lo consulta.
+    maintenance: ["view"],
     scheduling: ["view", "create", "edit", "delete"],
     failures: ["view", "create", "edit", "delete"],
     work_orders: ["view", "create", "edit", "delete"],
@@ -28,7 +30,7 @@ const matrix: Matrix = {
     branches: ["view", "create", "edit", "delete"],
     equipment: ["view", "create", "edit", "delete"],
     // Registrar/editar/borrar en el historial de mantenimientos es exclusivo
-    // del superadmin; el resto de la gestión solo lo consulta.
+    // del coordinador; el resto de la gestión solo lo consulta.
     maintenance: ["view"],
     scheduling: ["view", "create", "edit", "delete"],
     failures: ["view", "create", "edit", "delete"],
@@ -37,7 +39,7 @@ const matrix: Matrix = {
   coordinador: {
     branches: ["view"],
     equipment: ["view", "create", "edit"],
-    maintenance: ["view"],
+    maintenance: ["view", "create", "edit", "delete"],
     scheduling: ["view", "create", "edit", "delete"],
     failures: ["view", "create", "edit"],
     work_orders: ["view", "create", "edit", "delete"],

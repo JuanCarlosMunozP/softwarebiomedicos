@@ -1,5 +1,6 @@
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { StatusSelect } from "@/pages/admin/equipment/StatusSelect";
 import { RISK_TONE, STATUS_LABEL, STATUS_TONE } from "@/utils/equipment.utils";
 import type { EquipmentRowProps } from "@/types/equipment/props";
@@ -10,9 +11,11 @@ export function EquipmentRow({
   models,
   branchName,
   canEdit,
+  canCreateMaintenance,
   statusUpdatingId,
   onSelect,
   onChangeStatus,
+  onNewMaintenance,
 }: EquipmentRowProps) {
   const brandText =
     eq.brand_name ??
@@ -73,6 +76,21 @@ export function EquipmentRow({
           </Badge>
         )}
       </td>
+      {canCreateMaintenance && (
+        <td
+          className="px-4 py-3 text-right"
+          onClick={(ev) => ev.stopPropagation()}
+        >
+          <Button
+            size="sm"
+            variant="secondary"
+            leftIcon={<Wrench size={14} />}
+            onClick={() => onNewMaintenance(eq)}
+          >
+            Nuevo mantenimiento
+          </Button>
+        </td>
+      )}
     </tr>
   );
 }

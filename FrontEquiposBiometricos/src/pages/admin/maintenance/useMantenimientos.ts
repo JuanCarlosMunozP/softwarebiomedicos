@@ -174,6 +174,21 @@ export function useMantenimientos() {
     };
   }, [searchParams, setSearchParams]);
 
+  // Si entramos desde "Nuevo mantenimiento" en la lista de equipos
+  // (?equipment=ID), abrimos el modal de creación con ese equipo ya elegido.
+  // El parámetro se limpia al cerrar o guardar.
+  useEffect(() => {
+    const idStr = searchParams.get("equipment");
+    if (!idStr || !canCreate) return;
+    const id = Number(idStr);
+    if (!Number.isInteger(id) || id <= 0) return;
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setForm({ ...empty, equipment: id });
+    setPdf(null);
+    setCreating(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [searchParams, canCreate]);
+
   // Carga la lista de técnicos disponibles. Si el usuario no tiene permiso
   // para listar usuarios (coordinador/ingeniero), simplemente no se muestra
   // el select y volvemos al input de texto libre.
@@ -233,7 +248,7 @@ export function useMantenimientos() {
     setEditing(null);
     setForm(empty);
     setPdf(null);
-    if (searchParams.get("scheduling")) {
+    if (searchParams.get("scheduling") || searchParams.get("equipment")) {
       setSearchParams({}, { replace: true });
     }
   };

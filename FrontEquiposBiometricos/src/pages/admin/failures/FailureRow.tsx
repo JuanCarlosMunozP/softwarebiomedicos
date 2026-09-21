@@ -33,9 +33,6 @@ export function FailureRow({
           </div>
         </div>
       </td>
-      <td className="py-3 text-app-muted">
-        <p className="line-clamp-2 max-w-md">{f.description}</p>
-      </td>
       <td className="py-3">
         <Badge tone={SEV_TONE[f.severity]}>
           {SEV_LABEL[f.severity]}
@@ -48,15 +45,6 @@ export function FailureRow({
         <Badge tone={f.resolved ? "success" : "warning"}>
           {f.resolved ? "Resuelta" : "Abierta"}
         </Badge>
-      </td>
-      <td className="py-3 text-app-muted">
-        <p className="line-clamp-2 max-w-xs">
-          {f.resolution_notes?.trim()
-            ? f.resolution_notes
-            : f.resolved
-              ? "Sin notas"
-              : "Pendiente"}
-        </p>
       </td>
       {(canEdit || canDelete) && (
       <td className="py-3">

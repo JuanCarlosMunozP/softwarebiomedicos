@@ -1,7 +1,15 @@
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import type { EquipmentSectionProps } from "@/types/equipment/props";
+import { OWNER_OPTIONS } from "@/utils/equipment.utils";
 
 export function EquipmentLocationSection({ form, setForm }: EquipmentSectionProps) {
+  // Equipos guardados antes de que el propietario fuera una lista traen un texto
+  // libre: se muestra tal cual (el backend lo sigue aceptando) para no perderlo.
+  const legacyOwner =
+    form.owner && !OWNER_OPTIONS.some((o) => o.value === form.owner)
+      ? [{ value: form.owner, label: form.owner }]
+      : [];
   return (
     <>
           <div className="sm:col-span-2 mt-2">
@@ -12,7 +20,7 @@ export function EquipmentLocationSection({ form, setForm }: EquipmentSectionProp
               Datos generales y ubicación física del equipo.
             </p>
           </div>
-          <Input
+          <Select
           label="Propietario"
           value={form.owner}
           onChange={(e) =>
@@ -21,6 +29,8 @@ export function EquipmentLocationSection({ form, setForm }: EquipmentSectionProp
               owner:e.target.value
             })
           }
+          options={[...legacyOwner, ...OWNER_OPTIONS]}
+          placeholder="Seleccione el propietario"
           />
           <Input
           label="Código de calibración"

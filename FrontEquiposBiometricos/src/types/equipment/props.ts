@@ -44,9 +44,11 @@ export interface EquipmentRowProps {
   models: EquipmentModel[];
   branchName: (id: number) => string;
   canEdit: boolean;
+  canCreateMaintenance: boolean;
   statusUpdatingId: number | null;
   onSelect: (eq: Equipment) => void;
   onChangeStatus: (eq: Equipment, status: EquipmentStatus) => void;
+  onNewMaintenance: (eq: Equipment) => void;
 }
 
 // Equipment Table

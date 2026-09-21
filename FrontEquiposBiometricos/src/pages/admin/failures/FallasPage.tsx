@@ -181,7 +181,7 @@ export function FallasPage() {
     }
   };
 
-  const tableCols = 6 + (canEdit || canDelete ? 1 : 0);
+  const tableCols = 4 + (canEdit || canDelete ? 1 : 0);
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
   const start = count === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const end = Math.min(page * PAGE_SIZE, count);

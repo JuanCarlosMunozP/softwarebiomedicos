@@ -18,7 +18,7 @@ export function EquipmentObservationsSection({ form, setForm }: EquipmentSection
             }
             rows={4}
             placeholder="Observaciones adicionales del equipo..."
-            className="w-full rounded-lg border-app bg-app px-3 py-3 text-sm text-app outline-none transition placeholder:text-app-muted focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20 "
+            className="w-full rounded-lg border border-app bg-app px-3 py-3 text-sm text-app outline-none transition placeholder:text-app-muted focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20 "
             />
           </div>
     </>

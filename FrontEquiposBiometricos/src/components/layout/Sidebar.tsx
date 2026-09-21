@@ -65,14 +65,14 @@ const allLinks: LinkDef[] = [
     roles: ["superadmin", "admin", "coordinador", "ingeniero"],
   },
   // Registrar/editar el historial de mantenimientos es exclusivo del
-  // superadmin. La gestión lo consulta desde la hoja de vida del equipo; el
-  // ingeniero trabaja desde "Órdenes de trabajo".
+  // coordinador (el superadmin lo consulta). El resto de la gestión lo ve desde
+  // la hoja de vida del equipo; el ingeniero trabaja desde "Órdenes de trabajo".
   {
     to: "/admin/mantenimientos",
     label: "Mantenimientos",
     icon: Wrench,
     resource: "maintenance",
-    roles: ["superadmin"],
+    roles: ["superadmin", "coordinador"],
   },
   {
     to: "/admin/ordenes-trabajo",

@@ -8,10 +8,13 @@ export function EquipmentTable({
   models,
   branchName,
   canEdit,
+  canCreateMaintenance,
   statusUpdatingId,
   onSelect,
   onChangeStatus,
+  onNewMaintenance,
 }: EquipmentTableProps) {
+  const cols = canCreateMaintenance ? 6 : 5;
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -22,18 +25,21 @@ export function EquipmentTable({
             <th className="px-4 py-3 font-medium">Sede / Ubicación</th>
             <th className="px-4 py-3 font-medium">Riesgo</th>
             <th className="px-4 py-3 font-medium">Estado</th>
+            {canCreateMaintenance && (
+              <th className="px-4 py-3 text-right font-medium">Acciones</th>
+            )}
           </tr>
         </thead>
         <tbody className="divide-y divide-[var(--border)]">
           {loading ? (
             <tr>
-              <td colSpan={5} className="py-10 text-center text-app-muted">
+              <td colSpan={cols} className="py-10 text-center text-app-muted">
                 Cargando...
               </td>
             </tr>
           ) : items.length === 0 ? (
             <tr>
-              <td colSpan={5} className="py-10 text-center text-app-muted">
+              <td colSpan={cols} className="py-10 text-center text-app-muted">
                 No se encontraron equipos con los filtros actuales.
               </td>
             </tr>
@@ -46,9 +52,11 @@ export function EquipmentTable({
                 models={models}
                 branchName={branchName}
                 canEdit={canEdit}
+                canCreateMaintenance={canCreateMaintenance}
                 statusUpdatingId={statusUpdatingId}
                 onSelect={onSelect}
                 onChangeStatus={onChangeStatus}
+                onNewMaintenance={onNewMaintenance}
               />
             ))
           )}

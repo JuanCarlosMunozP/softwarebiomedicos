@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EquipoFicha } from "@/pages/admin/equipment/EquipoFicha";
@@ -27,6 +28,7 @@ import { equipmentToForm, formToPayload } from "@/utils/equipment.form.utils";
 export function EquiposPage() {
   const { usuario } = useAuth();
   const role = usuario?.role;
+  const navigate = useNavigate();
 
   const [items, setItems] = useState<Equipment[]>([]);
   const [count, setCount] = useState(0);
@@ -60,6 +62,7 @@ export function EquiposPage() {
   const canCreate = can(role, "equipment", "create");
   const canEdit = can(role, "equipment", "edit");
   const canDelete = can(role, "equipment", "delete");
+  const canCreateMaintenance = can(role, "maintenance", "create");
 
   const branchOptions = useMemo(
     () => branches.map((b) => ({ value: String(b.id), label: b.name })),
@@ -346,9 +349,13 @@ export function EquiposPage() {
           models={models}
           branchName={branchName}
           canEdit={canEdit}
+          canCreateMaintenance={canCreateMaintenance}
           statusUpdatingId={statusUpdatingId}
           onSelect={setFichaTarget}
           onChangeStatus={(eq, status) => void changeStatus(eq, status)}
+          onNewMaintenance={(eq) =>
+            navigate(`/admin/mantenimientos?equipment=${eq.id}`)
+          }
         />
 
         <EquipmentPagination

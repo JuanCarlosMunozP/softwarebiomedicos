@@ -1,15 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
+  FileText,
   Printer,
   RefreshCw,
   RotateCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { useAuth } from "@/context/AuthContext";
 import { can } from "@/lib/permissions";
@@ -19,6 +19,8 @@ import { getApiErrorMessage } from "@/lib/api";
 import { resolveMediaUrl } from "@/lib/media";
 import type { Equipment } from "@/types/equipment/equipment";
 import type { Branch } from "@/types/equipment/branch";
+import { downloadTextFile, uniqueNames } from '../../../utils/equipment.names.utils';
+import { Combobox, type ComboboxOption } from "@/components/ui/Combobox";
 
 const COLUMN_OPTIONS = [
   { value: "2", label: "2 por fila (grandes)" },
@@ -133,7 +135,7 @@ export function EtiquetasQrPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [search, setSearch] = useState("");
+  const [equipmentFilter, setEquipmentFilter] = useState<ComboboxOption | null>(null);
   const [branchFilter, setBranchFilter] = useState("");
   const [columns, setColumns] = useState("3");
   const [page, setPage] = useState(1);
@@ -192,24 +194,49 @@ export function EtiquetasQrPage() {
     return () => window.removeEventListener("focus", onFocus);
   }, []);
 
+  // Opciones del desplegable: nombres de equipo sin repetir (de la sede elegida
+  // o de todas), con cuántos equipos tienen ese nombre.
+  const nameOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const eq of items) {
+      if (branchFilter && String(eq.branch) !== branchFilter) continue;
+      counts.set(eq.name, (counts.get(eq.name) ?? 0) + 1);
+    }
+    return [...counts].map(([name, n]) => ({
+      value: name,
+      label: name,
+      hint: `${n} ${n === 1 ? "equipo" : "equipos"}`,
+    }));
+  }, [items, branchFilter]);
+
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return items.filter((eq) => {
+    const list = items.filter((eq) => {
       if (branchFilter && String(eq.branch) !== branchFilter) return false;
-      if (!q) return true;
-      return (
-        eq.name.toLowerCase().includes(q) ||
-        eq.asset_tag.toLowerCase().includes(q) ||
-        (eq.equipment_model_name ?? "").toLowerCase().includes(q)
-      );
+      return !equipmentFilter || eq.name === equipmentFilter.value;
     });
-  }, [items, search, branchFilter]);
+    if (!equipmentFilter) return list;
+    // Con un nombre elegido, las etiquetas se ordenan y agrupan por sede.
+    return list.sort(
+      (a, b) =>
+        (a.branch_name ?? "").localeCompare(b.branch_name ?? "", "es") ||
+        a.asset_tag.localeCompare(b.asset_tag, "es"),
+    );
+  }, [items, equipmentFilter, branchFilter]);
+
+  // Cuántas etiquetas tiene cada sede (para el título de cada grupo).
+  const sedeCounts = useMemo(() => {
+    const counts = new Map<number, number>();
+    if (equipmentFilter) {
+      for (const eq of filtered) counts.set(eq.branch, (counts.get(eq.branch) ?? 0) + 1);
+    }
+    return counts;
+  }, [filtered, equipmentFilter]);
 
   // Volver a la página 1 cuando cambian los filtros.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
-  }, [search, branchFilter]);
+  }, [equipmentFilter, branchFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -268,6 +295,11 @@ export function EtiquetasQrPage() {
     }
   };
 
+  const exportNames = () => {
+    const q = (equipmentFilter?.label ?? "").replace(/[^\w-]/g,"_");
+    downloadTextFile(q ? `equipos_${q}.txt` : "equipos.txt",uniqueNames(filtered));
+  }
+
   const gridCols =
     columns === "2"
       ? "sm:grid-cols-2"
@@ -310,6 +342,12 @@ export function EtiquetasQrPage() {
           >
             Imprimir ({toPrint.length})
           </Button>
+          <Button 
+          variant="secondary"
+          leftIcon={<FileText size={16} /> }
+          disabled={filtered.length === 0}
+          onClick={exportNames}
+          />
         </div>
       </div>
 
@@ -329,10 +367,12 @@ export function EtiquetasQrPage() {
 
       <Card>
         <div className="grid gap-2 sm:grid-cols-4">
-          <Input
-            placeholder="Buscar nombre, tag o modelo..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+          <Combobox
+            autoFocus
+            options={nameOptions}
+            onSelect={setEquipmentFilter}
+            placeholder="Escribe el nombre del equipo..."
+            ariaLabel="Buscar equipo por nombre"
           />
           <Select
             placeholder="Todas las sedes"
@@ -364,11 +404,22 @@ export function EtiquetasQrPage() {
       ) : (
         <>
         <div className={`grid grid-cols-1 gap-3 ${gridCols}`}>
-          {paged.map((eq) => {
+          {paged.map((eq, idx) => {
             const isSelected = selected.has(eq.id);
+            const startsSede =
+              !!equipmentFilter && (idx === 0 || paged[idx - 1].branch !== eq.branch);
             return (
+              <Fragment key={eq.id}>
+              {startsSede && (
+                <h2 className="col-span-full flex items-baseline gap-2 border-b border-app pb-1 pt-2 text-sm font-semibold text-app">
+                  {eq.branch_name ?? `Sede #${eq.branch}`}{" "}
+                  <span className="text-xs font-normal text-app-muted">
+                    {sedeCounts.get(eq.branch)}{" "}
+                    {sedeCounts.get(eq.branch) === 1 ? "etiqueta" : "etiquetas"}
+                  </span>
+                </h2>
+              )}
               <label
-                key={eq.id}
                 className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${
                   isSelected
                     ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5"
@@ -416,6 +467,7 @@ export function EtiquetasQrPage() {
                   </Link>
                 </div>
               </label>
+              </Fragment>
             );
           })}
         </div>

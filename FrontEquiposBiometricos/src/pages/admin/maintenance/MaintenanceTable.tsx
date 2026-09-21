@@ -18,22 +18,19 @@ export function MaintenanceTable({
             <th className="pb-2 font-medium">Equipo</th>
             <th className="pb-2 font-medium">Tipo</th>
             <th className="pb-2 font-medium">Fecha</th>
-            <th className="pb-2 font-medium">Responsable</th>
-            <th className="pb-2 font-medium">Costo</th>
-            <th className="pb-2 font-medium">PDF</th>
             <th className="pb-2 font-medium text-right">Acciones</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-[var(--border)]">
           {loading ? (
             <tr>
-              <td colSpan={7} className="py-8 text-center text-app-muted">
+              <td colSpan={4} className="py-8 text-center text-app-muted">
                 Cargando...
               </td>
             </tr>
           ) : items.length === 0 ? (
             <tr>
-              <td colSpan={7} className="py-8 text-center text-app-muted">
+              <td colSpan={4} className="py-8 text-center text-app-muted">
                 Sin registros.
               </td>
             </tr>

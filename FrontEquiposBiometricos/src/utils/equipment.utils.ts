@@ -32,6 +32,21 @@ export const RISK_TONE: Record<RiskClass, "success" | "info" | "warning" | "dang
   III: "danger",
 };
 
+/** Opciones del propietario: los nombres de `ProviderType` del backend (se guarda el nombre). */
+export const OWNER_OPTIONS: { value: string; label: string }[] = [
+  "Impormesan",
+  "Invermedica",
+  "SIEMENS",
+  "General electric healthare",
+  "Top Medical Systems",
+  "Stryker",
+  "Biotronitech",
+  "C Medical",
+  "Medicah",
+  "Rx S.A.S",
+  "Drager Colombia",
+].map((name) => ({ value: name, label: name }));
+
 export const PAGE_SIZE = 10;
 export const NEW_BRAND_VALUE = "__new_brand__";
 export const NEW_MODEL_VALUE = "__new_model__";

@@ -132,13 +132,15 @@ export function MaintenanceFormModal({
             }
           />
         )}
-        <Input
-          label="Costo (opcional)"
-          type="number"
-          step="0.01"
-          value={form.cost ?? ""}
-          onChange={(e) => setForm({ ...form, cost: e.target.value })}
-        />
+        {editing && (
+          <Input
+            label="Costo (opcional)"
+            type="number"
+            step="0.01"
+            value={form.cost ?? ""}
+            onChange={(e) => setForm({ ...form, cost: e.target.value })}
+          />
+        )}
         <div className="flex flex-col gap-1.5 sm:col-span-2">
           <label className="text-sm font-medium text-app">Descripción</label>
           <textarea

@@ -1,7 +1,7 @@
-import { CalendarClock, FileText, Pencil, Trash2, Wrench } from "lucide-react";
+import { CalendarClock, Pencil, Trash2, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { KIND_LABEL, KIND_TONE, labelForTechnician } from "@/utils/maintenance.utils";
+import { KIND_LABEL, KIND_TONE } from "@/utils/maintenance.utils";
 import type { MaintenanceRowProps } from "@/types/maintenance/props";
 
 export function MaintenanceRow({
@@ -42,24 +42,6 @@ export function MaintenanceRow({
         <Badge tone={KIND_TONE[m.kind]}>{KIND_LABEL[m.kind]}</Badge>
       </td>
       <td className="py-3 text-app-muted">{m.date}</td>
-      <td className="py-3 text-app-muted">{labelForTechnician(m)}</td>
-      <td className="py-3 text-app-muted">
-        {m.cost ? `$${m.cost}` : "—"}
-      </td>
-      <td className="py-3">
-        {m.pdf_file_url ? (
-          <a
-            href={m.pdf_file_url}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-          >
-            <FileText size={12} /> Ver PDF
-          </a>
-        ) : (
-          <span className="text-xs text-app-muted">—</span>
-        )}
-      </td>
       <td className="py-3">
         <div className="flex items-center justify-end gap-2">
           {m.work_order && (

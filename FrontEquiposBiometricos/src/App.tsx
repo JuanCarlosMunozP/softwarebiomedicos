@@ -158,9 +158,11 @@ function App() {
                     <Route path="perfil" element={<PerfilPage />} />
 
                     {/* Historial de mantenimientos: registrar/editar es
-                        exclusivo del superadmin. */}
+                        exclusivo del coordinador; el superadmin lo consulta. */}
                     <Route
-                      element={<ProtectedRoute roles={["superadmin"]} />}
+                      element={
+                        <ProtectedRoute roles={["superadmin", "coordinador"]} />
+                      }
                     >
                       <Route
                         path="mantenimientos"
