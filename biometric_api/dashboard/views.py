@@ -290,7 +290,7 @@ def _opportunity_hours(rec: FailureRecord) -> float | None:
 
 def _area_ops_dashboard(user, today: date) -> dict | None:
     """Dashboard personal: fallas del operativo o solicitudes del usuario."""
-    from api.v1.common.area_scope import operativo_area
+    from common.area_scope import operativo_area
 
     role = getattr(user, "role", None)
     if role == User.Role.USUARIO:

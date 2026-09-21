@@ -13,11 +13,11 @@ MODEL_LIST_URL = reverse("catalog:equipment-model-list")
 
 
 def brand_detail_url(pk: int) -> str:
-    return reverse("v1:catalog:brand-detail", args=[pk])
+    return reverse("catalog:brand-detail", args=[pk])
 
 
 def model_detail_url(pk: int) -> str:
-    return reverse("v1:catalog:equipment-model-detail", args=[pk])
+    return reverse("catalog:equipment-model-detail", args=[pk])
 
 
 class TestBrandAuth:
@@ -187,7 +187,7 @@ class TestEquipmentModelDelete:
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
     def test_delete_with_equipment_returns_409(self, auth_client, equipment_model):
-        from apps.equipment.tests.factories import EquipmentFactory
+        from equipment.tests.factories import EquipmentFactory
 
         EquipmentFactory(equipment_model=equipment_model)
         response = auth_client.delete(model_detail_url(equipment_model.id))
