@@ -10,7 +10,7 @@ from equipment.models import Equipment, EquipmentStatus
 
 from .factories import EquipmentFactory
 
-LIST_URL = reverse("v1:equipment:equipment-list")
+LIST_URL = reverse("equipment:equipment-list")
 
 
 def detail_url(pk):

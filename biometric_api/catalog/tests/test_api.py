@@ -8,8 +8,8 @@ from .factories import BrandFactory, EquipmentModelFactory
 pytestmark = pytest.mark.django_db
 
 
-BRAND_LIST_URL = reverse("v1:catalog:brand-list")
-MODEL_LIST_URL = reverse("v1:catalog:equipment-model-list")
+BRAND_LIST_URL = reverse("catalog:brand-list")
+MODEL_LIST_URL = reverse("catalog:equipment-model-list")
 
 
 def brand_detail_url(pk: int) -> str:

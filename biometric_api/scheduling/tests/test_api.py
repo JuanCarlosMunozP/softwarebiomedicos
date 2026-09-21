@@ -14,7 +14,7 @@ from .factories import MaintenanceScheduleFactory
 pytestmark = pytest.mark.django_db
 
 
-LIST_URL = reverse("v1:scheduling:maintenance-list")
+LIST_URL = reverse("scheduling:maintenance-list")
 
 
 def detail_url(pk: int) -> str:

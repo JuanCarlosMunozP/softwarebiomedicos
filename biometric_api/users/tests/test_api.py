@@ -9,11 +9,11 @@ from .factories import (
     UserFactory,
 )
 
-LIST_URL = reverse("v1:users:user-list")
+LIST_URL = reverse("users:user-list")
 
 
 def detail_url(pk):
-    return reverse("v1:users:user-detail", args=[pk])
+    return reverse("users:user-detail", args=[pk])
 
 
 def set_password_url(pk):

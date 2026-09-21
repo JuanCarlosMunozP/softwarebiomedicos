@@ -8,7 +8,7 @@ from .factories import BranchFactory
 pytestmark = pytest.mark.django_db
 
 
-LIST_URL = reverse("v1:branches:branch-list")
+LIST_URL = reverse("branches:branch-list")
 
 
 def detail_url(branch_id: int) -> str:
