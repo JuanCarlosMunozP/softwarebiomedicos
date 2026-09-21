@@ -3,8 +3,8 @@ from datetime import date, timedelta
 import factory
 from factory.django import DjangoModelFactory
 
-from apps.scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
 from equipment.tests.factories import EquipmentFactory
+from scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
 
 
 class MaintenanceScheduleFactory(DjangoModelFactory):

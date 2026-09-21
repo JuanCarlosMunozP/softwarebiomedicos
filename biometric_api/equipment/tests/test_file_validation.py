@@ -2,8 +2,8 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from apps.equipment.models import AttachmentType, EvidenceType, WorkOrderType
-from apps.users.tests.factories import UserFactory
+from equipment.models import AttachmentType, EvidenceType, WorkOrderType
+from users.tests.factories import UserFactory
 
 ATTACHMENTS_URL = reverse("v1:equipment:equipment-attachment-list")
 CERTIFICATES_URL = reverse("v1:equipment:equipment-certificate-list")
