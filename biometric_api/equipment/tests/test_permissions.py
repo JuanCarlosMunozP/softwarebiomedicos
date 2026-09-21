@@ -12,11 +12,11 @@ from users.tests.factories import (
 pytestmark = pytest.mark.django_db
 
 
-LIST_URL = reverse("v1:equipment:equipment-list")
+LIST_URL = reverse("equipment:equipment-list")
 
 
 def detail_url(equipment_id: int) -> str:
-    return reverse("v1:equipment:equipment-detail", args=[equipment_id])
+    return reverse("equipment:equipment-detail", args=[equipment_id])
 
 
 class TestEquipmentRolePermissions:
