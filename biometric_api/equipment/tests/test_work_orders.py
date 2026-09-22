@@ -19,11 +19,11 @@ CO_LIST = reverse("equipment:work-order-cost-list")
 
 
 def wo_detail(pk):
-    return reverse("v1:equipment:equipment-work-order-detail", args=[pk])
+    return reverse("equipment:equipment-work-order-detail", args=[pk])
 
 
 def wo_details_action(pk):
-    return reverse("v1:equipment:equipment-work-order-details", args=[pk])
+    return reverse("equipment:equipment-work-order-details", args=[pk])
 
 
 def _wo_payload(equipment, **overrides):
@@ -274,7 +274,7 @@ class TestWorkOrderCompleteCreatesFailure:
     def test_complete_without_failure_fields_leaves_no_report(
         self, auth_client, equipment
     ):
-        from apps.failures.models import FailureRecord
+        from failures.models import FailureRecord
 
         wo = EquipmentWorkOrder.objects.create(
             equipment=equipment,
@@ -358,7 +358,7 @@ class TestWorkOrderCompleteCreatesFailure:
     def test_complete_does_not_duplicate_failure_on_second_call(
         self, api_client, equipment
     ):
-        from apps.failures.models import FailureRecord
+        from failures.models import FailureRecord
 
         ing = IngenieroFactory()
         wo = EquipmentWorkOrder.objects.create(

@@ -339,7 +339,7 @@ class TestOperativoAreaOps:
 
 class TestUsuarioRequestsOps:
     def test_dashboard_shows_only_own_solicitudes(self, api_client, equipment):
-        from apps.users.tests.factories import UsuarioFactory
+        from users.tests.factories import UsuarioFactory
 
         user = UsuarioFactory()
         other = UsuarioFactory()
@@ -381,7 +381,7 @@ class TestEngineerTasks:
     def test_kpis_count_only_own_work_orders(
         self, api_client, ingeniero, tecnico, equipment
     ):
-        from apps.equipment.models import EquipmentWorkOrder, WorkOrderStatus
+        from equipment.models import EquipmentWorkOrder, WorkOrderStatus
 
         now = timezone.now()
 
@@ -414,7 +414,7 @@ class TestEngineerTasks:
         assert {r["number"] for r in tasks["recent"]} == {"OT-PEND", "OT-PROG"}
 
     def test_other_roles_get_null(self, auth_client, ingeniero, equipment):
-        from apps.equipment.models import EquipmentWorkOrder, WorkOrderStatus
+        from equipment.models import EquipmentWorkOrder, WorkOrderStatus
 
         EquipmentWorkOrder.objects.create(
             equipment=equipment,
