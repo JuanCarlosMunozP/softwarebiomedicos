@@ -8,7 +8,7 @@ pytestmark = pytest.mark.django_db
 
 
 def detail_url(record_id: int) -> str:
-    return reverse("v1:maintenance:record-detail", args=[record_id])
+    return reverse("maintenance:record-detail", args=[record_id])
 
 
 class TestMaintenanceRecordDeletePermissions:
@@ -47,7 +47,7 @@ class TestSuperadminIsReadOnly:
     ):
         api_client.force_authenticate(user=superadmin_user)
 
-        listed = api_client.get(reverse("v1:maintenance:record-list"))
+        listed = api_client.get(reverse("maintenance:record-list"))
         retrieved = api_client.get(detail_url(maintenance_record.id))
 
         assert listed.status_code == status.HTTP_200_OK

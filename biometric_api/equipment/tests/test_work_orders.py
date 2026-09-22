@@ -320,7 +320,7 @@ class TestWorkOrderCompleteCreatesFailure:
     def test_engineer_complete_creates_resolved_failure(
         self, api_client, equipment
     ):
-        from apps.failures.models import FailureRecord, FailureSeverity
+        from failures.models import FailureRecord, FailureSeverity
 
         ing = IngenieroFactory()
         wo = EquipmentWorkOrder.objects.create(
