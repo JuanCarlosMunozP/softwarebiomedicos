@@ -30,7 +30,7 @@ class TestMaintenanceRecordModel:
 
 class TestMaintenanceRecordManager:
     def test_for_equipment_filters_by_equipment(self, equipment, branch):
-        from apps.equipment.tests.factories import EquipmentFactory
+        from equipment.tests.factories import EquipmentFactory
 
         other = EquipmentFactory(branch=branch)
         MaintenanceRecordFactory.create_batch(2, equipment=equipment)

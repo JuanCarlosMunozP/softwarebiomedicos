@@ -153,11 +153,11 @@ def test_broadcast_notification_swallows_channel_layer_errors(monkeypatch):
 
 class TestScheduleEmailBroadcast:
     def test_task_broadcasts_after_email(self, settings, monkeypatch):
-        from apps.branches.tests.factories import BranchFactory
-        from apps.equipment.tests.factories import EquipmentFactory
-        from apps.scheduling import tasks
-        from apps.scheduling.tasks import send_schedule_notification
-        from apps.scheduling.tests.factories import MaintenanceScheduleFactory
+        from branches.tests.factories import BranchFactory
+        from equipment.tests.factories import EquipmentFactory
+        from scheduling import tasks
+        from scheduling.tasks import send_schedule_notification
+        from scheduling.tests.factories import MaintenanceScheduleFactory
 
         settings.CELERY_TASK_ALWAYS_EAGER = True
         settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"

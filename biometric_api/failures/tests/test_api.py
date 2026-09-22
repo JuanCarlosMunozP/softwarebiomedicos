@@ -17,11 +17,11 @@ LIST_URL = reverse("failures:failure-list")
 
 
 def detail_url(pk: int) -> str:
-    return reverse("v1:failures:failure-detail", args=[pk])
+    return reverse("failures:failure-detail", args=[pk])
 
 
 def resolve_url(pk: int) -> str:
-    return reverse("v1:failures:failure-resolve", args=[pk])
+    return reverse("failures:failure-resolve", args=[pk])
 
 
 class TestFailureAuth:
@@ -180,7 +180,7 @@ class TestFailureList:
         assert response.json()["count"] == 2
 
     def test_filter_by_branch(self, auth_client):
-        from apps.branches.tests.factories import BranchFactory
+        from branches.tests.factories import BranchFactory
 
         b1 = BranchFactory()
         b2 = BranchFactory()

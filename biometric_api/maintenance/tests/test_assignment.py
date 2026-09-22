@@ -21,7 +21,7 @@ LIST_URL = reverse("maintenance:record-list")
 
 
 def detail_url(pk: int) -> str:
-    return reverse("v1:maintenance:record-detail", args=[pk])
+    return reverse("maintenance:record-detail", args=[pk])
 
 
 def _payload(equipment, **overrides):

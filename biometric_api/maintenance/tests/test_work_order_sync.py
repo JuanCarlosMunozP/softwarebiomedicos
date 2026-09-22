@@ -46,7 +46,7 @@ def test_reassigning_record_moves_the_work_order(equipment, ingeniero, tecnico):
 
 def test_record_linked_to_schedule_does_not_double_up(equipment, ingeniero):
     # Si el registro ya viene de una solicitud, la orden la maneja esa señal.
-    from apps.scheduling.tests.factories import MaintenanceScheduleFactory
+    from scheduling.tests.factories import MaintenanceScheduleFactory
 
     schedule = MaintenanceScheduleFactory(equipment=equipment)
     MaintenanceRecordFactory(

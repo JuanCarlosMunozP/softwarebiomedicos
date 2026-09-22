@@ -70,7 +70,7 @@ class TestWorkOrderCrud:
         assert "end_date" in resp.json()
 
     def test_filter_by_equipment_and_status(self, auth_client, equipment, branch):
-        from apps.equipment.tests.factories import EquipmentFactory
+        from equipment.tests.factories import EquipmentFactory
 
         other = EquipmentFactory(branch=branch)
         auth_client.post(WO_LIST, _wo_payload(equipment, number="A-1"), format="json")
@@ -141,7 +141,7 @@ class TestWorkOrderChildren:
         # El costo de repuestos se calcula solo al agregar líneas.
         assert body["cost"]["spare_parts_cost"] == "10.00"
         cost_id = body["cost"]["id"]
-        cost_url = reverse("v1:equipment:work-order-cost-detail", args=[cost_id])
+        cost_url = reverse("equipment:work-order-cost-detail", args=[cost_id])
         patched = auth_client.patch(
             cost_url, {"labor_cost": "50000"}, format="json"
         )
@@ -267,7 +267,7 @@ class TestWorkOrderScopedByRole:
 
 
 def wo_complete(pk):
-    return reverse("v1:equipment:equipment-work-order-complete", args=[pk])
+    return reverse("equipment:equipment-work-order-complete", args=[pk])
 
 
 class TestWorkOrderCompleteCreatesFailure:

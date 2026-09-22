@@ -16,11 +16,11 @@ LIST_URL = reverse("maintenance:record-list")
 
 
 def detail_url(pk: int) -> str:
-    return reverse("v1:maintenance:record-detail", args=[pk])
+    return reverse("maintenance:record-detail", args=[pk])
 
 
 def history_url(pk: int) -> str:
-    return reverse("v1:equipment:equipment-history", args=[pk])
+    return reverse("equipment:equipment-history", args=[pk])
 
 
 class TestMaintenanceAuth:
@@ -116,7 +116,7 @@ class TestMaintenanceCreate:
 def _finish_wo(record):
     """El registro asignado nace con una orden de trabajo abierta; hasta que
     no se termina, es una tarea y no aparece en el historial."""
-    from apps.equipment.models import EquipmentWorkOrder
+    from equipment.models import EquipmentWorkOrder
 
     EquipmentWorkOrder.objects.filter(maintenance_record=record).update(
         status="FINISHED"
@@ -131,7 +131,7 @@ class TestMaintenanceListScopedByRole:
     def test_tecnico_only_sees_own_finished_maintenances(
         self, api_client, tecnico, equipment
     ):
-        from apps.users.tests.factories import TecnicoFactory
+        from users.tests.factories import TecnicoFactory
 
         mios = MaintenanceRecordFactory.create_batch(
             2, equipment=equipment, assigned_technician=tecnico
@@ -175,7 +175,7 @@ class TestMaintenanceListScopedByRole:
     def test_ingeniero_only_sees_own_finished_maintenances(
         self, api_client, ingeniero, tecnico, equipment
     ):
-        from apps.users.tests.factories import IngenieroFactory
+        from users.tests.factories import IngenieroFactory
 
         r1 = MaintenanceRecordFactory(
             equipment=equipment, assigned_engineer=ingeniero
@@ -243,7 +243,7 @@ class TestMaintenanceList:
         assert response.json()["count"] == 2
 
     def test_filter_by_branch(self, auth_client):
-        from apps.branches.tests.factories import BranchFactory
+        from branches.tests.factories import BranchFactory
 
         b1 = BranchFactory()
         b2 = BranchFactory()

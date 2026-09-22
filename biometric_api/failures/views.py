@@ -25,7 +25,7 @@ class FailureRecordViewSet(AuditLogMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        from api.v1.common.area_scope import operativo_area
+        from common.area_scope import operativo_area
 
         area = operativo_area(self.request.user)
         if area is not None:

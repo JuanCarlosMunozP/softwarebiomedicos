@@ -112,7 +112,7 @@ class TestEquipmentLifeSheetPdfValidation:
             "life_sheet_pdf": _fake_exe_file(),
         }
         response = auth_client.post(
-            reverse("v1:equipment:equipment-list"), payload, format="multipart"
+            reverse("equipment:equipment-list"), payload, format="multipart"
         )
         assert response.status_code == 400
         assert "life_sheet_pdf" in response.json()
@@ -126,7 +126,7 @@ class TestEquipmentLifeSheetPdfValidation:
             "life_sheet_pdf": _pdf_file(),
         }
         response = auth_client.post(
-            reverse("v1:equipment:equipment-list"), payload, format="multipart"
+            reverse("equipment:equipment-list"), payload, format="multipart"
         )
         assert response.status_code == 201
 

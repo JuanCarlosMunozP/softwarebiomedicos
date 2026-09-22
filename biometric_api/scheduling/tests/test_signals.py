@@ -13,7 +13,7 @@ pytestmark = pytest.mark.django_db
 
 
 class TestScheduleNotificationSignal:
-    @mock.patch("apps.scheduling.signals.send_schedule_notification.delay")
+    @mock.patch("scheduling.signals.send_schedule_notification.delay")
     def test_post_save_created_enqueues_task(self, mock_delay, equipment):
         schedule = MaintenanceSchedule.objects.create(
             equipment=equipment,
@@ -23,7 +23,7 @@ class TestScheduleNotificationSignal:
 
         mock_delay.assert_called_once_with(schedule.pk)
 
-    @mock.patch("apps.scheduling.signals.send_schedule_notification.delay")
+    @mock.patch("scheduling.signals.send_schedule_notification.delay")
     def test_post_save_updated_does_not_enqueue(self, mock_delay, equipment):
         schedule = MaintenanceScheduleFactory(equipment=equipment)
         mock_delay.reset_mock()
@@ -33,7 +33,7 @@ class TestScheduleNotificationSignal:
 
         mock_delay.assert_not_called()
 
-    @mock.patch("apps.scheduling.signals.send_schedule_notification.delay")
+    @mock.patch("scheduling.signals.send_schedule_notification.delay")
     def test_post_save_assigning_engineer_enqueues_task(
         self, mock_delay, equipment
     ):
@@ -46,7 +46,7 @@ class TestScheduleNotificationSignal:
 
         mock_delay.assert_called_once_with(schedule.pk)
 
-    @mock.patch("apps.scheduling.signals.send_schedule_notification.delay")
+    @mock.patch("scheduling.signals.send_schedule_notification.delay")
     def test_post_save_notes_do_not_enqueue_when_already_assigned(
         self, mock_delay, equipment
     ):

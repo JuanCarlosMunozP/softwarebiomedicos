@@ -99,7 +99,7 @@ class TestOverdueAlerts:
         from django.core.cache import cache
         from django.utils import timezone
 
-        from apps.scheduling.tasks import (
+        from scheduling.tasks import (
             OVERDUE_ALERT_STAGGER_SECONDS,
             queue_overdue_alerts,
         )
@@ -127,7 +127,7 @@ class TestOverdueAlerts:
             queued.append((args[0], countdown))
 
         monkeypatch.setattr(
-            "apps.scheduling.tasks.send_overdue_alert.apply_async",
+            "scheduling.tasks.send_overdue_alert.apply_async",
             fake_apply_async,
         )
 
@@ -142,14 +142,14 @@ class TestOverdueAlerts:
         from django.core.cache import cache
         from django.utils import timezone
 
-        from apps.scheduling.tasks import queue_overdue_alerts
+        from scheduling.tasks import queue_overdue_alerts
 
         cache.clear()
         MaintenanceScheduleFactory(
             equipment=equipment, scheduled_date=timezone.localdate()
         )
         monkeypatch.setattr(
-            "apps.scheduling.tasks.send_overdue_alert.apply_async",
+            "scheduling.tasks.send_overdue_alert.apply_async",
             lambda **kwargs: None,
         )
         assert queue_overdue_alerts().startswith("queued:")
@@ -159,12 +159,12 @@ class TestOverdueAlerts:
         from django.core.cache import cache
         from django.utils import timezone
 
-        from apps.scheduling.tasks import send_overdue_alert
+        from scheduling.tasks import send_overdue_alert
 
         cache.clear()
         captured = {}
         monkeypatch.setattr(
-            "apps.scheduling.tasks.broadcast_notification",
+            "scheduling.tasks.broadcast_notification",
             lambda payload: captured.update(payload),
         )
         schedule = MaintenanceScheduleFactory(
@@ -179,7 +179,7 @@ class TestOverdueAlerts:
         from django.core.cache import cache
         from django.utils import timezone
 
-        from apps.scheduling.tasks import send_overdue_alert
+        from scheduling.tasks import send_overdue_alert
 
         cache.clear()
         schedule = MaintenanceScheduleFactory(

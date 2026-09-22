@@ -14,7 +14,7 @@ LIST_URL = reverse("maintenance:record-list")
 
 
 def detail_url(pk: int) -> str:
-    return reverse("v1:maintenance:record-detail", args=[pk])
+    return reverse("maintenance:record-detail", args=[pk])
 
 
 def _payload(equipment, **overrides):
@@ -161,7 +161,7 @@ class TestScheduleSerializerExposesReverse:
         self, auth_client, equipment
     ):
         schedule = MaintenanceScheduleFactory(equipment=equipment)
-        url = reverse("v1:scheduling:maintenance-detail", args=[schedule.id])
+        url = reverse("scheduling:maintenance-detail", args=[schedule.id])
 
         response = auth_client.get(url)
 
@@ -183,7 +183,7 @@ class TestScheduleSerializerExposesReverse:
         )
         schedule.is_completed = True
         schedule.save(update_fields=["is_completed"])
-        url = reverse("v1:scheduling:maintenance-detail", args=[schedule.id])
+        url = reverse("scheduling:maintenance-detail", args=[schedule.id])
 
         response = auth_client.get(url)
 

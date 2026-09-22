@@ -110,7 +110,7 @@ class TestFailureRecordManager:
         assert FailureRecord.objects.critical().count() == 2
 
     def test_for_equipment_filters_by_equipment(self, equipment, branch):
-        from apps.equipment.tests.factories import EquipmentFactory
+        from equipment.tests.factories import EquipmentFactory
 
         other = EquipmentFactory(branch=branch)
         FailureRecordFactory.create_batch(2, equipment=equipment)
@@ -121,8 +121,8 @@ class TestFailureRecordManager:
         assert qs.count() == 2
 
     def test_for_branch_filters_by_branch(self, branch):
-        from apps.branches.tests.factories import BranchFactory
-        from apps.equipment.tests.factories import EquipmentFactory
+        from branches.tests.factories import BranchFactory
+        from equipment.tests.factories import EquipmentFactory
 
         other_branch = BranchFactory()
         eq_in = EquipmentFactory(branch=branch)

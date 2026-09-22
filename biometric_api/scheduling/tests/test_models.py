@@ -45,7 +45,7 @@ class TestMaintenanceScheduleManager:
         assert MaintenanceSchedule.objects.completed().count() == 1
 
     def test_for_equipment_filters_by_equipment(self, equipment, branch):
-        from apps.equipment.tests.factories import EquipmentFactory
+        from equipment.tests.factories import EquipmentFactory
 
         other = EquipmentFactory(branch=branch)
         MaintenanceScheduleFactory.create_batch(2, equipment=equipment)

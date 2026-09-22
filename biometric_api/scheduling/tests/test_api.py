@@ -18,15 +18,15 @@ LIST_URL = reverse("scheduling:maintenance-list")
 
 
 def detail_url(pk: int) -> str:
-    return reverse("v1:scheduling:maintenance-detail", args=[pk])
+    return reverse("scheduling:maintenance-detail", args=[pk])
 
 
 def complete_url(pk: int) -> str:
-    return reverse("v1:scheduling:maintenance-complete", args=[pk])
+    return reverse("scheduling:maintenance-complete", args=[pk])
 
 
 def notify_url(pk: int) -> str:
-    return reverse("v1:scheduling:maintenance-notify", args=[pk])
+    return reverse("scheduling:maintenance-notify", args=[pk])
 
 
 class TestSchedulingAuth:
@@ -200,7 +200,7 @@ class TestScheduleList:
         assert response.json()["count"] == 2
 
     def test_filter_by_branch(self, auth_client):
-        from apps.branches.tests.factories import BranchFactory
+        from branches.tests.factories import BranchFactory
 
         b1 = BranchFactory()
         b2 = BranchFactory()
@@ -285,7 +285,7 @@ class TestScheduleListScopedByRole:
     def test_tecnico_only_sees_own_assignments(
         self, api_client, tecnico, equipment
     ):
-        from apps.users.tests.factories import TecnicoFactory
+        from users.tests.factories import TecnicoFactory
 
         otro = TecnicoFactory()
         MaintenanceScheduleFactory.create_batch(
@@ -315,7 +315,7 @@ class TestScheduleListScopedByRole:
         assert ids == [mine.id]
 
     def test_usuario_only_sees_own_requests(self, api_client, equipment):
-        from apps.users.tests.factories import UsuarioFactory
+        from users.tests.factories import UsuarioFactory
 
         user = UsuarioFactory()
         other = UsuarioFactory()
@@ -449,7 +449,7 @@ class TestCompleteAction:
 
 
 class TestNotifyAction:
-    @mock.patch("api.v1.scheduling.views.send_schedule_notification.delay")
+    @mock.patch("scheduling.views.send_schedule_notification.delay")
     def test_notify_enqueues_task(self, mock_delay, auth_client, schedule):
         response = auth_client.post(notify_url(schedule.id))
         assert response.status_code == 200

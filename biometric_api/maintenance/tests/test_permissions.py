@@ -57,7 +57,7 @@ class TestSuperadminIsReadOnly:
         api_client.force_authenticate(user=superadmin_user)
 
         response = api_client.post(
-            reverse("v1:maintenance:record-list"),
+            reverse("maintenance:record-list"),
             {"equipment": equipment.id, "kind": "PREVENTIVE", "date": "2026-01-01"},
             format="json",
         )

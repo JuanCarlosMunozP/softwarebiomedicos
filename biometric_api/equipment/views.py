@@ -241,7 +241,7 @@ def _maintenance_record_for(work_order: EquipmentWorkOrder):
         return work_order.maintenance_record
     if work_order.schedule_id:
         # Import local: apps.maintenance.models ya importa apps.equipment.models.
-        from apps.maintenance.models import MaintenanceRecord
+        from maintenance.models import MaintenanceRecord
 
         return MaintenanceRecord.objects.filter(
             scheduled_maintenance_id=work_order.schedule_id

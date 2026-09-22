@@ -138,7 +138,7 @@ class TestSignalRecomputes:
 class TestSerializerReadonly:
     def test_metrics_appear_in_response(self, auth_client, equipment):
         recompute_for(equipment)
-        url = reverse("v1:equipment:equipment-detail", args=[equipment.id])
+        url = reverse("equipment:equipment-detail", args=[equipment.id])
 
         response = auth_client.get(url)
 
@@ -148,7 +148,7 @@ class TestSerializerReadonly:
         assert "mttr_hours" in body
 
     def test_metrics_ignored_on_write(self, auth_client, equipment):
-        url = reverse("v1:equipment:equipment-detail", args=[equipment.id])
+        url = reverse("equipment:equipment-detail", args=[equipment.id])
 
         response = auth_client.patch(
             url,
