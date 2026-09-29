@@ -4,6 +4,9 @@ __pycache__/
 *$py.class
 *.so
 
+base_biomedicos*.csv
+base_datos_biomedicos_*.csv
+
 
 # Distribution / packaging
 .Python
