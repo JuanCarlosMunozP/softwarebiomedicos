@@ -30,6 +30,7 @@ db.sqlite3-journal
 media/
 staticfiles/
 .staticfiles_cache/
+base_datos_limpios.csv
 
 
 # Environments
