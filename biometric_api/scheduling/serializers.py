@@ -5,7 +5,6 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from common.typing_meta import ModelSerializerMeta
-
 from equipment.models import EquipmentStatus
 from maintenance.models import MaintenanceRecord
 from scheduling.models import MaintenanceSchedule

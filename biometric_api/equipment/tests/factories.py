@@ -1,9 +1,9 @@
 from factory.declarations import Sequence, SubFactory
 from factory.django import DjangoModelFactory
 
-from common.typing_meta import FactoryMeta
 from branches.tests.factories import BranchFactory
 from catalog.tests.factories import EquipmentModelFactory
+from common.typing_meta import FactoryMeta
 from equipment.models import Equipment, EquipmentStatus
 
 

@@ -3,13 +3,12 @@ Configuración base de Django.
 
 Las settings específicas de cada entorno (dev/prod) heredan de este archivo.
 """
+import os
 from datetime import timedelta
 from pathlib import Path
 
-import os
 import environ
 from celery.schedules import crontab
-
 
 # ---------------------------------------------------------------------------
 # Paths

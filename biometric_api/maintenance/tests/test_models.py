@@ -5,13 +5,13 @@ import pytest
 from maintenance.managers import MaintenanceRecordManager
 from maintenance.models import MaintenanceKind, MaintenanceRecord
 
+from .factories import MaintenanceRecordFactory
+
 
 def _maintenance_objects() -> MaintenanceRecordManager:
     manager = MaintenanceRecord.objects
     assert isinstance(manager, MaintenanceRecordManager)
     return manager
-
-from .factories import MaintenanceRecordFactory
 
 pytestmark = pytest.mark.django_db
 

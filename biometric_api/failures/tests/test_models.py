@@ -7,13 +7,13 @@ from django.utils import timezone
 from failures.managers import FailureRecordManager
 from failures.models import FailureRecord, FailureSeverity
 
+from .factories import FailureRecordFactory
+
 
 def _failure_objects() -> FailureRecordManager:
     manager = FailureRecord.objects
     assert isinstance(manager, FailureRecordManager)
     return manager
-
-from .factories import FailureRecordFactory
 
 pytestmark = pytest.mark.django_db
 

@@ -124,7 +124,7 @@ def queue_overdue_alerts() -> str:
         .values_list("pk", flat=True)
     )
     for index, pk in enumerate(ids):
-        getattr(send_overdue_alert, "apply_async")(
+        send_overdue_alert.apply_async(
             args=[pk],
             countdown=index * OVERDUE_ALERT_STAGGER_SECONDS,
         )

@@ -5,13 +5,13 @@ from django.db import IntegrityError
 from users.managers import UserManager
 from users.models import User
 
+from .factories import UserFactory
+
 
 def _user_objects() -> UserManager:
     manager = User.objects
     assert isinstance(manager, UserManager)
     return manager
-
-from .factories import UserFactory
 
 
 @pytest.mark.django_db

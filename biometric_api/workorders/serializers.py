@@ -3,9 +3,8 @@ from typing import Any
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from common.typing_meta import ModelSerializerMeta
-
 from common.file_validation import EVIDENCE_EXTENSIONS, validate_uploaded_file
+from common.typing_meta import ModelSerializerMeta
 from workorders.models import (
     WorkOrderCost,
     WorkOrderEvidence,

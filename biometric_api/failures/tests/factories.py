@@ -6,7 +6,6 @@ from factory.django import DjangoModelFactory
 from factory.faker import Faker
 
 from common.typing_meta import FactoryMeta
-
 from equipment.tests.factories import EquipmentFactory
 from failures.models import FailureRecord, FailureSeverity
 

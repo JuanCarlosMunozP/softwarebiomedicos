@@ -1,7 +1,7 @@
 """
 URLConf raíz del proyecto.
 
-Las rutas de la API se versionan bajo /api/v1/. 
+Las rutas de la API se versionan bajo /api/v1/.
 """
 from urllib.parse import urlparse, urlunparse
 

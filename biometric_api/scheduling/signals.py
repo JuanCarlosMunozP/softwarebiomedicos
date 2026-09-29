@@ -88,7 +88,7 @@ def remember_previous_assignees(sender, instance: MaintenanceSchedule, **kwargs)
 @receiver(post_save, sender=MaintenanceSchedule)
 def trigger_schedule_notification(sender, instance: MaintenanceSchedule, created: bool, **kwargs):
     if created:
-        getattr(send_schedule_notification, "delay")(instance.pk)
+        send_schedule_notification.delay(instance.pk)
         return
     previous_engineer = getattr(instance, "_previous_engineer_id", None)
     previous_technician = getattr(instance, "_previous_technician_id", None)
@@ -98,7 +98,7 @@ def trigger_schedule_notification(sender, instance: MaintenanceSchedule, created
         or instance.assigned_technician_id != previous_technician
     )
     if assigned_now and assignment_changed:
-        getattr(send_schedule_notification, "delay")(instance.pk)
+        send_schedule_notification.delay(instance.pk)
 
 
 def _unique_wo_number(schedule: MaintenanceSchedule) -> str:

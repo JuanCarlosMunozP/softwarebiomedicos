@@ -5,13 +5,13 @@ import pytest
 from scheduling.managers import MaintenanceScheduleManager
 from scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
 
+from .factories import MaintenanceScheduleFactory
+
 
 def _schedule_objects() -> MaintenanceScheduleManager:
     manager = MaintenanceSchedule.objects
     assert isinstance(manager, MaintenanceScheduleManager)
     return manager
-
-from .factories import MaintenanceScheduleFactory
 
 pytestmark = pytest.mark.django_db
 

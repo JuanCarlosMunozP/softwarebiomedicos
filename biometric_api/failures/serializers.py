@@ -4,9 +4,8 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from common.typing_meta import ModelSerializerMeta
-
 from common.area_scope import operativo_area
+from common.typing_meta import ModelSerializerMeta
 
 from .models import FailureRecord
 

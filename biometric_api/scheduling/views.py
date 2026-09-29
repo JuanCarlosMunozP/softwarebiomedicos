@@ -52,7 +52,7 @@ class MaintenanceScheduleViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="notify")
     def notify(self, request, pk=None):
         schedule = self.get_object()
-        getattr(send_schedule_notification, "delay")(schedule.pk)
+        send_schedule_notification.delay(schedule.pk)
         return Response(
             {"detail": "notification_queued"}, status=status.HTTP_200_OK
         )

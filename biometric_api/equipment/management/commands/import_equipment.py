@@ -21,9 +21,9 @@ from __future__ import annotations
 
 import csv
 import re
+from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from datetime import datetime,timezone
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -106,7 +106,7 @@ def _parse_datetime(value:str | None) -> datetime:
     value = (value or "").strip()
 
     if not value:
-        return datetime(2026,9,22,0,0,0,tzinfo=timezone.utc)
+        return datetime(2026,9,22,0,0,0,tzinfo=UTC)
 
     for fmt in (
         "%Y-%m-%d",
@@ -117,7 +117,7 @@ def _parse_datetime(value:str | None) -> datetime:
         try:
             parsed = datetime.strptime(value,fmt)
 
-            return parsed.replace(tzinfo=timezone.utc)
+            return parsed.replace(tzinfo=UTC)
         except ValueError:
             continue
     raise ValueError(f"Fecha inválida: {value}")
