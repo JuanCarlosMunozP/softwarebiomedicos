@@ -1,5 +1,5 @@
+import { Combobox } from "@/components/ui/Combobox";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
 import type { EquipmentSectionProps } from "@/types/equipment/props";
 import { OWNER_OPTIONS } from "@/utils/equipment.utils";
 
@@ -10,6 +10,8 @@ export function EquipmentLocationSection({ form, setForm }: EquipmentSectionProp
     form.owner && !OWNER_OPTIONS.some((o) => o.value === form.owner)
       ? [{ value: form.owner, label: form.owner }]
       : [];
+  const ownerOptions = [...legacyOwner, ...OWNER_OPTIONS];
+  const selectedOwner = ownerOptions.find((o) => o.value === form.owner) ?? null;
   return (
     <>
           <div className="sm:col-span-2 mt-2">
@@ -20,18 +22,16 @@ export function EquipmentLocationSection({ form, setForm }: EquipmentSectionProp
               Datos generales y ubicación física del equipo.
             </p>
           </div>
-          <Select
-          label="Propietario"
-          value={form.owner}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              owner:e.target.value
-            })
-          }
-          options={[...legacyOwner, ...OWNER_OPTIONS]}
-          placeholder="Seleccione el propietario"
-          />
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-app">Proveedor</label>
+            <Combobox
+              options={ownerOptions}
+              value={selectedOwner}
+              onSelect={(opt) => setForm({ ...form, owner: opt?.value ?? "" })}
+              placeholder="Busca un proveedor..."
+              ariaLabel="Proveedor"
+            />
+          </div>
           <Input
           label="Código de calibración"
           value={form.calibration_date}

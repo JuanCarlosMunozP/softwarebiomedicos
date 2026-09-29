@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usersService } from "@/services/users.service";
 import { ROLE_LABEL, ASSIGNABLE_ROLES, can, canAssignRole } from "@/lib/permissions";
 import { getApiErrorMessage } from "@/lib/api";
+import { fullNameOf } from "@/lib/users";
 import type { Rol, Usuario } from "@/types/authentication/auth";
 import type { CreateUserInput } from "@/types/authentication/user";
 import type { FormState } from "@/types/authentication/form";
@@ -27,6 +28,10 @@ export function UsuariosPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("");
+  const [activeFilter, setActiveFilter] = useState("");
+  const [userOptions, setUserOptions] = useState<
+    { value: string; label: string; hint?: string }[]
+  >([]);
 
   const [editing, setEditing] = useState<Usuario | null>(null);
   const [creating, setCreating] = useState(false);
@@ -97,6 +102,12 @@ export function UsuariosPage() {
         ordering: "username",
         search: search || undefined,
         role: roleFilter || undefined,
+        is_active:
+          activeFilter === "true"
+            ? true
+            : activeFilter === "false"
+              ? false
+              : undefined,
         page: targetPage,
         page_size: PAGE_SIZE,
       });
@@ -112,7 +123,30 @@ export function UsuariosPage() {
   // Volver a la página 1 cuando cambian los filtros.
   useEffect(() => {
     setPage(1);
-  }, [search, roleFilter]);
+  }, [search, roleFilter, activeFilter]);
+
+  const loadUserOptions = async () => {
+    try {
+      const all = await usersService.listAll({ ordering: "username" });
+      const seen = new Set<string>();
+      const options: { value: string; label: string; hint?: string }[] = [];
+      for (const u of all) {
+        const label = fullNameOf(u).trim() || u.username;
+        const key = label.toLocaleLowerCase("es");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        options.push({ value: key, label, hint: u.username });
+      }
+      options.sort((a, b) => a.label.localeCompare(b.label, "es"));
+      setUserOptions(options);
+    } catch {
+      setUserOptions([]);
+    }
+  };
+
+  useEffect(() => {
+    void loadUserOptions();
+  }, []);
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -120,7 +154,7 @@ export function UsuariosPage() {
     }, 300);
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, roleFilter, page]);
+  }, [search, roleFilter, activeFilter, page]);
 
   const openCreate = () => {
     setForm({
@@ -185,6 +219,7 @@ export function UsuariosPage() {
       }
       closeModal();
       await load();
+      void loadUserOptions();
     } catch (err) {
       alert(getApiErrorMessage(err, "Error al guardar"));
     } finally {
@@ -199,6 +234,7 @@ export function UsuariosPage() {
       await usersService.remove(toDelete.id);
       setToDelete(null);
       await load();
+      void loadUserOptions();
     } catch (err) {
       alert(getApiErrorMessage(err, "No se pudo eliminar"));
     } finally {
@@ -230,29 +266,26 @@ export function UsuariosPage() {
 
   return (
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-6">
-      <UserHeader
-        canCreate={canCreate}
-        assignableRoles={assignableRoles}
-        openCreate={openCreate}
-      />
+      <UserHeader />
 
-      <Card>
-        <UserFilters
-          search={search}
-          setSearch={setSearch}
-          roleFilter={roleFilter}
-          setRoleFilter={setRoleFilter}
-        />
-
+      <Card padding="none">
         {error && (
           <div
             role="alert"
-            className="mb-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
+            className="m-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
           >
             {error}
           </div>
         )}
-
+        <div className="w-full min-w-0 overflow-x-auto">
+        <UserFilters
+          setSearch={setSearch}
+          userOptions={userOptions}
+          roleFilter={roleFilter}
+          setRoleFilter={setRoleFilter}
+          activeFilter={activeFilter}
+          setActiveFilter={setActiveFilter}
+        />
         <UserTable
           items={items}
           loading={loading}
@@ -266,7 +299,11 @@ export function UsuariosPage() {
           setNewPassword={setNewPassword}
           openEdit={openEdit}
           setToDelete={setToDelete}
+          canCreate={canCreate}
+          assignableRoles={assignableRoles}
+          openCreate={openCreate}
         />
+        </div>
 
         <UserPagination
           count={count}

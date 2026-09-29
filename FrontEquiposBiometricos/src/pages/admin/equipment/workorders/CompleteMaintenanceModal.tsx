@@ -82,7 +82,7 @@ export function CompleteMaintenanceModal({
               rows={4}
               required
               placeholder="Hallazgos, repuestos cambiados, recomendaciones…"
-              className="w-full rounded-lg border border-app bg-surface px-3 py-2.5 text-sm text-app outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+              className="w-full rounded-lg border border-app bg-surface px-3 py-2.5 text-sm text-app outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <Select
@@ -125,8 +125,8 @@ export function CompleteMaintenanceModal({
               loading={completeSaving}
             >
               {completeStatus === "FINISHED"
-                ? "Enviar"
-                : "Realizar mantenimiento"}
+                ? "Finalizar mantenimiento"
+                : "Enviar"}
             </Button>
           </div>
         </form>

@@ -22,8 +22,10 @@ export function OrdenesTrabajoPage() {
     equipmentError,
     loading,
     error,
-    search,
     setSearch,
+    orderOptions,
+    equipmentSearchOptions,
+    setEquipmentFilter,
     statusFilter,
     setStatusFilter,
     typeFilter,
@@ -69,31 +71,28 @@ export function OrdenesTrabajoPage() {
 
   return (
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-6">
-      <WorkOrderHeader
-        isEngineer={isEngineer}
-        canCreate={canCreate}
-        onCreate={openCreate}
-      />
+      <WorkOrderHeader isEngineer={isEngineer} />
 
-      <Card>
+      <Card padding="none">
+        {error && (
+          <div
+            role="alert"
+            className="m-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
+          >
+            {error}
+          </div>
+        )}
+        <div className="w-full min-w-0 overflow-x-auto">
         <WorkOrderFilters
-          search={search}
           onSearchChange={setSearch}
+          orderOptions={orderOptions}
+          equipmentSearchOptions={equipmentSearchOptions}
+          onEquipmentFilterChange={setEquipmentFilter}
           statusFilter={statusFilter}
           onStatusFilterChange={setStatusFilter}
           typeFilter={typeFilter}
           onTypeFilterChange={setTypeFilter}
         />
-
-        {error && (
-          <div
-            role="alert"
-            className="mb-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
-          >
-            {error}
-          </div>
-        )}
-
         <WorkOrderTable
           items={items}
           loading={loading}
@@ -104,7 +103,10 @@ export function OrdenesTrabajoPage() {
           onDetail={(w) => void openDetail(w)}
           onEdit={openEdit}
           onDelete={setToDelete}
+          canCreate={canCreate}
+          onCreate={openCreate}
         />
+        </div>
 
         <WorkOrderPagination
           count={count}

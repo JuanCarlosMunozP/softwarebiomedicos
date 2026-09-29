@@ -22,10 +22,7 @@ class MaintenanceRecordViewSet(AuditLogMixin, viewsets.ModelViewSet):
     parser_classes = (JSONParser, MultiPartParser, FormParser)
     filterset_class = MaintenanceRecordFilter
     search_fields = (
-        "description",
-        "observations",
         "technician",
-        "equipment__asset_tag",
         "assigned_engineer__username",
         "assigned_engineer__first_name",
         "assigned_engineer__last_name",
@@ -48,7 +45,7 @@ class MaintenanceRecordViewSet(AuditLogMixin, viewsets.ModelViewSet):
         # Gestión (superadmin/admin/coordinador) ve todos, incluidos los que
         # están en curso.
         user = self.request.user
-        if not user.is_authenticated:
+        if not isinstance(user, User):
             return qs
         if user.role == User.Role.TECNICO:
             qs = qs.filter(assigned_technician=user)

@@ -11,23 +11,25 @@ export function WorkOrderTable({
   onDetail,
   onEdit,
   onDelete,
+  canCreate,
+  onCreate,
 }: WorkOrderTableProps) {
   return (
-    <div className="overflow-x-auto">
+    <div className="w-full min-w-0">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-app text-left text-xs uppercase tracking-wider text-app-muted [&>th]:pb-2 [&>th]:pr-6 [&>th]:font-medium [&>th]:whitespace-nowrap">
-            <th>Orden</th>
-            <th>Equipo</th>
-            <th>Tipo</th>
-            <th>Inicio</th>
-            <th>{isEngineer ? "Fecha fin" : "Fecha de realización"}</th>
-            <th>Técnico</th>
-            <th>Estado</th>
-            <th className="pr-0 text-right">Acciones</th>
+          <tr className="border-b border-app text-left text-xs uppercase tracking-wider text-app-muted [&>th]:pb-2 [&>th]:align-bottom [&>th]:font-medium">
+            <th className="px-4 py-3 font-medium">Orden</th>
+            <th className="px-4 py-3 text-center font-medium">Equipo</th>
+            <th className="px-8 py-3 text-center font-medium">Tipo</th>
+            <th className="whitespace-nowrap px-10 py-3 font-medium">Fecha de inicio</th>
+            <th className="whitespace-nowrap px-10 py-3 font-medium">{isEngineer ? "Fecha fin" : "Fecha de realización"}</th>
+            <th className="px-8 py-3 font-medium">Técnico</th>
+            <th className="px-4 py-3 font-medium">Estado</th>
+            <th className="px-4 py-3 text-center font-medium">Acciones</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-[var(--border)] [&>tr>td]:pr-6 [&>tr>td]:align-top">
+        <tbody className="divide-y divide-(--border) [&>tr>td]:align-top [&>tr>td]:wrap-break-word">
           {loading ? (
             <tr>
               <td colSpan={8} className="py-8 text-center text-app-muted">
@@ -52,6 +54,8 @@ export function WorkOrderTable({
                 onDetail={onDetail}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                canCreate={canCreate}
+                onCreate={onCreate}
               />
             ))
           )}

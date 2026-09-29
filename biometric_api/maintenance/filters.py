@@ -5,6 +5,9 @@ from maintenance.models import MaintenanceRecord
 
 class MaintenanceRecordFilter(filters.FilterSet):
     equipment = filters.NumberFilter(field_name="equipment_id")
+    equipment_name = filters.CharFilter(
+        field_name="equipment__name", lookup_expr="istartswith"
+    )
     branch = filters.NumberFilter(field_name="equipment__branch_id")
     kind = filters.CharFilter(field_name="kind", lookup_expr="iexact")
     date_after = filters.DateFilter(field_name="date", lookup_expr="gte")
@@ -17,6 +20,7 @@ class MaintenanceRecordFilter(filters.FilterSet):
         model = MaintenanceRecord
         fields = (
             "equipment",
+            "equipment_name",
             "branch",
             "kind",
             "date_after",

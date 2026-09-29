@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/Button";
+import { Combobox } from "@/components/ui/Combobox";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
-import { Select } from "@/components/ui/Select";
 import type { ModelFormModalProps } from "@/types/equipment/catalog-props";
 
 export function ModelFormModal({
@@ -14,6 +14,9 @@ export function ModelFormModal({
   brandOptions,
   savingModel,
 }: ModelFormModalProps) {
+  const selectedBrand =
+    brandOptions.find((o) => o.value === String(modelForm.brand)) ?? null;
+
   return (
     <Modal
       open={creatingModel || !!editingModel}
@@ -23,15 +26,26 @@ export function ModelFormModal({
       nested
     >
       <form onSubmit={submitModel} className="flex flex-col gap-4">
-        <Select
-          label="Marca"
-          value={modelForm.brand ? String(modelForm.brand) : ""}
-          onChange={(e) =>
-            setModelForm({ ...modelForm, brand: Number(e.target.value) })
-          }
-          options={brandOptions}
-          required
-        />
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-app">Marca</label>
+          <Combobox
+            options={brandOptions}
+            value={selectedBrand}
+            onSelect={(opt) =>
+              setModelForm({ ...modelForm, brand: opt ? Number(opt.value) : 0 })
+            }
+            placeholder="Busca una marca..."
+            ariaLabel="Marca"
+          />
+          <input
+            className="pointer-events-none absolute h-0 w-0 opacity-0"
+            tabIndex={-1}
+            aria-hidden
+            value={modelForm.brand ? String(modelForm.brand) : ""}
+            onChange={() => undefined}
+            required
+          />
+        </div>
         <Input
           label="Nombre del modelo"
           value={modelForm.name}

@@ -1,31 +1,33 @@
-import { STATUS_BADGE_CLASS, STATUS_LABEL } from "@/utils/equipment.utils";
-import type { EquipmentStatus } from "@/types/equipment/equipment";
+import { STATUS_LABEL } from "@/utils/equipment.utils";
 import type { StatusSelectProps } from "@/types/equipment/props";
 
-export function StatusSelect({
-  value,
-  disabled,
-  onChange,
-}: StatusSelectProps) {
+export function StatusSelect({ value, disabled, onChange }: StatusSelectProps) {
+  const active = value === "ACTIVE";
   return (
-    <select
-      value={value}
+    <button
+      type="button"
       disabled={disabled}
-      onChange={(e) => onChange(e.target.value as EquipmentStatus)}
-      title="Cambiar estado"
-      className={`appearance-none rounded-full border px-2.5 py-1 pr-6 text-xs font-medium outline-none transition focus:ring-2 focus:ring-[var(--color-primary)]/30 disabled:cursor-not-allowed disabled:opacity-60 ${STATUS_BADGE_CLASS[value]}`}
-      style={{
-        backgroundImage:
-          "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 20 20' fill='currentColor'><path d='M5.5 7.5l4.5 4.5 4.5-4.5z'/></svg>\")",
-        backgroundRepeat: "no-repeat",
-        backgroundPosition: "right 6px center",
-      }}
+      onClick={() => onChange(active ? "INACTIVE" : "ACTIVE")}
+      aria-pressed={active}
+      aria-label={active ? "Desactivar equipo" : "Activar equipo"}
+      className={`inline-flex items-center gap-2 rounded-full border px-1 py-1 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
+        active
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-900/40 dark:hover:border-emerald-800"
+          : "border-app bg-app-muted text-app-muted hover:bg-app-muted/70 dark:hover:bg-white/10 dark:hover:text-app dark:hover:border-white/20"
+      }`}
     >
-      {(Object.keys(STATUS_LABEL) as EquipmentStatus[]).map((s) => (
-        <option key={s} value={s}>
-          {STATUS_LABEL[s]}
-        </option>
-      ))}
-    </select>
+      <span
+        className={`relative inline-flex h-4 w-7 items-center rounded-full transition ${
+          active ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"
+        }`}
+      >
+        <span
+          className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition ${
+            active ? "translate-x-3.5" : "translate-x-0.5"
+          }`}
+        />
+      </span>
+      <span className="pr-2">{disabled ? "..." : STATUS_LABEL[value]}</span>
+    </button>
   );
 }

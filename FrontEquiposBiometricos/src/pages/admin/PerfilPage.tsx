@@ -12,6 +12,7 @@ import {
   User as UserIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { IconHint } from "@/components/ui/IconHint";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
@@ -92,7 +93,7 @@ export function PerfilPage() {
 
       <Card padding="lg">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-primary)]/10 text-2xl font-bold text-[var(--color-primary)]">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-2xl font-bold text-primary">
             {initials}
           </div>
           <div className="flex flex-1 flex-col gap-1">
@@ -108,13 +109,16 @@ export function PerfilPage() {
               </Badge>
             </div>
           </div>
-          <Button
-            variant="secondary"
-            leftIcon={<Key size={14} />}
-            onClick={() => setPwdOpen(true)}
-          >
-            Cambiar contraseña
-          </Button>
+          <IconHint label="Cambiar contraseña">
+            <Button
+              variant="secondary"
+              className="h-8! w-8! px-0!"
+              aria-label="Cambiar contraseña"
+              onClick={() => setPwdOpen(true)}
+            >
+              <Key size={14} />
+            </Button>
+          </IconHint>
         </div>
       </Card>
 
@@ -171,7 +175,7 @@ export function PerfilPage() {
               leftIcon={<LogOut size={14} />}
               onClick={() => {
                 logout();
-                navigate("/login");
+                navigate("/");
               }}
             >
               Cerrar sesión

@@ -18,9 +18,7 @@ const matrix: Matrix = {
     users: ["view", "create", "edit", "delete"],
     branches: ["view", "create", "edit", "delete"],
     equipment: ["view", "create", "edit", "delete"],
-    // Registrar/editar/borrar en el historial de mantenimientos es exclusivo
-    // del coordinador; el superadmin solo lo consulta.
-    maintenance: ["view"],
+    maintenance: ["view", "edit", "delete"],
     scheduling: ["view", "create", "edit", "delete"],
     failures: ["view", "create", "edit", "delete"],
     work_orders: ["view", "create", "edit", "delete"],

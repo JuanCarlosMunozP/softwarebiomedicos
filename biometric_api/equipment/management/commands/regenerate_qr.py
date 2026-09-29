@@ -3,6 +3,9 @@
 Uso:
     python manage.py regenerate_qr              # todos los equipos
     python manage.py regenerate_qr --missing    # solo los que no tienen QR
+    docker compose exec web python manage.py regenerate_qr
+    docker compose exec web python manage.py regenerate_qr --missing
+
 
 El payload del QR apunta a la hoja de vida del equipo en el frontend
 (FRONTEND_BASE_URL/admin/equipos/<id>), así que hay que re-ejecutarlo si

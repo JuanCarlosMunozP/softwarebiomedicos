@@ -1,6 +1,10 @@
+from typing import Any
+
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+
+from common.typing_meta import ModelSerializerMeta
 
 from equipment.models import EquipmentStatus
 from maintenance.models import MaintenanceRecord
@@ -8,42 +12,42 @@ from scheduling.models import MaintenanceSchedule
 from users.models import User
 
 
-class _AssignedUserSerializer(serializers.ModelSerializer):
+class _AssignedUserSerializer(serializers.ModelSerializer[User]):
     """Representación mínima del usuario asignado (read-only, anidada)."""
 
     full_name = serializers.SerializerMethodField()
     role_display = serializers.CharField(source="get_role_display", read_only=True)
 
-    class Meta:
-        model = User
+    class Meta(ModelSerializerMeta):
+        model: Any = User
         fields = ("id", "username", "full_name", "role", "role_display")
 
     def get_full_name(self, obj: User) -> str:
         return f"{obj.first_name} {obj.last_name}".strip()
 
 
-class _RequestedBySerializer(serializers.ModelSerializer):
+class _RequestedBySerializer(serializers.ModelSerializer[User]):
     """Quién creó la solicitud (read-only, anidado)."""
 
     full_name = serializers.SerializerMethodField()
 
-    class Meta:
-        model = User
+    class Meta(ModelSerializerMeta):
+        model: Any = User
         fields = ("id", "username", "full_name", "area")
 
     def get_full_name(self, obj: User) -> str:
         return f"{obj.first_name} {obj.last_name}".strip()
 
 
-class _MaintenanceRecordMiniSerializer(serializers.ModelSerializer):
+class _MaintenanceRecordMiniSerializer(serializers.ModelSerializer[MaintenanceRecord]):
     """Representación mínima del mantenimiento que cumplió un agendamiento."""
 
-    class Meta:
-        model = MaintenanceRecord
+    class Meta(ModelSerializerMeta):
+        model: Any = MaintenanceRecord
         fields = ("id", "kind", "date", "description", "cost")
 
 
-class MaintenanceScheduleSerializer(serializers.ModelSerializer):
+class MaintenanceScheduleSerializer(serializers.ModelSerializer[MaintenanceSchedule]):
     equipment_asset_tag = serializers.CharField(source="equipment.asset_tag", read_only=True)
     equipment_name = serializers.CharField(source="equipment.name", read_only=True)
     branch_name = serializers.CharField(source="equipment.branch.name", read_only=True)
@@ -87,8 +91,8 @@ class MaintenanceScheduleSerializer(serializers.ModelSerializer):
     # Orden de trabajo que se crea sola al asignar la solicitud.
     work_order = serializers.SerializerMethodField()
 
-    class Meta:
-        model = MaintenanceSchedule
+    class Meta(ModelSerializerMeta):
+        model: Any = MaintenanceSchedule
         fields = (
             "id",
             "equipment",

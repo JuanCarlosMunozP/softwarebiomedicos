@@ -1,16 +1,20 @@
+from typing import Any
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+
+from common.typing_meta import ModelSerializerMeta
 
 from .models import Branch
 
 
-class BranchSerializer(serializers.ModelSerializer):
+class BranchSerializer(serializers.ModelSerializer[Branch]):
     # Vacío → None: el UNIQUE de Postgres trata "" como valor y la segunda
     # sede sin correo chocaba (IntegrityError). Varios NULL sí se permiten.
     email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
 
-    class Meta:
-        model = Branch
+    class Meta(ModelSerializerMeta):
+        model: Any = Branch
         fields = (
             "id",
             "name",

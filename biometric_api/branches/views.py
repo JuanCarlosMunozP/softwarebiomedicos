@@ -19,7 +19,7 @@ class BranchViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated, HasRolePermission)
     permission_resource = "branches"
     filterset_class = BranchFilter
-    search_fields = ("name", "address")
+    search_fields = ("name",)
     ordering_fields = ("name", "city", "created_at")
     ordering = ("name",)
 

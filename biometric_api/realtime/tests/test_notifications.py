@@ -65,6 +65,7 @@ def test_authenticated_user_connects_and_forwards_group_messages():
         assert connected is True
 
         layer = get_channel_layer()
+        assert layer is not None
         await layer.group_send(
             NOTIFICATIONS_GROUP,
             {"type": "notification.message", "payload": payload},
@@ -122,7 +123,10 @@ def test_channel_layer_outage_closes_with_1013(monkeypatch):
 
 
 def test_broadcast_notification_wraps_payload_in_envelope(monkeypatch):
-    fake_layer = type("L", (), {"group_send": AsyncMock()})()
+    class _FakeLayer:
+        group_send = AsyncMock()
+
+    fake_layer = _FakeLayer()
     monkeypatch.setattr(events, "get_channel_layer", lambda: fake_layer)
 
     broadcast_notification({"type": "schedule_email_sent", "schedule_id": 3})
@@ -146,7 +150,10 @@ def test_broadcast_notification_swallows_channel_layer_errors(monkeypatch):
     async def boom(*_args, **_kwargs):
         raise TimeoutError("Timeout reading from redis:6379")
 
-    fake_layer = type("L", (), {"group_send": boom})()
+    class _BoomLayer:
+        group_send = staticmethod(boom)
+
+    fake_layer = _BoomLayer()
     monkeypatch.setattr(events, "get_channel_layer", lambda: fake_layer)
     broadcast_notification({"type": "x"})
 

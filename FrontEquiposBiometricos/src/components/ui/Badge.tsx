@@ -14,7 +14,7 @@ const tones: Record<Tone, string> = {
     "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400",
   info: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400",
   primary:
-    "bg-[var(--color-primary)]/10 text-[var(--color-primary)]",
+    "bg-primary/10 text-primary",
 };
 
 export function Badge({

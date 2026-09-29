@@ -37,9 +37,13 @@ export function FallasPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [equipmentSearchOptions, setEquipmentSearchOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
   const [severityFilter, setSeverityFilter] = useState("");
   const [resolvedFilter, setResolvedFilter] = useState("");
   const [branchFilter,setBranchFilter] = useState("");
+  const [areaFilter, setAreaFilter] = useState("");
 
   const [editing, setEditing] = useState<FailureReport | null>(null);
   const [creating, setCreating] = useState(false);
@@ -75,6 +79,23 @@ export function FallasPage() {
       [branches]
   )
 
+  // Servicios disponibles: valores únicos de `equipment.area` (no hay catálogo
+  // propio, es texto libre en Equipo), igual que se hace con los nombres en
+  // Etiquetas QR.
+  const areaOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          equipment
+            .map((e) => (e.area || "").trim())
+            .filter((a) => a.length > 0),
+        ),
+      )
+        .sort((a, b) => a.localeCompare(b, "es"))
+        .map((a) => ({ value: a, label: a })),
+    [equipment],
+  )
+
   const equipmentLabel = (id: number) => {
     const e = equipment.find((x) => x.id === id);
     return e ? `${e.name} (${e.asset_tag})` : `Equipo #${id}`;
@@ -88,6 +109,8 @@ export function FallasPage() {
         ordering: "-reported_at",
         search: search || undefined,
         severity: severityFilter || undefined,
+        branch: branchFilter ? Number(branchFilter) : undefined,
+        area: areaFilter || undefined,
         resolved:
           resolvedFilter === "true"
             ? true
@@ -115,6 +138,23 @@ export function FallasPage() {
         setEquipmentError(false);
       })
       .catch(() => setEquipmentError(true));
+    equipmentService
+      .listAll({ ordering: "name" })
+      .then((data) => {
+        const seen = new Set<string>();
+        const options: { value: string; label: string }[] = [];
+        for (const e of data) {
+          const label = e.name.trim();
+          if (!label) continue;
+          const key = label.toLocaleLowerCase("es");
+          if (seen.has(key)) continue;
+          seen.add(key);
+          options.push({ value: key, label });
+        }
+        options.sort((a, b) => a.label.localeCompare(b.label, "es"));
+        setEquipmentSearchOptions(options);
+      })
+      .catch(() => setEquipmentSearchOptions([]));
   }, []);
 
   useEffect(() => {
@@ -131,7 +171,7 @@ export function FallasPage() {
     }, 300);
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, severityFilter, resolvedFilter,branchFilter]);
+  }, [search, severityFilter, resolvedFilter,branchFilter, areaFilter]);
 
   const openCreate = () => {
     setForm({ ...empty, equipment: equipment[0]?.id ?? 0 });
@@ -204,7 +244,8 @@ export function FallasPage() {
     }
   };
 
-  const tableCols = 4 + (canEdit || canDelete ? 1 : 0);
+  const showActions = canCreate || canEdit || canDelete;
+  const tableCols = 6 + (showActions ? 1 : 0);
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
   const start = count === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const end = Math.min(page * PAGE_SIZE, count);
@@ -214,14 +255,21 @@ export function FallasPage() {
       <FailureHeader
         role={role}
         usuario={usuario}
-        canCreate={canCreate}
-        openCreate={openCreate}
       />
 
-      <Card>
+      <Card padding="none">
+        {error && (
+          <div
+            role="alert"
+            className="m-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
+          >
+            {error}
+          </div>
+        )}
+        <div className="w-full min-w-0 overflow-x-auto">
         <FailureFilters
-          search={search}
           setSearch={setSearch}
+          equipmentOptions={equipmentSearchOptions}
           severityFilter={severityFilter}
           setSeverityFilter={setSeverityFilter}
           resolvedFilter={resolvedFilter}
@@ -229,17 +277,10 @@ export function FallasPage() {
           branchFilter={branchFilter}
           setBranchFilter={setBranchFilter}
           branchOptions={branchOptions}
+          areaFilter={areaFilter}
+          setAreaFilter={setAreaFilter}
+          areaOptions={areaOptions}
         />
-
-        {error && (
-          <div
-            role="alert"
-            className="mb-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
-          >
-            {error}
-          </div>
-        )}
-
         <FailureTable
           items={items}
           loading={loading}
@@ -251,7 +292,10 @@ export function FallasPage() {
           setResolveNotes={setResolveNotes}
           openEdit={openEdit}
           setToDelete={setToDelete}
+          canCreate={canCreate}
+          openCreate={openCreate}
         />
+        </div>
 
         <FailurePagination
           count={count}

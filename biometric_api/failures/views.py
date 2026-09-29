@@ -19,7 +19,7 @@ class FailureRecordViewSet(AuditLogMixin, viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated, HasRolePermission)
     permission_resource = "failures"
     filterset_class = FailureRecordFilter
-    search_fields = ("description", "resolution_notes", "equipment__asset_tag")
+    search_fields = ("equipment__name",)
     ordering_fields = ("reported_at", "severity", "resolved_at")
     ordering = ("-reported_at",)
 

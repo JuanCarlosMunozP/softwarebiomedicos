@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from django.conf import settings
 from django.core.validators import FileExtensionValidator, MinValueValidator
 from django.db import models
@@ -17,6 +19,15 @@ class MaintenanceKind(models.TextChoices):
 
 
 class MaintenanceRecord(models.Model):
+    if TYPE_CHECKING:
+        id: int
+        equipment_id: int
+        scheduled_maintenance_id: int | None
+        assigned_technician_id: int | None
+        _from_standalone_work_order: bool
+
+        def get_kind_display(self) -> str: ...
+
     equipment = models.ForeignKey(
         Equipment,
         on_delete=models.PROTECT,

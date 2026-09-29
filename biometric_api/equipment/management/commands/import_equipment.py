@@ -2,6 +2,7 @@
 
 Uso:
     python manage.py import_equipment ruta/al/archivo.csv
+    docker compose exec web python manage.py import_equipment ruta/al/archivo.csv
 
 Cabeceras esperadas (español, tal como vienen del inventario del cliente):
     NOMBRE DEL EQUIPO, MARCA, MODELO, SERIE, ACTIVO (PLACA),
@@ -22,6 +23,7 @@ import csv
 import re
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
+from datetime import datetime,timezone
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -99,6 +101,26 @@ def _col(row: dict[str, str], *names: str) -> str:
         if name in row and row[name] is not None:
             return row[name]
     return ""
+
+def _parse_datetime(value:str | None) -> datetime:
+    value = (value or "").strip()
+
+    if not value:
+        return datetime(2026,9,22,0,0,0,tzinfo=timezone.utc)
+
+    for fmt in (
+        "%Y-%m-%d",
+        "%d/%m/%Y",
+        "%Y/%m/%d",
+        "%Y-%m-%d %H:%M:%S",
+    ):
+        try:
+            parsed = datetime.strptime(value,fmt)
+
+            return parsed.replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+    raise ValueError(f"Fecha inválida: {value}")
 
 
 class Command(BaseCommand):
@@ -189,6 +211,24 @@ class Command(BaseCommand):
                         "client_name": institution,
                         "calibration_frequency_months": _freq_months(
                             _col(row, "FRECUENCIA CALIBRACION")
+                        ),
+                        "warranty_start_date":_parse_datetime(
+                            _col(row,"FECHA INICIA GARANTÍA")
+                        ),
+                        "warranty_end_date":_parse_datetime(
+                            _col(row,"FECHA FINALIZA GARANTÍA")
+                        ),
+                        "last_calibration":_parse_datetime(
+                            _col(row,"ULTIMA CALIBRACIÓN")
+                        ),
+                        "last_preventive":_parse_datetime(
+                            _col(row,"ÚLTIMO PREVENTIVO")
+                        ),
+                        "next_preventive":_parse_datetime(
+                            _col(row,"PRÓXIMA PREVENTIVO")
+                        ),
+                        "next_calibration":_parse_datetime(
+                            _col(row,"PRÓXIMO PREVENTIVO")
                         ),
                         "maintenance_frequency_months": _freq_months(
                             _col(row, "FRECUENCIA DE MANTENIMIENTO")

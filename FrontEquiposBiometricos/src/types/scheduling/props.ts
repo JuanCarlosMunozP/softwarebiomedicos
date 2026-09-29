@@ -4,16 +4,19 @@ import type { ScheduledMaintenance } from "@/types/scheduling/scheduling";
 import type { WorkOrderDetail } from "@/types/equipment/workorder";
 import type { FormState } from "@/types/scheduling/form";
 
-export interface SchedulingHeaderProps {
-  canCreate: boolean;
-  onCreate: () => void;
-}
+type SelectOption = { value: string; label: string };
 
 export interface SchedulingFiltersProps {
-  search: string;
   onSearchChange: (value: string) => void;
+  equipmentOptions: { value: string; label: string; hint?: string }[];
   completedFilter: string;
   onCompletedFilterChange: (value: string) => void;
+  branchFilter: string;
+  onBranchFilterChange: (value: string) => void;
+  branchOptions: SelectOption[];
+  areaFilter: string;
+  onAreaFilterChange: (value: string) => void;
+  areaOptions: SelectOption[];
 }
 
 export interface SchedulingRowProps {
@@ -30,6 +33,8 @@ export interface SchedulingRowProps {
   onComplete: (s: ScheduledMaintenance) => void;
   onEdit: (s: ScheduledMaintenance) => void;
   onDelete: (s: ScheduledMaintenance) => void;
+  canCreate: boolean;
+  onCreate: () => void;
 }
 
 export interface SchedulingTableProps

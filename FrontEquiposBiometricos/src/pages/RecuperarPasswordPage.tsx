@@ -14,7 +14,7 @@ export function RecuperarPasswordPage() {
       <div className="w-full max-w-md">
         <div className="mb-4 flex items-center justify-between">
           <Link
-            to="/login"
+            to="/"
             className="inline-flex items-center gap-2 text-sm font-medium text-app-muted hover:text-primary"
           >
             <ArrowLeft size={16} />
@@ -87,7 +87,7 @@ export function RecuperarPasswordPage() {
                 Escribir a soporte
               </Button>
             </a>
-            <Link to="/login" className="w-full">
+            <Link to="/" className="w-full">
               <Button fullWidth variant="secondary">
                 Volver a iniciar sesión
               </Button>

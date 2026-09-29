@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 from django.db import models
@@ -12,6 +14,9 @@ phone_validator = RegexValidator(
 
 
 class User(AbstractUser):
+    if TYPE_CHECKING:
+        def get_role_display(self) -> str: ...
+
     class Role(models.TextChoices):
         SUPERADMIN = "superadmin", _("Superadministrador")
         ADMIN = "admin", _("Administrador")

@@ -1,7 +1,11 @@
+from typing import Any
+
 from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+
+from common.typing_meta import ModelSerializerMeta
 
 from common.file_validation import DOCUMENT_EXTENSIONS, validate_uploaded_file
 from maintenance.models import MaintenanceRecord
@@ -9,29 +13,29 @@ from scheduling.models import MaintenanceSchedule
 from users.models import User
 
 
-class _AssignedUserSerializer(serializers.ModelSerializer):
+class _AssignedUserSerializer(serializers.ModelSerializer[User]):
     """Representación mínima del usuario asignado (read-only, anidada)."""
 
     full_name = serializers.SerializerMethodField()
     role_display = serializers.CharField(source="get_role_display", read_only=True)
 
-    class Meta:
-        model = User
+    class Meta(ModelSerializerMeta):
+        model: Any = User
         fields = ("id", "username", "full_name", "role", "role_display")
 
     def get_full_name(self, obj: User) -> str:
         return f"{obj.first_name} {obj.last_name}".strip()
 
 
-class _ScheduledMaintenanceMiniSerializer(serializers.ModelSerializer):
+class _ScheduledMaintenanceMiniSerializer(serializers.ModelSerializer[MaintenanceSchedule]):
     """Representación mínima del agendamiento (read-only, anidada en MaintenanceRecord)."""
 
-    class Meta:
-        model = MaintenanceSchedule
+    class Meta(ModelSerializerMeta):
+        model: Any = MaintenanceSchedule
         fields = ("id", "kind", "scheduled_date", "notes", "is_completed")
 
 
-class MaintenanceRecordSerializer(serializers.ModelSerializer):
+class MaintenanceRecordSerializer(serializers.ModelSerializer[MaintenanceRecord]):
     equipment_asset_tag = serializers.CharField(source="equipment.asset_tag", read_only=True)
     pdf_file_url = serializers.SerializerMethodField()
     # Sin trim_whitespace: queremos que un valor como "   " llegue a validate_description
@@ -89,8 +93,8 @@ class MaintenanceRecordSerializer(serializers.ModelSerializer):
     # Orden de trabajo que se crea sola al asignar un responsable.
     work_order = serializers.SerializerMethodField()
 
-    class Meta:
-        model = MaintenanceRecord
+    class Meta(ModelSerializerMeta):
+        model: Any = MaintenanceRecord
         fields = (
             "id",
             "equipment",

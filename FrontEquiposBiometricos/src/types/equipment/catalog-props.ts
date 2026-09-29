@@ -14,11 +14,13 @@ export interface CatalogBrandsCardProps {
   canDelete: boolean;
   togglingBrandId: number | null;
   changeBrandStatus: (brand: Brand, is_active: boolean) => Promise<void>;
+  openCreateBrand: () => void;
   openEditBrand: (b: Brand) => void;
   setBrandToDelete: Dispatch<SetStateAction<Brand | null>>;
   brandCount: number;
   brandPage: number;
   loadBrands: (targetPage?: number) => Promise<void>;
+  brandOptions: { value: string; label: string }[];
 }
 
 export interface CatalogModelsCardProps {
@@ -37,11 +39,13 @@ export interface CatalogModelsCardProps {
   canDelete: boolean;
   togglingModelId: number | null;
   changeModelStatus: (m: EquipmentModel, is_active: boolean) => Promise<void>;
+  openCreateModel: () => void;
   openEditModel: (m: EquipmentModel) => void;
   setModelToDelete: Dispatch<SetStateAction<EquipmentModel | null>>;
   modelCount: number;
   modelPage: number;
   loadModels: (targetPage?: number) => Promise<void>;
+  modelOptions: { value: string; label: string; hint?: string }[];
 }
 
 export interface BrandFormModalProps {

@@ -56,7 +56,7 @@ export function Footer() {
             <li>
               <a
                 href="mailto:softwarecccnp@gmail.com?subject=Soporte%20-%20Equipos%20Biom%C3%A9dicos"
-                className="hover:text-[var(--color-primary)]"
+                className="hover:text-primary"
               >
                 Escribir a soporte técnico
               </a>
@@ -64,7 +64,7 @@ export function Footer() {
             <li>
               <a
                 href="tel:+573188869612"
-                className="hover:text-[var(--color-primary)]"
+                className="hover:text-primary"
               >
                 Llamar a soporte
               </a>

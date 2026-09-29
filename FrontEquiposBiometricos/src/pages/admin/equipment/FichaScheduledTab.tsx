@@ -38,7 +38,7 @@ export function FichaScheduledTab({
             key={s.id}
             className="flex flex-col gap-2 rounded-lg border border-app bg-app-muted p-3 sm:flex-row sm:items-start sm:gap-4"
           >
-            <div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+            <div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <CalendarClock size={16} />
             </div>
             <div className="flex-1">

@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from equipment.tests.factories import EquipmentFactory
 from maintenance.models import MaintenanceKind, MaintenanceRecord
+from users.tests.factories import IngenieroFactory, TecnicoFactory
 
 from .factories import MaintenanceRecordFactory
 
@@ -258,10 +259,21 @@ class TestMaintenanceList:
         assert response.json()["count"] == 2
 
     def test_search_by_description(self, auth_client, equipment):
-        MaintenanceRecordFactory(equipment=equipment, description="Cambio de batería")
-        MaintenanceRecordFactory(equipment=equipment, description="Calibración general")
+        # La búsqueda es por el responsable, no por la descripción.
+        target = IngenieroFactory(first_name="Beatriz", last_name="Nunez")
+        other = IngenieroFactory(first_name="Oscar", last_name="Perez")
+        MaintenanceRecordFactory(
+            equipment=equipment,
+            description="Cambio de batería",
+            assigned_engineer=target,
+        )
+        MaintenanceRecordFactory(
+            equipment=equipment,
+            description="Calibración general",
+            assigned_engineer=other,
+        )
 
-        response = auth_client.get(LIST_URL, {"search": "batería"})
+        response = auth_client.get(LIST_URL, {"search": "Beatriz"})
 
         assert response.status_code == 200
         assert response.json()["count"] == 1
@@ -276,12 +288,15 @@ class TestMaintenanceList:
         assert response.json()["count"] == 1
 
     def test_search_by_equipment_asset_tag(self, auth_client, branch):
+        # La búsqueda es por el técnico asignado, no por la placa.
         eq_target = EquipmentFactory(asset_tag="EQ-TARGET", branch=branch)
         eq_other = EquipmentFactory(asset_tag="EQ-OTHER", branch=branch)
-        MaintenanceRecordFactory(equipment=eq_target)
-        MaintenanceRecordFactory(equipment=eq_other)
+        tech = TecnicoFactory(first_name="Ramiro", last_name="Diaz")
+        other_tech = TecnicoFactory(first_name="Nora", last_name="Gil")
+        MaintenanceRecordFactory(equipment=eq_target, assigned_technician=tech)
+        MaintenanceRecordFactory(equipment=eq_other, assigned_technician=other_tech)
 
-        response = auth_client.get(LIST_URL, {"search": "TARGET"})
+        response = auth_client.get(LIST_URL, {"search": "Ramiro"})
 
         assert response.status_code == 200
         assert response.json()["count"] == 1

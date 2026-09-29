@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useMantenimientos } from "@/pages/admin/maintenance/useMantenimientos";
@@ -38,9 +39,9 @@ export function MantenimientosPage() {
     canDelete,
     equipmentOptions,
     equipmentLabel,
+    searchOptions,
     scheduleOptions,
     load,
-    openCreate,
     openEdit,
     closeModal,
     submit,
@@ -49,12 +50,17 @@ export function MantenimientosPage() {
     start,
     end,
   } = useMantenimientos();
+  const navigate = useNavigate();
 
   return (
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-6">
       <MaintenanceHeader
         canCreate={canCreate}
-        onCreate={openCreate}
+        // Antes abría el formulario con el primer equipo de la lista
+        // precargado (había que acordarse de cambiarlo). Ahora lleva a
+        // Equipos, donde cada fila ya tiene su botón "Nuevo mantenimiento"
+        // que abre el formulario con el equipo correcto.
+        onCreate={() => navigate("/admin/equipos")}
       />
 
       <Card>
@@ -64,6 +70,7 @@ export function MantenimientosPage() {
           equipmentFilter={equipmentFilter}
           setEquipmentFilter={setEquipmentFilter}
           equipmentOptions={equipmentOptions}
+          searchOptions={searchOptions}
           kindFilter={kindFilter}
           setKindFilter={setKindFilter}
         />

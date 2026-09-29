@@ -8,7 +8,7 @@ export function NotFoundPage() {
 
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 py-12 text-center">
-      <p className="text-sm font-semibold text-[var(--color-primary)]">404</p>
+      <p className="text-sm font-semibold text-primary">404</p>
       <h1 className="mt-2 text-3xl font-bold text-app sm:text-4xl">
         Página no encontrada
       </h1>

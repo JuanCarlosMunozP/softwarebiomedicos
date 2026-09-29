@@ -18,7 +18,7 @@ export function PlaceholderPage({ title, description }: PlaceholderPageProps) {
 
       <Card padding="lg">
         <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Construction size={26} />
           </div>
           <h2 className="text-base font-semibold text-app">Vista en construcción</h2>

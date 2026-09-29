@@ -36,6 +36,9 @@ export function EquiposPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [models, setModels] = useState<EquipmentModel[]>([]);
+  const [searchOptions, setSearchOptions] = useState<
+    { value: string; label: string; hint?: string }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -128,7 +131,29 @@ export function EquiposPage() {
       .then(setBranches)
       .catch(() => null);
     void loadCatalog();
+    void loadSearchOptions();
   }, []);
+
+  const loadSearchOptions = async () => {
+    try {
+      const all = await equipmentService.listAll({ ordering: "name" });
+      setSearchOptions(
+        all
+          .map((eq) => ({
+            value: String(eq.id),
+            label: eq.name,
+            hint: eq.asset_tag,
+          }))
+          .sort(
+            (a, b) =>
+              a.label.localeCompare(b.label, "es") ||
+              (a.hint ?? "").localeCompare(b.hint ?? "", "es"),
+          ),
+      );
+    } catch {
+      // El listado paginado sigue funcionando aunque falle el buscador.
+    }
+  };
 
   // ---- Carga equipos paginados ----
   const load = async (targetPage = page) => {
@@ -137,7 +162,7 @@ export function EquiposPage() {
     try {
       const data = await equipmentService.listPaginated({
         ordering: "name",
-        search: search || undefined,
+        name_startswith: search || undefined,
         status: statusFilter || undefined,
         branch: branchFilter ? Number(branchFilter) : undefined,
         brand: brandFilter ? Number(brandFilter) : undefined,
@@ -190,16 +215,47 @@ export function EquiposPage() {
     setCreating(true);
   };
 
+  // Si el modal se abre antes de que lleguen las marcas, el campo quedaba
+  // vacío. En cuanto hay catálogo, se deja la primera marca activa y se
+  // puede cambiar.
+  useEffect(() => {
+    if (!creating) return;
+    const brand = brands.find((b) => b.is_active)?.id ?? brands[0]?.id ?? 0;
+    if (!brand) return;
+    setForm((f) => {
+      if (f.brand) return f;
+      const brandModels = models.filter((m) => m.brand === brand && m.is_active);
+      return {
+        ...f,
+        brand,
+        equipment_model: brandModels.length === 1 ? brandModels[0].id : 0,
+      };
+    });
+  }, [creating, brands, models]);
+
   const openEdit = (e: Equipment) => {
-    const inferredBrand =
-      e.brand ?? resolveBrandIdOfModel(e.equipment_model) ?? 0;
-    setForm(equipmentToForm(e, inferredBrand));
-    setFormError(null);
-    setEditing(e);
+    const apply = (eq: Equipment) => {
+      const inferredBrand =
+        eq.brand ?? resolveBrandIdOfModel(eq.equipment_model) ?? 0;
+      setForm(equipmentToForm(eq, inferredBrand));
+      setFormError(null);
+      setEditing(eq);
+    };
+    apply(e);
+    void equipmentService.retrieve(e.id).then(apply).catch(() => {
+      // Si la consulta falla, se queda el equipo que ya traía la tabla.
+    });
   };
 
   const closeModal = () => {
     setCreating(false);
+    setEditing(null);
+    setForm(empty);
+    setFormError(null);
+    setFichaTarget(null);
+  };
+
+  const backToDetail = () => {
     setEditing(null);
     setForm(empty);
     setFormError(null);
@@ -227,7 +283,7 @@ export function EquiposPage() {
       ).length === 0
     ) {
       setFormError(
-        "La marca seleccionada no tiene modelos. Crea uno con la opción Nuevo modelo y vuelve a intentarlo.",
+        "La marca seleccionada no tiene modelos. Créalo en Catálogo y vuelve a intentarlo.",
       );
       return;
     }
@@ -259,6 +315,7 @@ export function EquiposPage() {
       }
       closeModal();
       await load(page);
+      await loadSearchOptions();
     } catch (err) {
       setFormError(getApiErrorMessage(err, "Error al guardar"));
     } finally {
@@ -274,6 +331,7 @@ export function EquiposPage() {
       setToDelete(null);
       setFichaTarget(null);
       await load(page);
+      await loadSearchOptions();
     } catch (err) {
       alert(getApiErrorMessage(err, "No se pudo eliminar"));
     } finally {
@@ -311,25 +369,8 @@ export function EquiposPage() {
   return (
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-6">
       <EquipmentHeader
-        canCreate={canCreate}
-        onCreate={openCreate}
         role={role}
         area={usuario?.area}
-      />
-
-      <EquipmentFilters
-        search={search}
-        onSearchChange={setSearch}
-        branchFilter={branchFilter}
-        onBranchFilterChange={setBranchFilter}
-        brandFilter={brandFilter}
-        onBrandFilterChange={setBrandFilter}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
-        riskFilter={riskFilter}
-        onRiskFilterChange={setRiskFilter}
-        branchOptions={branchOptions}
-        brands={brands}
       />
 
           {error && (
@@ -342,6 +383,22 @@ export function EquiposPage() {
           )}
 
       <Card padding="none">
+        <div className="w-full min-w-0 overflow-x-auto">
+        <EquipmentFilters
+          search={search}
+          onSearchChange={setSearch}
+          branchFilter={branchFilter}
+          onBranchFilterChange={setBranchFilter}
+          brandFilter={brandFilter}
+          onBrandFilterChange={setBrandFilter}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          riskFilter={riskFilter}
+          onRiskFilterChange={setRiskFilter}
+          branchOptions={branchOptions}
+          brands={brands}
+          searchOptions={searchOptions}
+        />
         <EquipmentTable
           items={items}
           loading={loading}
@@ -349,6 +406,8 @@ export function EquiposPage() {
           models={models}
           branchName={branchName}
           canEdit={canEdit}
+          canCreate={canCreate}
+          onCreate={openCreate}
           canCreateMaintenance={canCreateMaintenance}
           statusUpdatingId={statusUpdatingId}
           onSelect={setFichaTarget}
@@ -357,6 +416,7 @@ export function EquiposPage() {
             navigate(`/admin/mantenimientos?equipment=${eq.id}`)
           }
         />
+        </div>
 
         <EquipmentPagination
           count={count}
@@ -374,17 +434,19 @@ export function EquiposPage() {
           ref={catalogPanelRef}
           onChanged={(created) => {
             void loadCatalog().then(() => {
-              if (created?.brand) {
+              const brand = created?.brand;
+              const model = created?.model;
+              if (brand) {
                 setForm((f) => ({
                   ...f,
-                  brand: created.brand.id,
+                  brand: brand.id,
                   equipment_model: 0,
                 }));
-              } else if (created?.model) {
+              } else if (model) {
                 setForm((f) => ({
                   ...f,
-                  brand: created.model.brand,
-                  equipment_model: created.model.id,
+                  brand: model.brand,
+                  equipment_model: model.id,
                 }));
               }
             });
@@ -409,6 +471,7 @@ export function EquiposPage() {
         modelsForForm={modelsForForm}
         modelOptionsForm={modelOptionsForm}
         openCatalogForm={openCatalogForm}
+        onBack={editing && fichaTarget ? backToDetail : undefined}
       />
 
       <EquipoFicha
@@ -419,7 +482,6 @@ export function EquiposPage() {
         canEdit={canEdit}
         canDelete={canDelete}
         onEdit={(eq) => {
-          setFichaTarget(null);
           openEdit(eq);
         }}
         onDelete={(eq) => setToDelete(eq)}

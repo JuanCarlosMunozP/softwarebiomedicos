@@ -1,4 +1,4 @@
-from django.contrib.auth.models import BaseUserManager
+from django.contrib.auth.models import UserManager as AuthUserManager
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -17,8 +17,23 @@ class UserQuerySet(models.QuerySet):
         return self.filter(role__in=["superadmin", "admin"])
 
 
-class UserManager(BaseUserManager.from_queryset(UserQuerySet)):
+class UserManager(AuthUserManager.from_queryset(UserQuerySet)):
     use_in_migrations = True
+
+    def get_queryset(self) -> UserQuerySet:
+        return UserQuerySet(model=self.model, using=self._db, hints=getattr(self, "_hints", None))
+
+    def active(self) -> UserQuerySet:
+        return self.get_queryset().active()
+
+    def inactive(self) -> UserQuerySet:
+        return self.get_queryset().inactive()
+
+    def by_role(self, role: str) -> UserQuerySet:
+        return self.get_queryset().by_role(role)
+
+    def staff_roles(self) -> UserQuerySet:
+        return self.get_queryset().staff_roles()
 
     def _create_user(self, username, email, password, **extra_fields):
         if not username:

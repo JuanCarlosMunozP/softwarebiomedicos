@@ -6,6 +6,7 @@ export interface FailuresListParams {
   ordering?: string;
   equipment?: number;
   branch?: number;
+  area?: string;
   severity?: string;
   resolved?: boolean;
   reported_at_after?: string;

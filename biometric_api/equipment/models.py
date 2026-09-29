@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -79,6 +81,11 @@ class SignatureRole(models.TextChoices):
     SUPERVISOR = "SUPERVISOR"
 
 class Equipment(models.Model):
+    if TYPE_CHECKING:
+        id: int
+        failures: models.Manager
+        failures_count: int
+
     # Identificación
     name = models.CharField(_("Nombre"), max_length=150)
     asset_tag = models.CharField(
@@ -364,6 +371,12 @@ class EquipmentAttachment(models.Model):
 
 
 class EquipmentWorkOrder(models.Model):
+    if TYPE_CHECKING:
+        id: int
+        equipment_id: int
+        technician_id: int | None
+        schedule_id: int | None
+        maintenance_record_id: int | None
 
     equipment = models.ForeignKey(
         Equipment,

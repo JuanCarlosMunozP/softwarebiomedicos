@@ -103,7 +103,7 @@ export function ChildSection<T extends { id: number }>({
                 {canEdit && <th className="w-10" />}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--border)]">
+            <tbody className="divide-y divide-(--border)">
               {list.map((r) => (
                 <tr key={r.id} className="text-app [&>td]:px-3 [&>td]:py-2">
                   {renderRow(r).map((cell, i) => (

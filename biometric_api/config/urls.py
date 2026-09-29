@@ -1,8 +1,7 @@
 """
 URLConf raíz del proyecto.
 
-Las rutas de la API se versionan bajo /api/v1/. Cada app de dominio
-registra sus rutas en `api/v1/urls.py`.
+Las rutas de la API se versionan bajo /api/v1/. 
 """
 from urllib.parse import urlparse, urlunparse
 

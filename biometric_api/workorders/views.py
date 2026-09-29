@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework import viewsets
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -24,13 +26,18 @@ from .models import (
 
 _FIELD_ROLES = (User.Role.TECNICO,User.Role.INGENIERO)
 
+if TYPE_CHECKING:
+    _ChildMixinBase = viewsets.ModelViewSet
+else:
+    _ChildMixinBase = object  # la clase real ya hereda ModelViewSet en el MRO del viewset
+
 def _only_own_work_orders(user) -> bool:
     return bool(
         user and user.is_authenticated and getattr(user,"role",None) in _FIELD_ROLES
     )
 
 
-class _WorkOrderChildScopedMixin:
+class _WorkOrderChildScopedMixin(_ChildMixinBase):
     def get_queryset(self):
         qs = super().get_queryset()
         if _only_own_work_orders(self.request.user):
@@ -53,7 +60,7 @@ class _WorkOrderChildScopedMixin:
         if (
             _only_own_work_orders(user)
             and work_order is not None
-            and work_order.technician_id != user.id
+            and work_order.technician_id != user.pk
         ):
             raise PermissionDenied(
                 _("Solo puedes editar los últimos elementos de tus propias órdenes de trabajo.")
@@ -62,7 +69,9 @@ class _WorkOrderChildScopedMixin:
         serializer.save()
 
     def perform_update(self,serializer):
-        self._ensure_work_order_open(serializer.instance.work_order)
+        instance = serializer.instance
+        assert instance is not None
+        self._ensure_work_order_open(instance.work_order)
         serializer.save()
 
     def perform_destroy(self,instance):

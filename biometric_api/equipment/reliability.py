@@ -10,7 +10,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from apps.equipment.models import Equipment
+    from equipment.models import Equipment
 
 
 _SECONDS_PER_HOUR = Decimal(3600)

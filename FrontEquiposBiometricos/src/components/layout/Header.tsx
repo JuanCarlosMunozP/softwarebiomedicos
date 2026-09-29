@@ -60,14 +60,14 @@ export function Header({ onToggleSidebar }: HeaderProps) {
               <div className="hidden items-center gap-2 rounded-lg border border-app bg-app-muted px-3 py-2 sm:flex">
                 <User size={16} className="text-app-muted" />
                 <span className="text-sm font-medium text-app">{fullName}</span>
-                <span className="rounded bg-[var(--color-primary)]/10 px-2 py-0.5 text-xs font-medium text-[var(--color-primary)]">
+                <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                   {ROLE_LABEL[usuario.role]}
                 </span>
               </div>
               {showGoToPanel && (
                 <Link
                   to={panelHome(usuario.role)}
-                  className="inline-flex h-10 items-center gap-2 rounded-lg bg-[var(--color-primary)] px-3 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-dark)]"
+                  className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-semibold text-white transition hover:bg-primary-dark"
                 >
                   <LayoutDashboard size={16} />
                   <span className="hidden sm:inline">Ir al panel</span>
@@ -77,7 +77,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
           ) : (
             <Link
               to="/login"
-              className="inline-flex h-10 items-center rounded-lg bg-[var(--color-primary)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-dark)]"
+              className="inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-white transition hover:bg-primary-dark"
             >
               Iniciar sesión
             </Link>

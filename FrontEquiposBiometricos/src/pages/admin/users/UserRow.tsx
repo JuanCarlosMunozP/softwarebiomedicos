@@ -1,6 +1,7 @@
-import { Key, Pencil, Trash2, UserCog } from "lucide-react";
+import { Key, Pencil, Trash2, UserCog, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { IconHint } from "@/components/ui/IconHint";
 import { ROLE_LABEL, canAssignRole } from "@/lib/permissions";
 import { fullNameOf } from "@/lib/users";
 import type { UserRowProps } from "@/types/authentication/props";
@@ -17,6 +18,9 @@ export function UserRow({
   setNewPassword,
   openEdit,
   setToDelete,
+  canCreate,
+  assignableRoles,
+  openCreate,
 }: UserRowProps) {
   const editable = canEdit && canAssignRole(role, u.role);
   const deletable =
@@ -25,25 +29,25 @@ export function UserRow({
   const isToggling = togglingId === u.id;
   return (
     <tr className="text-app">
-      <td className="py-3">
+      <td className="whitespace-nowrap py-3 pl-4 pr-10 text-left">
         <div className="flex items-center gap-2">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <UserCog size={14} />
           </span>
           <div>
-            <p className="font-medium">
+            <p className="whitespace-nowrap font-medium">
               {fullNameOf(u)}
             </p>
-            <p className="text-xs text-app-muted">
+            <p className="whitespace-nowrap text-xs text-app-muted">
               @{u.username} · {u.email}
             </p>
           </div>
         </div>
       </td>
-      <td className="py-3">
+      <td className="whitespace-nowrap py-3 pl-10 pr-10 text-center">
         <Badge tone="primary">{ROLE_LABEL[u.role]}</Badge>
       </td>
-      <td className="py-3">
+      <td className="whitespace-nowrap py-3 pl-10 pr-14 text-center">
         {canToggle ? (
           <button
             type="button"
@@ -83,40 +87,61 @@ export function UserRow({
           </Badge>
         )}
       </td>
-      <td className="py-3">
-        <div className="flex justify-end gap-2">
-          {editable && (
-            <Button
-              size="sm"
-              variant="secondary"
-              leftIcon={<Key size={14} />}
-              onClick={() => {
-                setPwdTarget(u);
-                setNewPassword("");
-              }}
-            >
-              Contraseña
-            </Button>
+      <td className="py-3 pl-14 pr-4 text-center">
+        <div className="flex flex-nowrap items-center justify-center gap-2">
+          {canCreate && assignableRoles.length > 0 && (
+            <IconHint label="Nuevo usuario">
+              <Button
+                size="sm"
+                className="h-8! w-8! px-0!"
+                aria-label="Nuevo usuario"
+                onClick={openCreate}
+              >
+                <UserPlus size={14} />
+              </Button>
+            </IconHint>
           )}
           {editable && (
-            <Button
-              size="sm"
-              variant="secondary"
-              leftIcon={<Pencil size={14} />}
-              onClick={() => openEdit(u)}
-            >
-              Editar
-            </Button>
+            <IconHint label="Contraseña">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-8! w-8! px-0!"
+                aria-label="Contraseña"
+                onClick={() => {
+                  setPwdTarget(u);
+                  setNewPassword("");
+                }}
+              >
+                <Key size={14} />
+              </Button>
+            </IconHint>
+          )}
+          {editable && (
+            <IconHint label="Editar">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-8! w-8! px-0!"
+                aria-label="Editar"
+                onClick={() => openEdit(u)}
+              >
+                <Pencil size={14} />
+              </Button>
+            </IconHint>
           )}
           {deletable && (
-            <Button
-              size="sm"
-              variant="danger"
-              leftIcon={<Trash2 size={14} />}
-              onClick={() => setToDelete(u)}
-            >
-              Eliminar
-            </Button>
+            <IconHint label="Eliminar">
+              <Button
+                size="sm"
+                variant="danger"
+                className="h-8! w-8! px-0!"
+                aria-label="Eliminar"
+                onClick={() => setToDelete(u)}
+              >
+                <Trash2 size={14} />
+              </Button>
+            </IconHint>
           )}
         </div>
       </td>

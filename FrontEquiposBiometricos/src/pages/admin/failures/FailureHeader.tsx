@@ -1,13 +1,6 @@
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/Button";
 import type { FailureHeaderProps } from "@/types/failure/props";
 
-export function FailureHeader({
-  role,
-  usuario,
-  canCreate,
-  openCreate,
-}: FailureHeaderProps) {
+export function FailureHeader({ role, usuario }: FailureHeaderProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -22,11 +15,6 @@ export function FailureHeader({
               : "Registra y resuelve fallas reportadas en los equipos biomédicos."}
         </p>
       </div>
-      {canCreate && (
-        <Button leftIcon={<Plus size={16} />} onClick={openCreate}>
-          Nuevo reporte
-        </Button>
-      )}
     </div>
   );
 }

@@ -1,8 +1,15 @@
 import pytest
 from django.core.exceptions import ValidationError
 
+from ..managers import BranchManager
 from ..models import Branch
 from .factories import BranchFactory
+
+
+def _branch_objects() -> BranchManager:
+    manager = Branch.objects
+    assert isinstance(manager, BranchManager)
+    return manager
 
 pytestmark = pytest.mark.django_db
 
@@ -52,7 +59,7 @@ class TestBranchManager:
         active2 = BranchFactory(name="A2", is_active=True)
         BranchFactory(name="I1", is_active=False)
 
-        active_qs = Branch.objects.active()
+        active_qs = _branch_objects().active()
 
         assert active_qs.count() == 2
         assert set(active_qs.values_list("id", flat=True)) == {active1.id, active2.id}
@@ -61,17 +68,19 @@ class TestBranchManager:
         BranchFactory(name="A1", is_active=True)
         inactive = BranchFactory(name="I1", is_active=False)
 
-        inactive_qs = Branch.objects.inactive()
+        inactive_qs = _branch_objects().inactive()
 
         assert inactive_qs.count() == 1
-        assert inactive_qs.first().id == inactive.id
+        found = inactive_qs.first()
+        assert found is not None
+        assert found.id == inactive.id
 
     def test_by_city_filter(self):
         BranchFactory(name="B1", city="Bogota")
         BranchFactory(name="B2", city="bogota")
         BranchFactory(name="B3", city="Medellin")
 
-        bogota_branches = Branch.objects.by_city("Bogota")
+        bogota_branches = _branch_objects().by_city("Bogota")
 
         assert bogota_branches.count() == 2
 

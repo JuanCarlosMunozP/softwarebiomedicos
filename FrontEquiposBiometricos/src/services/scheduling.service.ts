@@ -10,6 +10,7 @@ export interface ScheduleListParams {
   ordering?: string;
   equipment?: number;
   branch?: number;
+  area?: string;
   kind?: string;
   is_completed?: boolean;
   scheduled_date_after?: string;

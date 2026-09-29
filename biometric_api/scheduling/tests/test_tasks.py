@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 import pytest
 from django.core import mail
+from django.core.mail import EmailMultiAlternatives
 
 from scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
 from scheduling.tasks import send_schedule_notification
@@ -29,6 +30,7 @@ class TestSendScheduleNotification:
         assert result == "sent"
         assert len(mail.outbox) == 1
         message = mail.outbox[0]
+        assert isinstance(message, EmailMultiAlternatives)
         assert equipment.asset_tag in message.subject
         assert schedule.scheduled_date.isoformat() in message.subject
         assert set(message.to) == set(settings.MAINTENANCE_NOTIFICATION_EMAILS)
@@ -37,7 +39,9 @@ class TestSendScheduleNotification:
         # HTML alternative is attached
         html_alt = next((alt for alt in message.alternatives if alt[1] == "text/html"), None)
         assert html_alt is not None
-        assert equipment.asset_tag in html_alt[0]
+        html_body = html_alt[0]
+        assert isinstance(html_body, str)
+        assert equipment.asset_tag in html_body
 
     def test_sets_notified_at_after_send(self, equipment):
         schedule = MaintenanceScheduleFactory(equipment=equipment)

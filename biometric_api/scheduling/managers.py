@@ -39,3 +39,27 @@ class MaintenanceScheduleManager(
             "requested_by",
             "work_order",
         )
+
+    def for_equipment(self, equipment_id: int) -> MaintenanceScheduleQuerySet:
+        return self.get_queryset().for_equipment(equipment_id)
+
+    def for_branch(self, branch_id: int) -> MaintenanceScheduleQuerySet:
+        return self.get_queryset().for_branch(branch_id)
+
+    def pending(self) -> MaintenanceScheduleQuerySet:
+        return self.get_queryset().pending()
+
+    def completed(self) -> MaintenanceScheduleQuerySet:
+        return self.get_queryset().completed()
+
+    def in_range(self, start, end) -> MaintenanceScheduleQuerySet:
+        return self.get_queryset().in_range(start, end)
+
+    def assigned_to_engineer(self, user_id: int) -> MaintenanceScheduleQuerySet:
+        return self.get_queryset().assigned_to_engineer(user_id)
+
+    def assigned_to_technician(self, user_id: int) -> MaintenanceScheduleQuerySet:
+        return self.get_queryset().assigned_to_technician(user_id)
+
+    def unassigned(self) -> MaintenanceScheduleQuerySet:
+        return self.get_queryset().unassigned()

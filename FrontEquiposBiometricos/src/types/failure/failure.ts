@@ -5,6 +5,7 @@ export interface FailureReport {
   equipment: number;
   equipment_asset_tag?: string;
   branch_name?: string;
+  equipment_area?: string | null;
   description: string;
   severity: FailureSeverity;
   reported_at: string;

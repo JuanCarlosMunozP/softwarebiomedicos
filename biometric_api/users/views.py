@@ -55,7 +55,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         user = self.request.user
-        if not user.is_authenticated:
+        if not isinstance(user, User):
             return qs.none()
         if self.action == "list" and user.role not in {
             User.Role.SUPERADMIN,
@@ -79,7 +79,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
         if self.action in ("retrieve", "set_password"):
             if not (is_admin or is_self):
-                self.permission_denied(request, message=_("No tienes permisos para esta acción."))
+                self.permission_denied(request, message=str(_("No tienes permisos para esta acción.")))
 
             if (
                 self.action == "set_password"
@@ -89,18 +89,18 @@ class UserViewSet(viewsets.ModelViewSet):
             ):
                 self.permission_denied(
                     request,
-                    message=_(
+                    message=str(_(
                         "Solo un superadministrador puede cambiar la contraseña de otro superadministrador."
-                    )
+                    ))
                 )
 
         if self.action in ("update", "partial_update"):
             if not (is_admin or is_self):
-                self.permission_denied(request, message=_("No tienes permisos para esta acción."))
+                self.permission_denied(request, message=str(_("No tienes permisos para esta acción.")))
             if not is_self and target_is_superadmin and not is_superadmin_caller:
                 self.permission_denied(
                     request,
-                    message=_("Solo un superadministrador puee modificar a otro superadministrador."),
+                    message=str(_("Solo un superadministrador puee modificar a otro superadministrador.")),
                 )
             if is_self and not is_admin:
                 forbidden = {"role", "is_active", "is_staff", "is_superuser"}
@@ -108,7 +108,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 if touched:
                     self.permission_denied(
                         request,
-                        message=_("No puedes modificar tu propio rol o estado."),
+                        message=str(_("No puedes modificar tu propio rol o estado.")),
                     )
 
     def perform_update(self, serializer):

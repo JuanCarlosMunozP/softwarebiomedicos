@@ -72,12 +72,12 @@ export function AreaOpsDashboard({
         {
           name: "Abiertas",
           count: ops.kpis.this_week_open ?? 0,
-          fill: "#f59e0b",
+          fill: "#ef4444",
         },
         {
           name: "Resueltas",
           count: ops.kpis.this_week_resolved ?? 0,
-          fill: "#10b981",
+          fill: "#f97316",
         },
       ];
   const statusTotal = statusChart.reduce((s, r) => s + r.count, 0);
@@ -312,7 +312,7 @@ export function AreaOpsDashboard({
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--border)]">
+              <tbody className="divide-y divide-(--border)">
                 {recentFiltered.map((r) => (
                   <tr key={r.id}>
                     <td className="py-2">
@@ -359,14 +359,14 @@ export function AreaOpsDashboard({
           {!isRequests && (
             <Link
               to="/admin/fallas"
-              className="text-sm text-[var(--color-primary)] hover:underline"
+              className="text-sm text-primary hover:underline"
             >
               Reportar o ver mis fallas →
             </Link>
           )}
           <Link
             to="/admin/agendamientos"
-            className="text-sm text-[var(--color-primary)] hover:underline"
+            className="text-sm text-primary hover:underline"
           >
             Ver solicitudes →
           </Link>

@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -23,6 +25,8 @@ class SignatureRole(models.TextChoices):
     SUPERVISOR = "SUPERVISOR"
 
 class WorkOrderSparePart(models.Model):
+    if TYPE_CHECKING:
+        work_order_id: int
 
     work_order = models.ForeignKey(
         EquipmentWorkOrder,
@@ -73,6 +77,8 @@ class WorkOrderMeasurement(models.Model):
 
 
 class WorkOrderEvidence(models.Model):
+    if TYPE_CHECKING:
+        def get_evidence_type_display(self) -> str: ...
 
     work_order = models.ForeignKey(
         EquipmentWorkOrder,
@@ -97,6 +103,8 @@ class WorkOrderEvidence(models.Model):
 
 
 class WorkOrderSignature(models.Model):
+    if TYPE_CHECKING:
+        def get_role_display(self) -> str: ...
 
     work_order = models.ForeignKey(
         EquipmentWorkOrder,

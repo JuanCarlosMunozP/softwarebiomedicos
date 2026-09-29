@@ -1,19 +1,20 @@
-import factory
+from factory.declarations import Sequence, SubFactory
 from factory.django import DjangoModelFactory
 
+from common.typing_meta import FactoryMeta
 from branches.tests.factories import BranchFactory
 from catalog.tests.factories import EquipmentModelFactory
 from equipment.models import Equipment, EquipmentStatus
 
 
 class EquipmentFactory(DjangoModelFactory):
-    class Meta:
+    class Meta(FactoryMeta):
         model = Equipment
 
-    name = factory.Sequence(lambda n: f"Equipo {n}")
-    asset_tag = factory.Sequence(lambda n: f"EQ-{n:04d}")
-    equipment_model = factory.SubFactory(EquipmentModelFactory)
-    branch = factory.SubFactory(BranchFactory)
+    name = Sequence(lambda n: f"Equipo {n}")
+    asset_tag = Sequence(lambda n: f"EQ-{n:04d}")
+    equipment_model = SubFactory(EquipmentModelFactory)
+    branch = SubFactory(BranchFactory)
     location = ""
     purchase_date = None
     status = EquipmentStatus.ACTIVE

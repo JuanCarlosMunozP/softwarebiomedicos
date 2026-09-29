@@ -1,6 +1,7 @@
 import pytest
 from django.core.cache import cache
 from django.urls import reverse
+from rest_framework.throttling import ScopedRateThrottle
 
 from common.views import ThrottledTokenObtainPairView
 
@@ -31,9 +32,14 @@ def _clear_throttle_cache():
 
 @pytest.mark.django_db
 class TestLoginThrottle:
-    def test_sixth_attempt_in_a_minute_is_throttled(self, api_client, settings):
+    def test_sixth_attempt_in_a_minute_is_throttled(self, api_client, settings, monkeypatch):
         # Se desactiva el lockout de axes para aislar el comportamiento del throttle.
+        # ScopedRateThrottle copia DEFAULT_THROTTLE_RATES al importar la clase,
+        # así que cambiar settings no alcanza: el rate de producción es 500/min
+        # y aquí se fija 5/min solo en esa copia para que el sexto intento responda 429.
         settings.AXES_FAILURE_LIMIT = 1000
+        monkeypatch.setitem(ScopedRateThrottle.THROTTLE_RATES, "login", "5/min")
+        cache.clear()
 
         for _ in range(5):
             response = api_client.post(

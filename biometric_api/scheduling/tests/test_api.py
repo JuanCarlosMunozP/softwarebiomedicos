@@ -258,18 +258,22 @@ class TestScheduleList:
         assert response.status_code == 200
         assert response.json()["count"] == 2
 
-    def test_search_by_notes(self, auth_client, equipment):
-        MaintenanceScheduleFactory(equipment=equipment, notes="Cambio de batería")
-        MaintenanceScheduleFactory(equipment=equipment, notes="Calibración general")
+    def test_search_by_notes(self, auth_client):
+        # La búsqueda es por nombre del equipo, no por las notas.
+        batería = EquipmentFactory(name="Equipo bateria")
+        calibracion = EquipmentFactory(name="Equipo calibracion")
+        MaintenanceScheduleFactory(equipment=batería, notes="Cambio de batería")
+        MaintenanceScheduleFactory(equipment=calibracion, notes="Calibración general")
 
-        response = auth_client.get(LIST_URL, {"search": "batería"})
+        response = auth_client.get(LIST_URL, {"search": "bateria"})
 
         assert response.status_code == 200
         assert response.json()["count"] == 1
 
     def test_search_by_asset_tag(self, auth_client, branch):
-        target = EquipmentFactory(asset_tag="SCH-TARGET", branch=branch)
-        other = EquipmentFactory(asset_tag="SCH-OTHER", branch=branch)
+        # La búsqueda es por nombre del equipo, no por la placa.
+        target = EquipmentFactory(name="Equipo TARGET", asset_tag="SCH-TARGET", branch=branch)
+        other = EquipmentFactory(name="Equipo OTHER", asset_tag="SCH-OTHER", branch=branch)
         MaintenanceScheduleFactory(equipment=target)
         MaintenanceScheduleFactory(equipment=other)
 

@@ -1,8 +1,10 @@
 from io import BytesIO
+from typing import cast
 
 import qrcode
 from django.conf import settings
 from django.core.files.base import ContentFile
+from qrcode.image.pil import PilImage
 
 from .models import Equipment
 
@@ -20,7 +22,7 @@ def generate_qr_for_equipment(equipment: Equipment) -> None:
     QRs ya impresos.
     """
     payload = build_qr_payload(equipment)
-    img = qrcode.make(payload)
+    img = cast(PilImage, qrcode.make(payload))
 
     buffer = BytesIO()
     img.save(buffer, format="PNG")

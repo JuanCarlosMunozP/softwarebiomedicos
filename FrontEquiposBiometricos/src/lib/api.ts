@@ -146,7 +146,7 @@ api.interceptors.response.use(
         // Guardamos a dónde quería ir (p. ej. la hoja de vida al escanear un
         // QR) para volver ahí después de iniciar sesión.
         const next = `${window.location.pathname}${window.location.search}`;
-        window.location.assign(`/login?next=${encodeURIComponent(next)}`);
+        window.location.assign(`/?next=${encodeURIComponent(next)}`);
       }
       return Promise.reject(error);
     }

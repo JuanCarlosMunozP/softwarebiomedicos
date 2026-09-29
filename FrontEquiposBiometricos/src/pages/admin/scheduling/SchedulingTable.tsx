@@ -17,22 +17,28 @@ export function SchedulingTable({
   onComplete,
   onEdit,
   onDelete,
+  canCreate,
+  onCreate,
 }: SchedulingTableProps) {
   return (
-    <div className="overflow-x-auto">
+    <div className="w-full min-w-0">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-app text-left text-xs uppercase tracking-wider text-app-muted [&>th]:pb-2 [&>th]:pr-6 [&>th]:font-medium [&>th]:whitespace-nowrap">
-            <th>Equipo</th>
-            {showRequestingArea && <th>Área solicitante</th>}
-            <th>Tipo</th>
-            <th>Fecha de Solicitud</th>
-            <th>Asignado a</th>
-            <th>Estado</th>
-            <th className="pr-0 text-right">Acciones</th>
+          <tr className="border-b border-app text-left text-xs uppercase tracking-wider text-app-muted [&>th]:pb-2 [&>th]:align-bottom [&>th]:font-medium">
+            <th className="whitespace-nowrap py-3 pl-4 pr-16 text-center font-medium">Equipo</th>
+            <th className="whitespace-nowrap py-3 pl-14 pr-8 text-center font-medium">Sede</th>
+            {showRequestingArea && (
+              <th className="whitespace-nowrap py-3 pl-8 pr-8 text-center font-medium">Área solicitante</th>
+            )}
+            <th className="whitespace-nowrap py-3 pl-8 pr-8 text-center font-medium">Tipo</th>
+            <th className="whitespace-nowrap py-3 pl-8 pr-8 text-center font-medium">Fecha de Solicitud</th>
+            <th className="whitespace-nowrap py-3 pl-8 pr-10 text-center font-medium">Designado por</th>
+            <th className="whitespace-nowrap py-3 pl-10 pr-8 text-center font-medium">Asignado a</th>
+            <th className="whitespace-nowrap py-3 pl-8 pr-12 text-center font-medium">Estado</th>
+            <th className="whitespace-nowrap py-3 pl-12 pr-4 text-center font-medium">Acciones</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-[var(--border)] [&>tr>td]:pr-6 [&>tr>td]:align-top">
+        <tbody className="divide-y divide-(--border) [&>tr>td]:align-top [&>tr>td]:wrap-break-word">
           {loading ? (
             <tr>
               <td
@@ -68,6 +74,8 @@ export function SchedulingTable({
                 onComplete={onComplete}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                canCreate={canCreate}
+                onCreate={onCreate}
               />
             ))
           )}

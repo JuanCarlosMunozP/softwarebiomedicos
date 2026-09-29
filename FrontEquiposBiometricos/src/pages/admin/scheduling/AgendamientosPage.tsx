@@ -6,6 +6,7 @@ import { assignmentPayload } from "@/lib/users";
 import { useAuth } from "@/context/AuthContext";
 import { schedulingService } from "@/services/scheduling.service";
 import { equipmentService } from "@/services/equipment.service";
+import { branchesService } from "@/services/branches.service";
 import { usersService } from "@/services/users.service";
 import { workOrdersService } from "@/services/workorders.service";
 import { can } from "@/lib/permissions";
@@ -23,6 +24,7 @@ import {
   today,
 } from "@/utils/scheduling.utils";
 import type { Equipment } from "@/types/equipment/equipment";
+import type { Branch } from "@/types/equipment/branch";
 import type { Usuario } from "@/types/authentication/auth";
 import type { ScheduledMaintenance } from "@/types/scheduling/scheduling";
 import type { WorkOrderDetail } from "@/types/equipment/workorder";
@@ -37,6 +39,7 @@ export function AgendamientosPage() {
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   // La lista de equipos se carga aparte y en silencio; si falla, avisamos en
   // el <Select> del formulario para que no quede un desplegable vacío sin
   // explicación.
@@ -44,7 +47,12 @@ export function AgendamientosPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [equipmentSearchOptions, setEquipmentSearchOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
   const [completedFilter, setCompletedFilter] = useState("");
+  const [branchFilter, setBranchFilter] = useState("");
+  const [areaFilter, setAreaFilter] = useState("");
 
   const [editing, setEditing] = useState<ScheduledMaintenance | null>(null);
   const [viewing, setViewing] = useState<ScheduledMaintenance | null>(null);
@@ -64,7 +72,7 @@ export function AgendamientosPage() {
   const canEdit = can(role, "scheduling", "edit");
   const canDelete = can(role, "scheduling", "delete");
   const showRequestingArea = role === "superadmin" || role === "ingeniero";
-  const tableColSpan = showRequestingArea ? 7 : 6;
+  const tableColSpan = showRequestingArea ? 9 : 8;
   const isCoordinatorOrSuperadmin =
     role === "coordinador" || role === "superadmin";
   const canRegisterMaintenance = can(role, "maintenance", "create");
@@ -105,6 +113,31 @@ export function AgendamientosPage() {
     [equipment],
   );
 
+  const branchOptions = useMemo(
+    () =>
+      branches.map((b) => ({
+        value: String(b.id),
+        label: `${b.name} (${b.city})`,
+      })),
+    [branches],
+  );
+
+  // Servicios disponibles: valores únicos de `equipment.area` (no hay
+  // catálogo propio, es texto libre en Equipo), igual que en Reportes de falla.
+  const areaOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          equipment
+            .map((e) => (e.area || "").trim())
+            .filter((a) => a.length > 0),
+        ),
+      )
+        .sort((a, b) => a.localeCompare(b, "es"))
+        .map((a) => ({ value: a, label: a })),
+    [equipment],
+  );
+
   const equipmentLabel = (id: number) => {
     const e = equipment.find((x) => x.id === id);
     return e ? `${e.name} (${e.asset_tag})` : `Equipo #${id}`;
@@ -117,6 +150,8 @@ export function AgendamientosPage() {
       const data = await schedulingService.listPaginated({
         ordering: "-requested_date",
         search: search || undefined,
+        branch: branchFilter ? Number(branchFilter) : undefined,
+        area: areaFilter || undefined,
         is_completed:
           completedFilter === "true"
             ? true
@@ -144,6 +179,30 @@ export function AgendamientosPage() {
         setEquipmentError(false);
       })
       .catch(() => setEquipmentError(true));
+    equipmentService
+      .listAll({ ordering: "name" })
+      .then((data) => {
+        const seen = new Set<string>();
+        const options: { value: string; label: string }[] = [];
+        for (const e of data) {
+          const label = e.name.trim();
+          if (!label) continue;
+          const key = label.toLocaleLowerCase("es");
+          if (seen.has(key)) continue;
+          seen.add(key);
+          options.push({ value: key, label });
+        }
+        options.sort((a, b) => a.label.localeCompare(b.label, "es"));
+        setEquipmentSearchOptions(options);
+      })
+      .catch(() => setEquipmentSearchOptions([]));
+  }, []);
+
+  useEffect(() => {
+    branchesService
+      .list({ ordering: "name" })
+      .then(setBranches)
+      .catch(() => null);
   }, []);
 
   useEffect(() => {
@@ -152,7 +211,7 @@ export function AgendamientosPage() {
     }, 300);
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, completedFilter]);
+  }, [search, completedFilter, branchFilter, areaFilter]);
 
   // Coordinador e ingeniero pueden listar ingenieros/operativos activos
   // (selector de responsable). Admin ve el catálogo completo.
@@ -277,25 +336,30 @@ export function AgendamientosPage() {
 
   return (
     <div className="mx-auto flex max-w-screen-2xl flex-col gap-6">
-      <SchedulingHeader canCreate={canCreate} onCreate={openCreate} />
+      <SchedulingHeader role={role} />
 
-      <Card>
-        <SchedulingFilters
-          search={search}
-          onSearchChange={setSearch}
-          completedFilter={completedFilter}
-          onCompletedFilterChange={setCompletedFilter}
-        />
-
+      <Card padding="none">
         {error && (
           <div
             role="alert"
-            className="mb-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
+            className="m-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
           >
             {error}
           </div>
         )}
-
+        <div className="w-full min-w-0 overflow-x-auto">
+        <SchedulingFilters
+          onSearchChange={setSearch}
+          equipmentOptions={equipmentSearchOptions}
+          completedFilter={completedFilter}
+          onCompletedFilterChange={setCompletedFilter}
+          branchFilter={branchFilter}
+          onBranchFilterChange={setBranchFilter}
+          branchOptions={branchOptions}
+          areaFilter={areaFilter}
+          onAreaFilterChange={setAreaFilter}
+          areaOptions={areaOptions}
+        />
         <SchedulingTable
           items={items}
           loading={loading}
@@ -314,7 +378,10 @@ export function AgendamientosPage() {
           onComplete={(s) => void completeOne(s)}
           onEdit={openEdit}
           onDelete={setToDelete}
+          canCreate={canCreate}
+          onCreate={openCreate}
         />
+        </div>
 
         <SchedulingPagination
           count={count}

@@ -172,7 +172,7 @@ def remove_pdf_file(sender, instance: MaintenanceRecord, **kwargs) -> None:
         transaction.on_commit(lambda:pdf_file.delete(save=False))
 
 @receiver(pre_delete,sender=MaintenanceRecord)
-def reopen_linked_schedule(sender,instance:MaintenanceRecord,**kwargs) -> None:
+def reopen_linked_schedule(sender,instance:MaintenanceRecord,**kwargs) -> str | None:
     """Si el registro estaba vinculado a un agendamiento, lo reabre al borrarse."""
     schedule = instance.scheduled_maintenance
     if schedule is not None and schedule.is_completed:

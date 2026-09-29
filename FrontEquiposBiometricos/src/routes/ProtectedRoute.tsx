@@ -14,7 +14,7 @@ export function ProtectedRoute({ roles }: ProtectedRouteProps) {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-app">
-        <span className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-[var(--color-primary)] border-t-transparent" />
+        <span className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -24,7 +24,7 @@ export function ProtectedRoute({ roles }: ProtectedRouteProps) {
     // para que LoginPage redirija de vuelta tras autenticarse.
     return (
       <Navigate
-        to="/login"
+        to="/"
         replace
         state={{ from: `${location.pathname}${location.search}${location.hash}` }}
       />

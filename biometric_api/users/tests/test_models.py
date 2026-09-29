@@ -2,7 +2,14 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
+from users.managers import UserManager
 from users.models import User
+
+
+def _user_objects() -> UserManager:
+    manager = User.objects
+    assert isinstance(manager, UserManager)
+    return manager
 
 from .factories import UserFactory
 
@@ -44,20 +51,20 @@ class TestUserManager:
     def test_active_inactive(self):
         UserFactory(is_active=True)
         UserFactory(is_active=False)
-        assert User.objects.active().count() == 1
-        assert User.objects.inactive().count() == 1
+        assert _user_objects().active().count() == 1
+        assert _user_objects().inactive().count() == 1
 
     def test_by_role(self):
         UserFactory(role=User.Role.INGENIERO)
         UserFactory(role=User.Role.INGENIERO)
         UserFactory(role=User.Role.TECNICO)
-        assert User.objects.by_role(User.Role.INGENIERO).count() == 2
+        assert _user_objects().by_role(User.Role.INGENIERO).count() == 2
 
     def test_staff_roles(self):
         UserFactory(role=User.Role.SUPERADMIN, is_staff=True, is_superuser=True)
         UserFactory(role=User.Role.ADMIN)
         UserFactory(role=User.Role.TECNICO)
-        assert User.objects.staff_roles().count() == 2
+        assert _user_objects().staff_roles().count() == 2
 
     def test_create_user_defaults(self):
         u = User.objects.create_user(username="alice", email="alice@x.com", password="secret123")

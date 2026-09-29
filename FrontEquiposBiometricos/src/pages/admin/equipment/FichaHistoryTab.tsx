@@ -33,7 +33,7 @@ export function FichaHistoryTab({
             key={m.id}
             className="flex flex-col gap-2 rounded-lg border border-app bg-app-muted p-3 sm:flex-row sm:items-start sm:gap-4"
           >
-            <div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+            <div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <Wrench size={16} />
             </div>
             <div className="flex-1">
@@ -52,7 +52,7 @@ export function FichaHistoryTab({
               </div>
               <p className="mt-1 text-sm text-app">{m.description}</p>
               {m.observations && (
-                <div className="mt-1.5 rounded-md border-l-2 border-[var(--color-primary)]/40 bg-surface px-2.5 py-1.5">
+                <div className="mt-1.5 rounded-md border-l-2 border-primary/40 bg-surface px-2.5 py-1.5">
                   <p className="text-xs font-medium text-app-muted">
                     Observaciones
                   </p>
@@ -67,7 +67,7 @@ export function FichaHistoryTab({
                 href={m.pdf_file_url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 self-start rounded-lg border border-app bg-surface px-2.5 py-1 text-xs font-medium text-app hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]"
+                className="inline-flex items-center gap-1 self-start rounded-lg border border-app bg-surface px-2.5 py-1 text-xs font-medium text-app hover:bg-primary/10 hover:text-primary"
               >
                 <FileText size={12} /> PDF
               </a>

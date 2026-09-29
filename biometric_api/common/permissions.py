@@ -105,11 +105,12 @@ class HasRolePermission(BasePermission):
             return True
 
         action = getattr(view, "action", None)
-        needed = _STANDARD_ACTIONS.get(action)
+        action_name = action if isinstance(action, str) else None
+        needed = _STANDARD_ACTIONS.get(action_name) if action_name is not None else None
         if needed is None:
             # @action custom o `metadata` (OPTIONS): read-only => VIEW, si no EDIT.
             readonly = request.method in ("GET", "HEAD", "OPTIONS") or (
-                action in getattr(view, "readonly_actions", ())
+                action_name in getattr(view, "readonly_actions", ())
             )
             needed = VIEW if readonly else EDIT
 

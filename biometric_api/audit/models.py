@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -10,6 +12,11 @@ class AuditAction(models.TextChoices):
 
 
 class AuditLog(models.Model):
+    if TYPE_CHECKING:
+        actor_id: int | None
+
+        def get_action_display(self) -> str: ...
+
     """Rastro de acciones sensibles (borrados, cambios de rol, etc.) sobre
     recursos de la API, para trazabilidad y cumplimiento."""
 

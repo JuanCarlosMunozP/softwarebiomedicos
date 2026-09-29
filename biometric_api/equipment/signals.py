@@ -35,7 +35,9 @@ def alert_when_warranty_is_near(sender,instance:Equipment,created:bool,**kwargs)
     if not (created or getattr(instance, "_warranty_changed", False)):
         return
     from .tasks import check_equipment_expiry
-    transaction.on_commit(lambda: check_equipment_expiry.delay(instance.pk))
+    transaction.on_commit(
+        lambda: getattr(check_equipment_expiry, "delay")(instance.pk)
+    )
 
 
 @receiver(pre_delete, sender=Equipment)

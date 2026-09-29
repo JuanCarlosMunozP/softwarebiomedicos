@@ -1,12 +1,16 @@
+from typing import Any
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+
+from common.typing_meta import ModelSerializerMeta
 
 from .models import Brand, EquipmentModel
 
 
-class BrandSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Brand
+class BrandSerializer(serializers.ModelSerializer[Brand]):
+    class Meta(ModelSerializerMeta):
+        model: Any = Brand
         fields = (
             "id",
             "name",
@@ -33,11 +37,11 @@ class BrandSerializer(serializers.ModelSerializer):
         return normalized
 
 
-class EquipmentModelSerializer(serializers.ModelSerializer):
+class EquipmentModelSerializer(serializers.ModelSerializer[EquipmentModel]):
     brand_name = serializers.CharField(source="brand.name", read_only=True)
 
-    class Meta:
-        model = EquipmentModel
+    class Meta(ModelSerializerMeta):
+        model: Any = EquipmentModel
         fields = (
             "id",
             "brand",

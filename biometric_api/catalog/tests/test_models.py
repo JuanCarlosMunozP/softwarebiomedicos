@@ -1,8 +1,21 @@
 import pytest
 from django.db import IntegrityError
 
+from ..managers import BrandManager, EquipmentModelManager
 from ..models import Brand, EquipmentModel
 from .factories import BrandFactory, EquipmentModelFactory
+
+
+def _brand_objects() -> BrandManager:
+    manager = Brand.objects
+    assert isinstance(manager, BrandManager)
+    return manager
+
+
+def _model_objects() -> EquipmentModelManager:
+    manager = EquipmentModel.objects
+    assert isinstance(manager, EquipmentModelManager)
+    return manager
 
 pytestmark = pytest.mark.django_db
 
@@ -16,8 +29,8 @@ class TestBrandModel:
         BrandFactory(name="A", is_active=True)
         BrandFactory(name="B", is_active=False)
 
-        assert Brand.objects.active().count() == 1
-        assert Brand.objects.inactive().count() == 1
+        assert _brand_objects().active().count() == 1
+        assert _brand_objects().inactive().count() == 1
 
 
 class TestEquipmentModelModel:
@@ -40,11 +53,11 @@ class TestEquipmentModelModel:
     def test_for_brand_manager(self, brand):
         EquipmentModelFactory.create_batch(3, brand=brand)
         EquipmentModelFactory()  # otra brand
-        assert EquipmentModel.objects.for_brand(brand.id).count() == 3
+        assert _model_objects().for_brand(brand.id).count() == 3
 
     def test_with_active_brand_manager(self):
         active = BrandFactory(is_active=True)
         inactive = BrandFactory(is_active=False)
         EquipmentModelFactory(brand=active)
         EquipmentModelFactory(brand=inactive)
-        assert EquipmentModel.objects.with_active_brand().count() == 1
+        assert _model_objects().with_active_brand().count() == 1

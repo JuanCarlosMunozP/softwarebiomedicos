@@ -1,6 +1,10 @@
+from typing import Any
+
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+
+from common.typing_meta import ModelSerializerMeta
 
 from branches.models import Branch
 from catalog.models import EquipmentModel
@@ -28,17 +32,18 @@ from .models import (
 )
 
 
-class EquipmentSerializer(serializers.ModelSerializer):
+class EquipmentSerializer(serializers.ModelSerializer[Equipment]):
     branch_name = serializers.CharField(source="branch.name", read_only=True)
     equipment_model_name = serializers.CharField(source="equipment_model.name", read_only=True)
     brand_name = serializers.CharField(source="equipment_model.brand.name", read_only=True)
+    brand = serializers.IntegerField(source="equipment_model.brand_id", read_only=True)
     qr_code_url = serializers.SerializerMethodField()
     days_to_expiration = serializers.SerializerMethodField()
     status_display = serializers.CharField(source="get_status_display",read_only=True)
     risk_class_display = serializers.CharField(source="get_risk_class_display",read_only=True)
 
-    class Meta:
-        model = Equipment
+    class Meta(ModelSerializerMeta):
+        model: Any = Equipment
         fields = (
             # Identificación
             "id",
@@ -51,6 +56,7 @@ class EquipmentSerializer(serializers.ModelSerializer):
             # clasificación
             "equipment_model",
             "equipment_model_name",
+            "brand",
             "brand_name",
             "branch",
             "branch_name",
@@ -71,6 +77,7 @@ class EquipmentSerializer(serializers.ModelSerializer):
 
             # Adquisición
             "purchase_date",
+            "supplier_acquisition",
             "equipment_cost",
             "manufacture_date",
             "start_use_date",
@@ -130,6 +137,7 @@ class EquipmentSerializer(serializers.ModelSerializer):
         read_only_fields = (
             "id",
             "equipment_model_name",
+            "brand",
             "brand_name",
             "qr_code",
             "qr_code_url",
@@ -214,13 +222,13 @@ class EquipmentSerializer(serializers.ModelSerializer):
             )
         return value
 
-class EquipmentAttachmentSerializer(serializers.ModelSerializer):
+class EquipmentAttachmentSerializer(serializers.ModelSerializer[EquipmentAttachment]):
 
     uploaded_by_name = serializers.SerializerMethodField()
 
-    class Meta:
+    class Meta(ModelSerializerMeta):
 
-        model = EquipmentAttachment
+        model: Any = EquipmentAttachment
 
         fields = (
             "id",
@@ -254,11 +262,11 @@ class EquipmentAttachmentSerializer(serializers.ModelSerializer):
     def validate_file(self, value):
         return validate_uploaded_file(value, allowed_extensions=ATTACHMENT_EXTENSIONS)
 
-class EquipmentCertificateSerializer(serializers.ModelSerializer):
+class EquipmentCertificateSerializer(serializers.ModelSerializer[EquipmentCertificate]):
 
-    class Meta:
+    class Meta(ModelSerializerMeta):
 
-        model = EquipmentCertificate
+        model: Any = EquipmentCertificate
 
         fields = "__all__"
 
@@ -271,11 +279,11 @@ class EquipmentCertificateSerializer(serializers.ModelSerializer):
         return validate_uploaded_file(value, allowed_extensions=CERTIFICATE_EXTENSIONS)
 
 
-class EquipmentInstructionSerializer(serializers.ModelSerializer):
+class EquipmentInstructionSerializer(serializers.ModelSerializer[EquipmentInstruction]):
 
-    class Meta:
+    class Meta(ModelSerializerMeta):
 
-        model = EquipmentInstruction
+        model: Any = EquipmentInstruction
         fields = '__all__'
 
         read_only_fields = [
@@ -283,7 +291,29 @@ class EquipmentInstructionSerializer(serializers.ModelSerializer):
         ]
 
 
-class EquipmentWorkOrderSerializer(serializers.ModelSerializer):
+_WORK_ORDER_FIELDS = (
+    "id",
+    "equipment",
+    "equipment_asset_tag",
+    "equipment_name",
+    "number",
+    "service_type",
+    "service_type_display",
+    "start_date",
+    "end_date",
+    "description",
+    "technician",
+    "technician_name",
+    "status",
+    "status_display",
+    "report",
+    "schedule",
+    "schedule_info",
+    "created_at",
+)
+
+
+class EquipmentWorkOrderSerializer(serializers.ModelSerializer[EquipmentWorkOrder]):
 
     technician_name = serializers.SerializerMethodField()
     equipment_asset_tag = serializers.CharField(
@@ -298,30 +328,11 @@ class EquipmentWorkOrderSerializer(serializers.ModelSerializer):
     )
     schedule_info = serializers.SerializerMethodField()
 
-    class Meta:
+    class Meta(ModelSerializerMeta):
 
-        model = EquipmentWorkOrder
+        model: Any = EquipmentWorkOrder
 
-        fields = (
-            "id",
-            "equipment",
-            "equipment_asset_tag",
-            "equipment_name",
-            "number",
-            "service_type",
-            "service_type_display",
-            "start_date",
-            "end_date",
-            "description",
-            "technician",
-            "technician_name",
-            "status",
-            "status_display",
-            "report",
-            "schedule",
-            "schedule_info",
-            "created_at",
-        )
+        fields = _WORK_ORDER_FIELDS
 
         read_only_fields = [
             "id",
@@ -412,7 +423,7 @@ class EquipmentWorkOrderDetailSerializer(EquipmentWorkOrderSerializer):
     cost = serializers.SerializerMethodField()
 
     class Meta(EquipmentWorkOrderSerializer.Meta):
-        fields = EquipmentWorkOrderSerializer.Meta.fields + (
+        fields = _WORK_ORDER_FIELDS + (
             "spare_parts",
             "measurements",
             "evidences",

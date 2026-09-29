@@ -1,9 +1,16 @@
 import pytest
 
 from catalog.tests.factories import EquipmentModelFactory
+from equipment.managers import EquipmentManager
 from equipment.models import Equipment, EquipmentStatus, RiskClass
 
 from .factories import EquipmentFactory
+
+
+def _equipment_objects() -> EquipmentManager:
+    manager = Equipment.objects
+    assert isinstance(manager, EquipmentManager)
+    return manager
 
 
 @pytest.mark.django_db
@@ -35,18 +42,18 @@ class TestEquipmentManager:
         EquipmentFactory(status=EquipmentStatus.ACTIVE)
         EquipmentFactory(status=EquipmentStatus.INACTIVE)
         EquipmentFactory(status=EquipmentStatus.IN_REPAIR)
-        assert Equipment.objects.active().count() == 1
+        assert _equipment_objects().active().count() == 1
 
     def test_in_repair_returns_maintenance_and_repair(self):
         EquipmentFactory(status=EquipmentStatus.ACTIVE)
         EquipmentFactory(status=EquipmentStatus.IN_MAINTENANCE)
         EquipmentFactory(status=EquipmentStatus.IN_REPAIR)
-        assert Equipment.objects.in_repair().count() == 2
+        assert _equipment_objects().in_repair().count() == 2
 
     def test_for_branch_filters_by_branch_id(self, branch):
         EquipmentFactory.create_batch(2, branch=branch)
         EquipmentFactory()
-        assert Equipment.objects.for_branch(branch.id).count() == 2
+        assert _equipment_objects().for_branch(branch.id).count() == 2
 
     def test_select_related_avoids_n_plus_1(self, django_assert_num_queries):
         EquipmentFactory.create_batch(3)

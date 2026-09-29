@@ -8,8 +8,6 @@ type SelectOption = { value: string; label: string };
 
 // Equipment Header
 export interface EquipmentHeaderProps {
-  canCreate: boolean;
-  onCreate: () => void;
   role: Rol | undefined;
   area?: string | null;
 }
@@ -28,6 +26,7 @@ export interface EquipmentFiltersProps {
   onRiskFilterChange: (value: string) => void;
   branchOptions: SelectOption[];
   brands: Brand[];
+  searchOptions: { value: string; label: string; hint?: string }[];
 }
 
 // Status Select
@@ -44,6 +43,8 @@ export interface EquipmentRowProps {
   models: EquipmentModel[];
   branchName: (id: number) => string;
   canEdit: boolean;
+  canCreate: boolean;
+  onCreate: () => void;
   canCreateMaintenance: boolean;
   statusUpdatingId: number | null;
   onSelect: (eq: Equipment) => void;
@@ -96,4 +97,5 @@ export interface EquipmentFormModalProps
   formErrorRef: RefObject<HTMLDivElement | null>;
   onSubmit: (ev: FormEvent) => void;
   saving: boolean;
+  onBack?: () => void;
 }

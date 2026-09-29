@@ -40,7 +40,7 @@ export function Tabs<T extends string>({
             className={cn(
               "-mb-px inline-flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-medium transition",
               active
-                ? "border-[var(--color-primary)] text-[var(--color-primary)]"
+                ? "border-primary text-primary"
                 : "border-transparent text-app-muted hover:text-app",
             )}
           >

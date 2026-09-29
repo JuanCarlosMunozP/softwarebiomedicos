@@ -35,6 +35,13 @@ export function useOrdenesTrabajo() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [equipmentFilter, setEquipmentFilter] = useState("");
+  const [orderOptions, setOrderOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [equipmentSearchOptions, setEquipmentSearchOptions] = useState<
+    { value: string; label: string; hint?: string }[]
+  >([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
 
@@ -89,6 +96,7 @@ export function useOrdenesTrabajo() {
       const data = await workOrdersService.listPaginated({
         ordering: "-start_date",
         search: search || undefined,
+        equipment_name: equipmentFilter || undefined,
         status: statusFilter || undefined,
         service_type: typeFilter || undefined,
         page: targetPage,
@@ -104,6 +112,26 @@ export function useOrdenesTrabajo() {
     }
   };
 
+  const loadOrderOptions = async () => {
+    try {
+      const all = await workOrdersService.listAll({ ordering: "-start_date" });
+      const seen = new Set<string>();
+      const options: { value: string; label: string }[] = [];
+      for (const w of all) {
+        const label = w.number.trim();
+        if (!label) continue;
+        const key = label.toLocaleLowerCase("es");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        options.push({ value: key, label });
+      }
+      options.sort((a, b) => a.label.localeCompare(b.label, "es"));
+      setOrderOptions(options);
+    } catch {
+      // El listado paginado sigue funcionando aunque falle el buscador.
+    }
+  };
+
   useEffect(() => {
     void Promise.all([
       equipmentService
@@ -113,11 +141,30 @@ export function useOrdenesTrabajo() {
           setEquipmentError(false);
         })
         .catch(() => setEquipmentError(true)),
+      equipmentService
+        .listAll({ ordering: "name" })
+        .then((data) => {
+          setEquipmentSearchOptions(
+            data
+              .map((e) => ({
+                value: String(e.id),
+                label: e.name,
+                hint: e.asset_tag,
+              }))
+              .sort(
+                (a, b) =>
+                  a.label.localeCompare(b.label, "es") ||
+                  (a.hint ?? "").localeCompare(b.hint ?? "", "es"),
+              ),
+          );
+        })
+        .catch(() => setEquipmentSearchOptions([])),
       usersService
         .list({ is_active: true })
         .then(setTechnicians)
         .catch(() => setTechnicians([])),
     ]);
+    void loadOrderOptions();
   }, []);
 
   useEffect(() => {
@@ -126,7 +173,7 @@ export function useOrdenesTrabajo() {
     }, 300);
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, statusFilter, typeFilter]);
+  }, [search, equipmentFilter, statusFilter, typeFilter]);
 
   const openCreate = () => {
     setForm({
@@ -173,6 +220,7 @@ export function useOrdenesTrabajo() {
       }
       closeModal();
       await load();
+      void loadOrderOptions();
     } catch (err) {
       alert(getApiErrorMessage(err, "Error al guardar"));
     } finally {
@@ -187,6 +235,7 @@ export function useOrdenesTrabajo() {
       await workOrdersService.remove(toDelete.id);
       setToDelete(null);
       await load();
+      void loadOrderOptions();
     } catch (err) {
       alert(getApiErrorMessage(err, "No se pudo eliminar"));
     } finally {
@@ -301,6 +350,9 @@ export function useOrdenesTrabajo() {
     error,
     search,
     setSearch,
+    orderOptions,
+    equipmentSearchOptions,
+    setEquipmentFilter,
     statusFilter,
     setStatusFilter,
     typeFilter,

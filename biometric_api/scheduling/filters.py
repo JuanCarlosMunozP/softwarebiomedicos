@@ -6,6 +6,7 @@ from .models import MaintenanceSchedule
 class MaintenanceScheduleFilter(filters.FilterSet):
     equipment = filters.NumberFilter(field_name="equipment_id")
     branch = filters.NumberFilter(field_name="equipment__branch_id")
+    area = filters.CharFilter(field_name="equipment__area", lookup_expr="iexact")
     kind = filters.CharFilter(field_name="kind", lookup_expr="iexact")
     is_completed = filters.BooleanFilter(field_name="is_completed")
     scheduled_date_after = filters.DateFilter(field_name="scheduled_date", lookup_expr="gte")
@@ -23,6 +24,7 @@ class MaintenanceScheduleFilter(filters.FilterSet):
         fields = (
             "equipment",
             "branch",
+            "area",
             "kind",
             "is_completed",
             "scheduled_date_after",

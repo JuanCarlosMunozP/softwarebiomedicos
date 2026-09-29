@@ -1,0 +1,16 @@
+﻿username,email,password,role,first_name,last_name,phone,area,estado
+operativo01,operativo01@pruebas.com,Prueba@2026_01,operativo,Carlos,Martínez,3001000001,Urgencias,Activo
+operativo02,operativo02@pruebas.com,Prueba@2026_02,operativo,Laura,Gómez,3001000002,Hospitalización,Activo
+operativo03,operativo03@pruebas.com,Prueba@2026_03,operativo,Andrés,Rodríguez,3001000003,UCI,Activo
+operativo04,operativo04@pruebas.com,Prueba@2026_04,operativo,Mariana,López,3001000004,Quirófano,Activo
+operativo05,operativo05@pruebas.com,Prueba@2026_05,operativo,Diego,Hernández,3001000005,Consulta Externa,Activo
+operativo06,operativo06@pruebas.com,Prueba@2026_06,operativo,Paola,Torres,3001000006,Radiología,Activo
+operativo07,operativo07@pruebas.com,Prueba@2026_07,operativo,Julián,Vargas,3001000007,Laboratorio Clínico,Activo
+operativo08,operativo08@pruebas.com,Prueba@2026_08,operativo,Natalia,Castro,3001000008,Cardiología,Activo
+operativo09,operativo09@pruebas.com,Prueba@2026_09,operativo,Felipe,Moreno,3001000009,Mantenimiento,Activo
+operativo10,operativo10@pruebas.com,Prueba@2026_10,operativo,Sofía,Paredes,3001000010,Enfermería,Activo
+ingeniero01,ingeniero01@pruebas.com,Prueba@2026_11,ingeniero_biomedico,Sebastián,Muñoz,3001000011,Ingeniería Biomédica,Activo
+ingeniero02,ingeniero02@pruebas.com,Prueba@2026_12,ingeniero_biomedico,Valentina,Rojas,3001000012,Ingeniería Biomédica,Activo
+ingeniero03,ingeniero03@pruebas.com,Prueba@2026_13,ingeniero_biomedico,Juan,Navarro,3001000013,Ingeniería Biomédica,Activo
+ingeniero04,ingeniero04@pruebas.com,Prueba@2026_14,ingeniero_biomedico,Camila,Salazar,3001000014,Ingeniería Biomédica,Activo
+ingeniero05,ingeniero05@pruebas.com,Prueba@2026_15,ingeniero_biomedico,Mateo,Córdoba,3001000015,Ingeniería Biomédica,Activo

@@ -7,7 +7,8 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 import { PUBLIC_REGISTRATION_ENABLED } from "@/lib/featureFlags";
-import { HomePage } from "@/pages/HomePage";
+// HomePage se conserva en el repo pero está oculta: la principal es LoginPage.
+// import { HomePage } from "@/pages/HomePage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegistroPage } from "@/pages/RegistroPage";
 import { RecuperarPasswordPage } from "@/pages/RecuperarPasswordPage";
@@ -35,8 +36,11 @@ function App() {
                 la pantalla en blanco total. */}
             <ErrorBoundary scope="app">
               <Routes>
-                {/* Páginas de autenticación sin layout */}
-                <Route path="/login" element={<LoginPage />} />
+                {/* Login es la página principal. HomePage queda en el código
+                    pero oculta: / y /home redirigen aquí. */}
+                <Route path="/" element={<LoginPage />} />
+                <Route path="/login" element={<Navigate to="/" replace />} />
+                <Route path="/home" element={<Navigate to="/" replace />} />
                 {/* Registro público deshabilitado por el momento: solo un
                     administrador crea cuentas (Admin → Usuarios). Si se accede
                     por URL directa, se redirige al login. */}
@@ -46,7 +50,7 @@ function App() {
                     PUBLIC_REGISTRATION_ENABLED ? (
                       <RegistroPage />
                     ) : (
-                      <Navigate to="/login" replace />
+                      <Navigate to="/" replace />
                     )
                   }
                 />
@@ -55,15 +59,13 @@ function App() {
                   element={<RecuperarPasswordPage />}
                 />
 
-                {/* Layout público — incluye también la 404 para que el header
-                    permita volver al inicio o al panel desde cualquier URL rota. */}
+                {/* Layout público — 404 con header para volver al inicio/panel. */}
                 <Route element={<MainLayout />}>
-                  <Route path="/" element={<HomePage />} />
                   <Route path="/404" element={<NotFoundPage />} />
                 </Route>
 
                 {/* Layout interno común a todos los roles autenticados.
-                    Cada vista filtra contenido y acciones por permisos. */}
+                    Sin sesión, ProtectedRoute redirige a / (login). */}
                 <Route element={<ProtectedRoute />}>
                   <Route path="/admin" element={<AdminLayout />}>
                     <Route index element={<DashboardPage />} />

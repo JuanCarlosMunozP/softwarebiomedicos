@@ -29,7 +29,7 @@ export function WorkOrderDetailView({
       <WorkOrderInfo w={detail} />
 
       {onRealizarMantenimiento && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
           <p className="text-sm text-app-muted">
             Cuando termines el trabajo, márcalo como realizado para dejarlo en la
             hoja de vida del equipo.

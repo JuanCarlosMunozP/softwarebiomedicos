@@ -4,6 +4,7 @@ from datetime import date
 import pytest
 from django.urls import reverse
 
+from maintenance.managers import MaintenanceRecordManager
 from maintenance.models import MaintenanceKind, MaintenanceRecord
 from users.models import User
 from users.tests.factories import (
@@ -13,6 +14,12 @@ from users.tests.factories import (
 )
 
 from .factories import MaintenanceRecordFactory
+
+
+def _maintenance_objects() -> MaintenanceRecordManager:
+    manager = MaintenanceRecord.objects
+    assert isinstance(manager, MaintenanceRecordManager)
+    return manager
 
 pytestmark = pytest.mark.django_db
 
@@ -260,7 +267,7 @@ class TestMaintenanceAssignmentManager:
         )
         MaintenanceRecordFactory(equipment=equipment, assigned_engineer=other_eng)
 
-        qs = MaintenanceRecord.objects.assigned_to_engineer(ingeniero.id)
+        qs = _maintenance_objects().assigned_to_engineer(ingeniero.id)
 
         assert qs.count() == 2
 
@@ -268,7 +275,7 @@ class TestMaintenanceAssignmentManager:
         MaintenanceRecordFactory(equipment=equipment, assigned_technician=tecnico)
         MaintenanceRecordFactory(equipment=equipment, assigned_technician=None)
 
-        qs = MaintenanceRecord.objects.assigned_to_technician(tecnico.id)
+        qs = _maintenance_objects().assigned_to_technician(tecnico.id)
 
         assert qs.count() == 1
 
@@ -277,7 +284,7 @@ class TestMaintenanceAssignmentManager:
         MaintenanceRecordFactory(equipment=equipment, assigned_technician=tecnico)
         MaintenanceRecordFactory.create_batch(2, equipment=equipment)
 
-        assert MaintenanceRecord.objects.unassigned().count() == 2
+        assert _maintenance_objects().unassigned().count() == 2
 
 
 class TestMaintenanceAssignmentOnUserDelete:

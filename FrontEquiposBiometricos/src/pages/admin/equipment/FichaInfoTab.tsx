@@ -98,7 +98,7 @@ export function FichaInfoTab({
         </h4>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex items-start gap-3 rounded-lg border border-app bg-app-muted p-3">
-            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <Activity size={16} />
             </span>
             <div className="flex-1">
@@ -115,7 +115,7 @@ export function FichaInfoTab({
             </div>
           </div>
           <div className="flex items-start gap-3 rounded-lg border border-app bg-app-muted p-3">
-            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <Timer size={16} />
             </span>
             <div className="flex-1">

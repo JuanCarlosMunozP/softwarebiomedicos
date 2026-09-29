@@ -19,6 +19,7 @@ function unwrap<T>(data: Paginated<T> | T[]): T[] {
 export interface WorkOrderListParams {
   ordering?: string;
   equipment?: number;
+  equipment_name?: string;
   status?: string;
   service_type?: string;
   technician?: number;
@@ -50,6 +51,20 @@ export const workOrdersService = {
       };
     }
     return res.data;
+  },
+  /** Trae todas las órdenes recorriendo la paginación, para el buscador. */
+  async listAll(params: Omit<WorkOrderListParams, "page" | "page_size"> = {}) {
+    const all: WorkOrder[] = [];
+    for (let page = 1; page < 500; page += 1) {
+      const res = await api.get<Paginated<WorkOrder> | WorkOrder[]>(
+        "/equipment/work-orders/",
+        { params: { ...params, page } },
+      );
+      if (Array.isArray(res.data)) return res.data;
+      all.push(...res.data.results);
+      if (!res.data.next) break;
+    }
+    return all;
   },
   async details(id: number) {
     const res = await api.get<WorkOrderDetail>(

@@ -72,12 +72,12 @@ export function HomePage() {
         <div className="mx-auto grid max-w-screen-2xl items-center gap-8 px-4 py-12 sm:px-6 md:grid-cols-[1.3fr_1fr] md:py-16">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-app bg-surface px-3 py-1 text-xs font-medium text-app-muted">
-              <GraduationCap size={14} className="text-[var(--color-primary)]" />
+              <GraduationCap size={14} className="text-primary" />
               Trabajo de grado · Ingeniería de Software · Universidad Cooperativa de Colombia
             </span>
             <h1 className="mt-5 text-3xl font-bold leading-tight text-app sm:text-4xl md:text-5xl">
               Un solo lugar para gestionar todos los{" "}
-              <span className="text-[var(--color-primary)]">equipos biomédicos</span>{" "}
+              <span className="text-primary">equipos biomédicos</span>{" "}
               de la clínica.
             </h1>
             <p className="mt-4 max-w-xl text-app-muted">
@@ -103,7 +103,7 @@ export function HomePage() {
           {/* Tarjeta lateral con info clínica, no el paboncito que ya sale en el login */}
           <Card padding="lg" className="bg-surface">
             <div className="flex items-center gap-3">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+              <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <HeartPulse size={22} />
               </div>
               <div>
@@ -114,15 +114,15 @@ export function HomePage() {
             <hr className="my-5 border-app" />
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2 text-app">
-                <Activity size={16} className="mt-0.5 text-[var(--color-primary)]" />
+                <Activity size={16} className="mt-0.5 text-primary" />
                 <span>Departamento de Ingeniería Clínica.</span>
               </li>
               <li className="flex items-start gap-2 text-app">
-                <Boxes size={16} className="mt-0.5 text-[var(--color-primary)]" />
+                <Boxes size={16} className="mt-0.5 text-primary" />
                 <span>Inventario unificado por sede y servicio.</span>
               </li>
               <li className="flex items-start gap-2 text-app">
-                <ShieldCheck size={16} className="mt-0.5 text-[var(--color-primary)]" />
+                <ShieldCheck size={16} className="mt-0.5 text-primary" />
                 <span>Cumplimiento de la normativa vigente.</span>
               </li>
             </ul>
@@ -133,7 +133,7 @@ export function HomePage() {
       {/* Problema que resuelve */}
       <section className="mx-auto max-w-screen-2xl px-4 py-16 sm:px-6">
         <div className="mb-10 max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-wider text-[var(--color-primary)]">
+          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
             Contexto
           </p>
           <h2 className="mt-1 text-2xl font-bold text-app sm:text-3xl">
@@ -147,8 +147,8 @@ export function HomePage() {
 
         <div className="grid gap-5 md:grid-cols-3">
           {problemas.map(({ icon: Icon, title, desc }) => (
-            <Card key={title} className="border-l-4 border-l-[var(--color-primary)]">
-              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+            <Card key={title} className="border-l-4 border-l-primary">
+              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Icon size={20} />
               </div>
               <h3 className="text-base font-semibold text-app">{title}</h3>
@@ -163,7 +163,7 @@ export function HomePage() {
         <div className="mx-auto grid max-w-screen-2xl gap-6 px-4 py-10 sm:px-6 md:grid-cols-4">
           {numeros.map((n) => (
             <div key={n.label} className="text-center">
-              <p className="text-3xl font-bold text-[var(--color-primary)] sm:text-4xl">
+              <p className="text-3xl font-bold text-primary sm:text-4xl">
                 {n.value}
               </p>
               <p className="mt-1 text-xs uppercase tracking-wider text-app-muted">
@@ -180,7 +180,7 @@ export function HomePage() {
         className="mx-auto max-w-screen-2xl px-4 py-16 sm:px-6"
       >
         <div className="mb-10 max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-wider text-[var(--color-primary)]">
+          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
             Módulos del sistema
           </p>
           <h2 className="mt-1 text-2xl font-bold text-app sm:text-3xl">
@@ -191,7 +191,7 @@ export function HomePage() {
         <div className="grid gap-5 sm:grid-cols-2">
           {modulos.map(({ icon: Icon, title, desc }) => (
             <Card key={title} className="flex gap-4">
-              <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+              <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Icon size={22} />
               </div>
               <div>

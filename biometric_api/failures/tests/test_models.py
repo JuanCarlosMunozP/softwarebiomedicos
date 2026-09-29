@@ -4,7 +4,14 @@ import pytest
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from failures.managers import FailureRecordManager
 from failures.models import FailureRecord, FailureSeverity
+
+
+def _failure_objects() -> FailureRecordManager:
+    manager = FailureRecord.objects
+    assert isinstance(manager, FailureRecordManager)
+    return manager
 
 from .factories import FailureRecordFactory
 
@@ -90,7 +97,7 @@ class TestFailureRecordManager:
             resolved_at=timezone.now(),
         )
 
-        assert FailureRecord.objects.open().count() == 1
+        assert _failure_objects().open().count() == 1
 
     def test_resolved_returns_only_resolved(self, equipment):
         FailureRecordFactory(equipment=equipment, resolved=False)
@@ -100,14 +107,14 @@ class TestFailureRecordManager:
             resolved_at=timezone.now(),
         )
 
-        assert FailureRecord.objects.resolved().count() == 1
+        assert _failure_objects().resolved().count() == 1
 
     def test_critical_returns_only_critical(self, equipment):
         FailureRecordFactory(equipment=equipment, severity=FailureSeverity.LOW)
         FailureRecordFactory(equipment=equipment, severity=FailureSeverity.CRITICAL)
         FailureRecordFactory(equipment=equipment, severity=FailureSeverity.CRITICAL)
 
-        assert FailureRecord.objects.critical().count() == 2
+        assert _failure_objects().critical().count() == 2
 
     def test_for_equipment_filters_by_equipment(self, equipment, branch):
         from equipment.tests.factories import EquipmentFactory
@@ -116,7 +123,7 @@ class TestFailureRecordManager:
         FailureRecordFactory.create_batch(2, equipment=equipment)
         FailureRecordFactory(equipment=other)
 
-        qs = FailureRecord.objects.for_equipment(equipment.id)
+        qs = _failure_objects().for_equipment(equipment.id)
 
         assert qs.count() == 2
 
@@ -130,7 +137,7 @@ class TestFailureRecordManager:
         FailureRecordFactory.create_batch(2, equipment=eq_in)
         FailureRecordFactory(equipment=eq_out)
 
-        assert FailureRecord.objects.for_branch(branch.id).count() == 2
+        assert _failure_objects().for_branch(branch.id).count() == 2
 
 
 class TestResolvedConsistencyConstraint:

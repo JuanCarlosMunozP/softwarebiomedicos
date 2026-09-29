@@ -14,19 +14,22 @@ export function UserTable({
   setNewPassword,
   openEdit,
   setToDelete,
+  canCreate,
+  assignableRoles,
+  openCreate,
 }: UserTableProps) {
   return (
-    <div className="overflow-x-auto">
+    <div className="w-full min-w-0">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-app text-left text-xs uppercase tracking-wider text-app-muted">
-            <th className="pb-2 font-medium">Usuario</th>
-            <th className="pb-2 font-medium">Rol</th>
-            <th className="pb-2 font-medium">Estado</th>
-            <th className="pb-2 font-medium text-right">Acciones</th>
+            <th className="whitespace-nowrap pb-2 pl-4 pr-10 text-center font-medium">Usuario</th>
+            <th className="whitespace-nowrap pb-2 pl-10 pr-10 text-center font-medium">Rol</th>
+            <th className="whitespace-nowrap pb-2 pl-10 pr-14 text-center font-medium">Estado</th>
+            <th className="whitespace-nowrap pb-2 pl-14 pr-4 text-center font-medium">Acciones</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-[var(--border)]">
+        <tbody className="divide-y divide-(--border)">
           {loading ? (
             <tr>
               <td colSpan={4} className="py-8 text-center text-app-muted">
@@ -54,6 +57,9 @@ export function UserTable({
                 setNewPassword={setNewPassword}
                 openEdit={openEdit}
                 setToDelete={setToDelete}
+                canCreate={canCreate}
+                assignableRoles={assignableRoles}
+                openCreate={openCreate}
               />
             ))
           )}

@@ -23,12 +23,6 @@ export const SEVERITY_LABEL: Record<FailureSeverity, string> = {
   CRITICAL: "Crítica",
 };
 
-export const SEVERITY_COLOR: Record<FailureSeverity, string> = {
-  LOW: "#0ea5e9",
-  MEDIUM: "#eab308",
-  HIGH: "#f97316",
-  CRITICAL: "#dc2626",
-};
 
 export const KIND_COLOR: Record<MaintenanceKind, string> = {
   PREVENTIVE: "#3b82f6",

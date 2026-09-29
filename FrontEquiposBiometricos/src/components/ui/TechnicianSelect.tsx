@@ -112,7 +112,7 @@ export function TechnicianSelect({
 
       <div
         className={cn(
-          "relative rounded-lg border bg-surface transition focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/20",
+          "relative rounded-lg border bg-surface transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20",
           error ? "border-red-400" : "border-app",
           disabled && "opacity-60",
         )}
@@ -128,7 +128,7 @@ export function TechnicianSelect({
             className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-app"
           >
             <span className="flex min-w-0 items-center gap-2">
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <UserIcon size={12} />
               </span>
               <span className="min-w-0">
@@ -194,11 +194,11 @@ export function TechnicianSelect({
                   className={cn(
                     "flex w-full items-center gap-2 px-3 py-2 text-left text-sm",
                     i === highlight
-                      ? "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+                      ? "bg-primary/10 text-primary"
                       : "text-app hover:bg-app-muted",
                   )}
                 >
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <UserIcon size={12} />
                   </span>
                   <span className="min-w-0 flex-1">

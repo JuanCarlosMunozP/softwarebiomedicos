@@ -34,7 +34,7 @@ export function Toast({ toast, onDismiss }: ToastProps) {
       )}
     >
       <div className="flex items-start gap-3 p-4">
-        <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--color-primary)]/10 text-[color:var(--color-primary)]">
+        <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
           <BellRing size={16} />
         </span>
         <div className="min-w-0 flex-1">

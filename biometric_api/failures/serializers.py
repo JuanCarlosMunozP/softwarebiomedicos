@@ -1,26 +1,32 @@
+from typing import Any
+
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+
+from common.typing_meta import ModelSerializerMeta
 
 from common.area_scope import operativo_area
 
 from .models import FailureRecord
 
 
-class FailureRecordSerializer(serializers.ModelSerializer):
+class FailureRecordSerializer(serializers.ModelSerializer[FailureRecord]):
     equipment_asset_tag = serializers.CharField(source="equipment.asset_tag", read_only=True)
     branch_name = serializers.CharField(source="equipment.branch.name", read_only=True)
+    equipment_area = serializers.CharField(source="equipment.area", read_only=True)
     # Sin trim_whitespace para que un valor "   " caiga en validate_description
     # y dispare el mensaje en español, en lugar del genérico de DRF.
     description = serializers.CharField(trim_whitespace=False)
 
-    class Meta:
-        model = FailureRecord
+    class Meta(ModelSerializerMeta):
+        model: Any = FailureRecord
         fields = (
             "id",
             "equipment",
             "equipment_asset_tag",
             "branch_name",
+            "equipment_area",
             "reported_by",
             "reported_at",
             "description",

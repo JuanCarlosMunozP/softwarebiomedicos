@@ -22,7 +22,7 @@ class CanListAssignableUsers(permissions.BasePermission):
 
     def has_permission(self, request, view) -> bool:
         u = request.user
-        return bool(u and u.is_authenticated and u.role in self._ALLOWED_PERMISSIONS)
+        return bool(isinstance(u, User) and u.is_authenticated and u.role in self._ALLOWED_PERMISSIONS)
 
 
 class IsAdminRole(permissions.BasePermission):
@@ -33,7 +33,7 @@ class IsAdminRole(permissions.BasePermission):
     def has_permission(self, request, view) -> bool:
         u = request.user
         return bool(
-            u
+            isinstance(u, User)
             and u.is_authenticated
             and u.role in {User.Role.SUPERADMIN, User.Role.ADMIN}
         )

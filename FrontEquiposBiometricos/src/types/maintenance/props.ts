@@ -13,6 +13,7 @@ export interface MaintenanceFilterProps {
   equipmentFilter: string;
   setEquipmentFilter: Dispatch<SetStateAction<string>>;
   equipmentOptions: { value: string; label: string }[];
+  searchOptions: { value: string; label: string; hint?: string }[];
   kindFilter: string;
   setKindFilter: Dispatch<SetStateAction<string>>;
 }
@@ -24,6 +25,7 @@ export interface MaintenanceRowProps {
   canDelete: boolean;
   openEdit: (m: MaintenanceRecord) => void;
   setToDelete: Dispatch<SetStateAction<MaintenanceRecord | null>>;
+  showActions?: boolean;
 }
 
 export interface MaintenanceTableProps extends Omit<MaintenanceRowProps, "m"> {

@@ -34,6 +34,19 @@ export const branchesService = {
     }
     return res.data;
   },
+  /** Trae todas las sedes recorriendo la paginación, para el buscador. */
+  async listAll(params: Omit<BranchesListParams, "page" | "page_size"> = {}) {
+    const all: Branch[] = [];
+    for (let page = 1; page < 500; page += 1) {
+      const res = await api.get<Paginated<Branch> | Branch[]>("/branches/", {
+        params: { ...params, page },
+      });
+      if (Array.isArray(res.data)) return res.data;
+      all.push(...res.data.results);
+      if (!res.data.next) break;
+    }
+    return all;
+  },
   async retrieve(id: number) {
     const res = await api.get<Branch>(`/branches/${id}/`);
     return res.data;

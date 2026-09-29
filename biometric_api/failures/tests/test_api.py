@@ -234,32 +234,39 @@ class TestFailureList:
         assert response.status_code == 200
         assert response.json()["count"] == 2
 
-    def test_search_by_description(self, auth_client, equipment):
-        FailureRecordFactory(equipment=equipment, description="Pantalla rota")
-        FailureRecordFactory(equipment=equipment, description="Sin energía")
+    def test_search_by_description(self, auth_client, branch):
+        # La búsqueda es por nombre del equipo, no por la descripción.
+        pantalla = EquipmentFactory(name="Pantalla principal", branch=branch)
+        otro = EquipmentFactory(name="Fuente de poder", branch=branch)
+        FailureRecordFactory(equipment=pantalla, description="Pantalla rota")
+        FailureRecordFactory(equipment=otro, description="Sin energía")
 
         response = auth_client.get(LIST_URL, {"search": "Pantalla"})
 
         assert response.status_code == 200
         assert response.json()["count"] == 1
 
-    def test_search_by_resolution_notes(self, auth_client, equipment):
+    def test_search_by_resolution_notes(self, auth_client, branch):
+        # La búsqueda es por nombre del equipo, no por las notas de resolución.
+        con_nota = EquipmentFactory(name="Equipo bateria", branch=branch)
+        sin_nota = EquipmentFactory(name="Equipo otro", branch=branch)
         FailureRecordFactory(
-            equipment=equipment,
+            equipment=con_nota,
             resolved=True,
             resolved_at=timezone.now(),
             resolution_notes="Reemplazo de batería completado",
         )
-        FailureRecordFactory(equipment=equipment, resolution_notes="")
+        FailureRecordFactory(equipment=sin_nota, resolution_notes="")
 
-        response = auth_client.get(LIST_URL, {"search": "batería"})
+        response = auth_client.get(LIST_URL, {"search": "bateria"})
 
         assert response.status_code == 200
         assert response.json()["count"] == 1
 
     def test_search_by_asset_tag(self, auth_client, branch):
-        target = EquipmentFactory(asset_tag="FAIL-TARGET", branch=branch)
-        other = EquipmentFactory(asset_tag="FAIL-OTHER", branch=branch)
+        # La búsqueda es por nombre del equipo, no por la placa.
+        target = EquipmentFactory(name="Equipo TARGET", asset_tag="FAIL-TARGET", branch=branch)
+        other = EquipmentFactory(name="Equipo OTHER", asset_tag="FAIL-OTHER", branch=branch)
         FailureRecordFactory(equipment=target)
         FailureRecordFactory(equipment=other)
 

@@ -1,18 +1,21 @@
 from datetime import date, timedelta
 
-import factory
+from factory.declarations import LazyFunction, SubFactory
 from factory.django import DjangoModelFactory
+from factory.faker import Faker
+
+from common.typing_meta import FactoryMeta
 
 from equipment.tests.factories import EquipmentFactory
 from scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
 
 
 class MaintenanceScheduleFactory(DjangoModelFactory):
-    class Meta:
+    class Meta(FactoryMeta):
         model = MaintenanceSchedule
 
-    equipment = factory.SubFactory(EquipmentFactory)
+    equipment = SubFactory(EquipmentFactory)
     kind = ScheduledMaintenanceKind.PREVENTIVE
-    scheduled_date = factory.LazyFunction(lambda: date.today() + timedelta(days=30))
-    notes = factory.Faker("sentence", nb_words=8)
+    scheduled_date = LazyFunction(lambda: date.today() + timedelta(days=30))
+    notes = Faker("sentence", nb_words=8)
     is_completed = False

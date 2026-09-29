@@ -1,3 +1,4 @@
+import { Combobox } from "@/components/ui/Combobox";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { NEW_BRAND_VALUE, NEW_MODEL_VALUE, RISK_LABEL } from "@/utils/equipment.utils";
@@ -13,8 +14,30 @@ export function EquipmentClassificationSection({
   models,
   modelsForForm,
   modelOptionsForm,
-  openCatalogForm,
 }: EquipmentClassificationSectionProps) {
+  const brandSearchOptions = brandOptions.filter((o) => o.value !== NEW_BRAND_VALUE);
+  const modelSearchOptions = modelOptionsForm.filter((o) => o.value !== NEW_MODEL_VALUE);
+  const technologyOptions = [
+    { value: "ELECTRONIC", label: "Electrónico" },
+    { value: "ELECTROMEDICAL", label: "Electromédico" },
+    { value: "MECHANICAL", label: "Mecánico" },
+    { value: "MIXED", label: "Mixto" },
+    { value: "OTHER", label: "Otro" },
+  ];
+  const riskOptions = Object.entries(RISK_LABEL).map(([value, label]) => ({
+    value,
+    label,
+  }));
+  const selectedBrand =
+    brandSearchOptions.find((o) => o.value === String(form.brand)) ?? null;
+  const selectedModel =
+    modelSearchOptions.find((o) => o.value === String(form.equipment_model)) ??
+    null;
+  const selectedTechnology =
+    technologyOptions.find((o) => o.value === form.technology_type) ?? null;
+  const selectedRisk =
+    riskOptions.find((o) => o.value === form.risk_class) ?? null;
+
   return (
     <>
           <div className="sm:col-span-2 mt-2">
@@ -25,85 +48,78 @@ export function EquipmentClassificationSection({
               Catálogo, tecnología y clasificación biomédica
             </p>
           </div>
-          <Select
-            label="Sede"
-            value={String(form.branch)}
-            onChange={(e) =>
-              setForm({ ...form, branch: Number(e.target.value) })
-            }
-            options={branchOptions}
-            placeholder="Selecciona una sede"
-            required
-          />
-          <Select
-            label="Marca"
-            value={String(form.brand)}
-            onChange={(e) => {
-              if (e.target.value === NEW_BRAND_VALUE) {
-                openCatalogForm("brand");
-                return;
+          <div className="sm:col-span-2">
+            <Select
+              label="Sede"
+              className="px-4!"
+              value={String(form.branch)}
+              onChange={(e) =>
+                setForm({ ...form, branch: Number(e.target.value) })
               }
-              const brandId = Number(e.target.value);
-              const brandModels = models.filter(
-                (m) => m.brand === brandId && m.is_active,
-              );
-              setForm({
-                ...form,
-                brand: brandId,
-                equipment_model:
-                  brandModels.length === 1 ? brandModels[0].id : 0,
-              });
-            }}
-            options={brandOptions}
-            placeholder="Selecciona una marca"
-            required
-            hint={
-              brands.filter((b) => b.is_active || b.id === form.brand).length === 0
-                ? "Crea una marca primero con la opción Nueva marca."
-                : undefined
-            }
-          />
-          <Select
-            label="Modelo"
-            value={String(form.equipment_model)}
-            onChange={(e) => {
-              if (e.target.value === NEW_MODEL_VALUE) {
-                openCatalogForm("model", form.brand);
-                return;
+              options={branchOptions}
+              placeholder="Selecciona una sede"
+              required
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-app">Marca</label>
+            <Combobox
+              options={brandSearchOptions}
+              value={selectedBrand}
+              onSelect={(opt) => {
+                const brandId = opt ? Number(opt.value) : 0;
+                const brandModels = models.filter(
+                  (m) => m.brand === brandId && m.is_active,
+                );
+                setForm({
+                  ...form,
+                  brand: brandId,
+                  equipment_model:
+                    brandModels.length === 1 ? brandModels[0].id : 0,
+                });
+              }}
+              placeholder="Busca una marca..."
+              ariaLabel="Marca"
+            />
+            {brands.filter((b) => b.is_active || b.id === form.brand).length === 0 && (
+              <p className="text-xs text-app-muted">
+                Crea una marca primero en Catálogo.
+              </p>
+            )}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-app">Modelo</label>
+            <Combobox
+              options={modelSearchOptions}
+              value={selectedModel}
+              onSelect={(opt) =>
+                setForm({ ...form, equipment_model: opt ? Number(opt.value) : 0 })
               }
-              setForm({ ...form, equipment_model: Number(e.target.value) });
-            }}
-            options={modelOptionsForm}
-            placeholder={
-              !form.brand
-                ? "Selecciona una marca primero"
-                : modelsForForm.filter(
-                    (m) => m.is_active || m.id === form.equipment_model,
-                  ).length === 0
-                  ? "No hay modelos para esta marca"
-                  : "Selecciona un modelo"
-            }
+              placeholder={
+                !form.brand
+                  ? "Selecciona una marca primero"
+                  : modelsForForm.filter(
+                      (m) => m.is_active || m.id === form.equipment_model,
+                    ).length === 0
+                    ? "No hay modelos para esta marca"
+                    : "Busca un modelo..."
+              }
             disabled={!form.brand}
-            required
+              ariaLabel="Modelo"
           />
-          <Select
-          label="Tipo de tecnología"
-          value={form.technology_type}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              technology_type:e.target.value,
-            })
-          }
-          options={[
-            {value:"ELECTRONIC",label:"Electrónico"},
-            {value:"ELECTROMEDICAL",label:"Electromédico"},
-            {value:"MECHANICAL",label:"Mecánico"},
-            {value:"MIXED",label:"Mixto"},
-            {value:"OTHER",label:"Otro"},
-          ]}
-          placeholder="Seleccione el tipo"
-          />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-app">Tipo de tecnología</label>
+            <Combobox
+              options={technologyOptions}
+              value={selectedTechnology}
+              onSelect={(opt) =>
+                setForm({ ...form, technology_type: opt?.value ?? "" })
+              }
+              placeholder="Busca un tipo..."
+              ariaLabel="Tipo de tecnología"
+            />
+          </div>
           <Input
           label="Clasificación biomédica"
           value={form.biomedical_classification}
@@ -115,19 +131,24 @@ export function EquipmentClassificationSection({
           }
           hint="Clasificación utilizada para el equipo."
           />
-          <Select
-            label="Clase de riesgo"
-            value={form.risk_class}
-            onChange={(e) =>
-              setForm({ ...form, risk_class: e.target.value as RiskClass })
-            }
-            options={Object.entries(RISK_LABEL).map(([value, label]) => ({
-              value,
-              label,
-            }))}
-            required
-            hint="Clasificación INVIMA / FDA del dispositivo médico."
-          />
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-app">Clase de riesgo</label>
+            <Combobox
+              options={riskOptions}
+              value={selectedRisk}
+              onSelect={(opt) =>
+                setForm({
+                  ...form,
+                  risk_class: (opt?.value ?? "") as RiskClass,
+                })
+              }
+              placeholder="Busca una clase..."
+              ariaLabel="Clase de riesgo"
+            />
+            <p className="text-xs text-app-muted">
+              Clasificación INVIMA / FDA del dispositivo médico.
+            </p>
+          </div>
     </>
   );
 }

@@ -4,13 +4,13 @@ import type { Dispatch, SetStateAction, FormEvent } from "react";
 
 export interface WorkOrderHeaderProps {
   isEngineer: boolean;
-  canCreate: boolean;
-  onCreate: () => void;
 }
 
 export interface WorkOrderFiltersProps {
-  search: string;
   onSearchChange: (value: string) => void;
+  orderOptions: { value: string; label: string; hint?: string }[];
+  equipmentSearchOptions: { value: string; label: string; hint?: string }[];
+  onEquipmentFilterChange: (value: string) => void;
   statusFilter: string;
   onStatusFilterChange: (value: string) => void;
   typeFilter: string;
@@ -26,6 +26,8 @@ export interface WorkOrderRowProps {
   onDetail: (w: WorkOrder) => void;
   onEdit: (w: WorkOrder) => void;
   onDelete: (w: WorkOrder) => void;
+  canCreate: boolean;
+  onCreate: () => void;
 }
 
 export interface WorkOrderTableProps extends Omit<WorkOrderRowProps, "w"> {

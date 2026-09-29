@@ -3,8 +3,11 @@ from datetime import date, timedelta
 
 import pytest
 from django.core import mail
+from django.core.mail import EmailMultiAlternatives
 from django.urls import reverse
 
+from equipment.tests.factories import EquipmentFactory
+from scheduling.managers import MaintenanceScheduleManager
 from scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
 from scheduling.tasks import send_schedule_notification
 from users.models import User
@@ -14,6 +17,12 @@ from users.tests.factories import (
 )
 
 from .factories import MaintenanceScheduleFactory
+
+
+def _schedule_objects() -> MaintenanceScheduleManager:
+    manager = MaintenanceSchedule.objects
+    assert isinstance(manager, MaintenanceScheduleManager)
+    return manager
 
 pytestmark = pytest.mark.django_db
 
@@ -196,11 +205,14 @@ class TestScheduleAssignmentFilters:
         assert response.status_code == 200
         assert response.json()["count"] == 3
 
-    def test_search_by_assigned_engineer_name(self, auth_client, equipment):
+    def test_search_by_assigned_engineer_name(self, auth_client):
+        # La búsqueda de solicitudes es por nombre del equipo.
+        target_eq = EquipmentFactory(name="Monitor Carolina")
+        other_eq = EquipmentFactory(name="Monitor Luis")
         target = IngenieroFactory(first_name="Carolina", last_name="Mendez")
         other = IngenieroFactory(first_name="Luis", last_name="Torres")
-        MaintenanceScheduleFactory(equipment=equipment, assigned_engineer=target)
-        MaintenanceScheduleFactory(equipment=equipment, assigned_engineer=other)
+        MaintenanceScheduleFactory(equipment=target_eq, assigned_engineer=target)
+        MaintenanceScheduleFactory(equipment=other_eq, assigned_engineer=other)
 
         response = auth_client.get(LIST_URL, {"search": "Carolina"})
 
@@ -215,14 +227,14 @@ class TestScheduleAssignmentManager:
         )
         MaintenanceScheduleFactory(equipment=equipment, assigned_engineer=None)
 
-        assert MaintenanceSchedule.objects.assigned_to_engineer(ingeniero.id).count() == 2
+        assert _schedule_objects().assigned_to_engineer(ingeniero.id).count() == 2
 
     def test_unassigned_scope(self, equipment, ingeniero, tecnico):
         MaintenanceScheduleFactory(equipment=equipment, assigned_engineer=ingeniero)
         MaintenanceScheduleFactory(equipment=equipment, assigned_technician=tecnico)
         MaintenanceScheduleFactory.create_batch(2, equipment=equipment)
 
-        assert MaintenanceSchedule.objects.unassigned().count() == 2
+        assert _schedule_objects().unassigned().count() == 2
 
 
 class TestScheduleAssignmentOnUserDelete:
@@ -267,6 +279,7 @@ class TestScheduleAssignmentInEmail:
         send_schedule_notification(schedule.pk)
 
         message = mail.outbox[0]
+        assert isinstance(message, EmailMultiAlternatives)
         assert "Carolina Mendez" in message.body
         assert "carolina@clinic.test" in message.body
         assert "Luis Torres" in message.body
@@ -275,8 +288,10 @@ class TestScheduleAssignmentInEmail:
             (alt for alt in message.alternatives if alt[1] == "text/html"), None
         )
         assert html_alt is not None
-        assert "Carolina Mendez" in html_alt[0]
-        assert "Luis Torres" in html_alt[0]
+        html_body = html_alt[0]
+        assert isinstance(html_body, str)
+        assert "Carolina Mendez" in html_body
+        assert "Luis Torres" in html_body
 
     def test_email_omits_assignment_lines_when_unassigned(self, equipment):
         schedule = MaintenanceScheduleFactory(

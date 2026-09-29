@@ -42,3 +42,33 @@ class MaintenanceRecordManager(models.Manager.from_queryset(MaintenanceRecordQue
             "assigned_technician",
             "work_order",
         )
+
+    def for_equipment(self, equipment_id: int) -> MaintenanceRecordQuerySet:
+        return self.get_queryset().for_equipment(equipment_id)
+
+    def for_branch(self, branch_id: int) -> MaintenanceRecordQuerySet:
+        return self.get_queryset().for_branch(branch_id)
+
+    def of_kind(self, kind: str) -> MaintenanceRecordQuerySet:
+        return self.get_queryset().of_kind(kind)
+
+    def preventive(self) -> MaintenanceRecordQuerySet:
+        return self.get_queryset().preventive()
+
+    def corrective(self) -> MaintenanceRecordQuerySet:
+        return self.get_queryset().corrective()
+
+    def repairs(self) -> MaintenanceRecordQuerySet:
+        return self.get_queryset().repairs()
+
+    def in_range(self, start, end) -> MaintenanceRecordQuerySet:
+        return self.get_queryset().in_range(start, end)
+
+    def assigned_to_engineer(self, user_id: int) -> MaintenanceRecordQuerySet:
+        return self.get_queryset().assigned_to_engineer(user_id)
+
+    def assigned_to_technician(self, user_id: int) -> MaintenanceRecordQuerySet:
+        return self.get_queryset().assigned_to_technician(user_id)
+
+    def unassigned(self) -> MaintenanceRecordQuerySet:
+        return self.get_queryset().unassigned()

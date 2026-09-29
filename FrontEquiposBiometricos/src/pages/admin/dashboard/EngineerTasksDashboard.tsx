@@ -386,7 +386,7 @@ export function EngineerTasksDashboard({
             action={
               <Link
                 to="/admin/ordenes-trabajo"
-                className="text-sm text-[var(--color-primary)] hover:underline"
+                className="text-sm text-primary hover:underline"
               >
                 Ver todas →
               </Link>
@@ -401,7 +401,7 @@ export function EngineerTasksDashboard({
               No hay tareas pendientes.
             </div>
           ) : (
-            <ul className="divide-y divide-[var(--border)]">
+            <ul className="divide-y divide-(--border)">
               {tasks.recent.map((t) => (
                 <li
                   key={t.id}

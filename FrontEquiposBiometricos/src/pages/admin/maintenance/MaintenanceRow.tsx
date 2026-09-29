@@ -1,6 +1,7 @@
 import { CalendarClock, Pencil, Trash2, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { IconHint } from "@/components/ui/IconHint";
 import { KIND_LABEL, KIND_TONE } from "@/utils/maintenance.utils";
 import type { MaintenanceRowProps } from "@/types/maintenance/props";
 
@@ -11,16 +12,17 @@ export function MaintenanceRow({
   canDelete,
   openEdit,
   setToDelete,
+  showActions = false,
 }: MaintenanceRowProps) {
   return (
     <tr className="text-app">
-      <td className="py-3">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+      <td className="min-w-56 py-3 pr-10">
+        <div className="flex items-start gap-2">
+          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <Wrench size={14} />
           </span>
-          <div>
-            <p className="font-medium">
+          <div className="min-w-40">
+            <p className="whitespace-nowrap font-medium">
               {m.equipment_name ?? equipmentLabel(m.equipment)}
             </p>
             {m.equipment_asset_tag && (
@@ -38,11 +40,12 @@ export function MaintenanceRow({
           </div>
         </div>
       </td>
-      <td className="py-3">
+      <td className="whitespace-nowrap px-4 py-3 pl-8">
         <Badge tone={KIND_TONE[m.kind]}>{KIND_LABEL[m.kind]}</Badge>
       </td>
-      <td className="py-3 text-app-muted">{m.date}</td>
-      <td className="py-3">
+      <td className="whitespace-nowrap px-4 py-3 pr-10 text-app-muted">{m.date}</td>
+      {showActions && (
+      <td className="py-3 pl-8">
         <div className="flex items-center justify-end gap-2">
           {m.work_order && (
             <span className="text-xs text-app-muted">
@@ -50,27 +53,34 @@ export function MaintenanceRow({
             </span>
           )}
           {canEdit && (
-            <Button
-              size="sm"
-              variant="secondary"
-              leftIcon={<Pencil size={14} />}
-              onClick={() => openEdit(m)}
-            >
-              Editar
-            </Button>
+            <IconHint label="Editar">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-8! w-8! px-0!"
+                aria-label="Editar"
+                onClick={() => openEdit(m)}
+              >
+                <Pencil size={14} />
+              </Button>
+            </IconHint>
           )}
           {canDelete && (
-            <Button
-              size="sm"
-              variant="danger"
-              leftIcon={<Trash2 size={14} />}
-              onClick={() => setToDelete(m)}
-            >
-              Eliminar
-            </Button>
+            <IconHint label="Eliminar">
+              <Button
+                size="sm"
+                variant="danger"
+                className="h-8! w-8! px-0!"
+                aria-label="Eliminar"
+                onClick={() => setToDelete(m)}
+              >
+                <Trash2 size={14} />
+              </Button>
+            </IconHint>
           )}
         </div>
       </td>
+      )}
     </tr>
   );
 }

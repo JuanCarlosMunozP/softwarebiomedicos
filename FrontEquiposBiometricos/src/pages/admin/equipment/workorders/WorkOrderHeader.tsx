@@ -1,12 +1,6 @@
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/Button";
 import type { WorkOrderHeaderProps } from "@/types/equipment/workorder-props";
 
-export function WorkOrderHeader({
-  isEngineer,
-  canCreate,
-  onCreate,
-}: WorkOrderHeaderProps) {
+export function WorkOrderHeader({ isEngineer }: WorkOrderHeaderProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -19,11 +13,6 @@ export function WorkOrderHeader({
             : "Registro de intervenciones en equipos: repuestos, mediciones, evidencias, firmas y costos."}
         </p>
       </div>
-      {canCreate && (
-        <Button leftIcon={<Plus size={16} />} onClick={onCreate}>
-          Nueva orden
-        </Button>
-      )}
     </div>
   );
 }

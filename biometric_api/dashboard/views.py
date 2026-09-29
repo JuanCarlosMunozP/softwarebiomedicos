@@ -537,7 +537,7 @@ class DashboardSummaryView(APIView):
         }
         if payload["kpis"]["scheduling"]["overdue"] > 0:
             try:
-                queue_overdue_alerts.delay()
+                getattr(queue_overdue_alerts, "delay")()
             except Exception:
                 pass
         return Response(payload)

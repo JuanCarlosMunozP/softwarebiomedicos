@@ -2,7 +2,14 @@ from datetime import date, timedelta
 
 import pytest
 
+from scheduling.managers import MaintenanceScheduleManager
 from scheduling.models import MaintenanceSchedule, ScheduledMaintenanceKind
+
+
+def _schedule_objects() -> MaintenanceScheduleManager:
+    manager = MaintenanceSchedule.objects
+    assert isinstance(manager, MaintenanceScheduleManager)
+    return manager
 
 from .factories import MaintenanceScheduleFactory
 
@@ -41,8 +48,8 @@ class TestMaintenanceScheduleManager:
         MaintenanceScheduleFactory(equipment=equipment, is_completed=False)
         MaintenanceScheduleFactory(equipment=equipment, is_completed=True)
 
-        assert MaintenanceSchedule.objects.pending().count() == 1
-        assert MaintenanceSchedule.objects.completed().count() == 1
+        assert _schedule_objects().pending().count() == 1
+        assert _schedule_objects().completed().count() == 1
 
     def test_for_equipment_filters_by_equipment(self, equipment, branch):
         from equipment.tests.factories import EquipmentFactory
@@ -51,7 +58,7 @@ class TestMaintenanceScheduleManager:
         MaintenanceScheduleFactory.create_batch(2, equipment=equipment)
         MaintenanceScheduleFactory(equipment=other)
 
-        assert MaintenanceSchedule.objects.for_equipment(equipment.id).count() == 2
+        assert _schedule_objects().for_equipment(equipment.id).count() == 2
 
     def test_in_range_filters_by_date_range(self, equipment):
         MaintenanceScheduleFactory(
@@ -64,6 +71,6 @@ class TestMaintenanceScheduleManager:
             equipment=equipment, scheduled_date=date(2026, 12, 1)
         )
 
-        qs = MaintenanceSchedule.objects.in_range(date(2026, 5, 1), date(2026, 6, 30))
+        qs = _schedule_objects().in_range(date(2026, 5, 1), date(2026, 6, 30))
 
         assert qs.count() == 2

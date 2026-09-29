@@ -1,5 +1,9 @@
+from typing import Any
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+
+from common.typing_meta import ModelSerializerMeta
 
 from common.file_validation import EVIDENCE_EXTENSIONS, validate_uploaded_file
 from workorders.models import (
@@ -11,14 +15,14 @@ from workorders.models import (
 )
 
 
-class WorkOrderSparePartSerializer(serializers.ModelSerializer):
+class WorkOrderSparePartSerializer(serializers.ModelSerializer[WorkOrderSparePart]):
     # calcula el costo total: cantidad x costo unitario
     total_cost = serializers.DecimalField(
         max_digits=12,decimal_places=2,read_only=True
     )
 
-    class Meta:
-        model = WorkOrderSparePart
+    class Meta(ModelSerializerMeta):
+        model: Any = WorkOrderSparePart
         fields = '__all__'
         read_only_fields = ['id','total_cost']
 
@@ -50,11 +54,11 @@ class WorkOrderSparePartSerializer(serializers.ModelSerializer):
         return instance
 
 
-class WorkOrderMeasurementSerializer(serializers.ModelSerializer):
+class WorkOrderMeasurementSerializer(serializers.ModelSerializer[WorkOrderMeasurement]):
 
-    class Meta:
+    class Meta(ModelSerializerMeta):
 
-        model = WorkOrderMeasurement
+        model: Any = WorkOrderMeasurement
 
         fields = '__all__'
 
@@ -62,11 +66,11 @@ class WorkOrderMeasurementSerializer(serializers.ModelSerializer):
             "id",
         ]
 
-class WorkOrderEvidenceSerializer(serializers.ModelSerializer):
+class WorkOrderEvidenceSerializer(serializers.ModelSerializer[WorkOrderEvidence]):
 
-    class Meta:
+    class Meta(ModelSerializerMeta):
 
-        model = WorkOrderEvidence
+        model: Any = WorkOrderEvidence
 
         fields = '__all__'
 
@@ -78,11 +82,11 @@ class WorkOrderEvidenceSerializer(serializers.ModelSerializer):
         return validate_uploaded_file(value,allowed_extensions=EVIDENCE_EXTENSIONS)
 
 
-class WorkOrderSignatureSerializer(serializers.ModelSerializer):
+class WorkOrderSignatureSerializer(serializers.ModelSerializer[WorkOrderSignature]):
 
-    class Meta:
+    class Meta(ModelSerializerMeta):
 
-        model = WorkOrderSignature
+        model: Any = WorkOrderSignature
 
         fields = '__all__'
 
@@ -92,11 +96,11 @@ class WorkOrderSignatureSerializer(serializers.ModelSerializer):
         ]
 
 
-class WorkOrderCostSerializer(serializers.ModelSerializer):
+class WorkOrderCostSerializer(serializers.ModelSerializer[WorkOrderCost]):
     total = serializers.SerializerMethodField()
 
-    class Meta:
-        model = WorkOrderCost
+    class Meta(ModelSerializerMeta):
+        model: Any = WorkOrderCost
         fields = '__all__'
         read_only_fields = ["id","spare_parts_cost","total"]
 

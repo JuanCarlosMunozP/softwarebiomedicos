@@ -37,6 +37,7 @@ export const MarcasModelosPanel = forwardRef<MarcasModelosPanelHandle, Props>(
   const canDelete = can(role, "equipment", "delete");
 
   const [allBrands, setAllBrands] = useState<Brand[]>([]);
+  const [allModels, setAllModels] = useState<EquipmentModel[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [brandCount, setBrandCount] = useState(0);
   const [brandPage, setBrandPage] = useState(1);
@@ -81,6 +82,14 @@ export const MarcasModelosPanel = forwardRef<MarcasModelosPanelHandle, Props>(
       setAllBrands(await brandsService.listAll({ ordering: "name" }));
     } catch {
       // El listado paginado sigue funcionando aunque falle el select.
+    }
+  };
+
+  const loadAllModels = async () => {
+    try {
+      setAllModels(await modelsService.listAll({ ordering: "name" }));
+    } catch {
+      // El listado paginado sigue funcionando aunque falle el buscador.
     }
   };
 
@@ -142,6 +151,7 @@ export const MarcasModelosPanel = forwardRef<MarcasModelosPanelHandle, Props>(
 
   useEffect(() => {
     void loadAllBrands();
+    void loadAllModels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -241,6 +251,7 @@ export const MarcasModelosPanel = forwardRef<MarcasModelosPanelHandle, Props>(
         });
         closeModelModal();
         await loadModels();
+        await loadAllModels();
         onChanged?.();
       } else {
         const created = await modelsService.create({
@@ -257,6 +268,7 @@ export const MarcasModelosPanel = forwardRef<MarcasModelosPanelHandle, Props>(
           name: created.name,
           status: "",
         });
+        await loadAllModels();
         onChanged?.({ model: created });
       }
     } catch (err) {
@@ -290,6 +302,7 @@ export const MarcasModelosPanel = forwardRef<MarcasModelosPanelHandle, Props>(
       await modelsService.remove(modelToDelete.id);
       setModelToDelete(null);
       await loadModels();
+      await loadAllModels();
       onChanged?.();
     } catch (err) {
       alert(getApiErrorMessage(err, "No se pudo eliminar el modelo"));
@@ -358,6 +371,16 @@ export const MarcasModelosPanel = forwardRef<MarcasModelosPanelHandle, Props>(
     [allBrands],
   );
 
+  const modelOptions = useMemo(
+    () =>
+      allModels.map((m) => ({
+        value: String(m.id),
+        label: m.name,
+        hint: m.brand_name,
+      })),
+    [allModels],
+  );
+
   const brandColSpan = canEdit || canDelete ? 3 : 2;
   const modelColSpan = canEdit || canDelete ? 4 : 3;
 
@@ -385,11 +408,13 @@ export const MarcasModelosPanel = forwardRef<MarcasModelosPanelHandle, Props>(
         canDelete={canDelete}
         togglingBrandId={togglingBrandId}
         changeBrandStatus={changeBrandStatus}
+        openCreateBrand={openCreateBrand}
         openEditBrand={openEditBrand}
         setBrandToDelete={setBrandToDelete}
         brandCount={brandCount}
         brandPage={brandPage}
         loadBrands={loadBrands}
+        brandOptions={brandOptions}
       />
 
       <CatalogModelsCard
@@ -408,11 +433,13 @@ export const MarcasModelosPanel = forwardRef<MarcasModelosPanelHandle, Props>(
         canDelete={canDelete}
         togglingModelId={togglingModelId}
         changeModelStatus={changeModelStatus}
+        openCreateModel={() => openCreateModel()}
         openEditModel={openEditModel}
         setModelToDelete={setModelToDelete}
         modelCount={modelCount}
         modelPage={modelPage}
         loadModels={loadModels}
+        modelOptions={modelOptions}
       />
 
       <BrandFormModal

@@ -1,6 +1,16 @@
 import type { Equipment, EquipmentInput } from "@/types/equipment/equipment";
 import type { FormState } from "@/types/equipment/form";
 
+function dateOnly(value?: string | null): string {
+  if (!value) return "";
+  return value.slice(0, 10);
+}
+
+function emptyToUndefined(value: string): string | undefined {
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 export function equipmentToForm(e: Equipment, inferredBrand: number): FormState {
   return {
     name: e.name ?? "",
@@ -9,7 +19,7 @@ export function equipmentToForm(e: Equipment, inferredBrand: number): FormState 
     serial:e.serial ?? "",
     software_identifier: e.software_identifier ?? "",
 
-    brand: inferredBrand,
+    brand: e.brand || inferredBrand,
     equipment_model: e.equipment_model,
     branch: e.branch,
     branch_text:e.branch_text ?? "",
@@ -26,17 +36,17 @@ export function equipmentToForm(e: Equipment, inferredBrand: number): FormState 
     owner: e.owner ?? "",
     client_name: e.client_name ?? "",
 
-    purchase_date: e.purchase_date ?? "",
-    manufacture_date:e.manufacture_date ?? "",
+    purchase_date: dateOnly(e.purchase_date),
+    manufacture_date: dateOnly(e.manufacture_date),
     supplier_acquisition: e.supplier_acquisition ?? "",
-    start_use_date:e.start_use_date ?? "",
+    start_use_date: dateOnly(e.start_use_date),
     equipment_cost:
       e.equipment_cost !== null && e.equipment_cost !== undefined
         ? String(e.equipment_cost)
         : "",
       
-    warranty_start_date: e.warranty_start_date?.slice(0,10) ?? "",
-    warranty_end_date: e.warranty_end_date?.slice(0,10) ?? "",
+    warranty_start_date: dateOnly(e.warranty_start_date),
+    warranty_end_date: dateOnly(e.warranty_end_date),
 
     maintenance_provider: e.maintenance_provider ?? "",
     maintenance_frequency_months:
@@ -44,8 +54,8 @@ export function equipmentToForm(e: Equipment, inferredBrand: number): FormState 
       e.maintenance_frequency_months !== undefined
         ? String(e.maintenance_frequency_months)
         : "",
-      last_preventive: e.last_preventive ?? "",
-      next_preventive:e.next_preventive ?? "",
+      last_preventive: dateOnly(e.last_preventive),
+      next_preventive: dateOnly(e.next_preventive),
 
       calibration_date: e.calibration_date ?? "",
       calibration_frequency_months:
@@ -54,8 +64,8 @@ export function equipmentToForm(e: Equipment, inferredBrand: number): FormState 
           : "",
           
       
-    last_calibration: e.last_calibration ?? "",
-    next_calibration: e.next_calibration ?? "",
+    last_calibration: dateOnly(e.last_calibration),
+    next_calibration: dateOnly(e.next_calibration),
 
     electrical_safety_class:e.electrical_safety_class ?? "",
     electrical_safety_type: e.electrical_safety_type ?? "",
@@ -91,19 +101,19 @@ export function formToPayload(form: FormState): EquipmentInput {
     area: form.area,
     location: form.location,
 
-    technology_type: form.technology_type,
+    technology_type: emptyToUndefined(form.technology_type),
     biomedical_classification:form.biomedical_classification,
-    risk_class:form.risk_class,
+    risk_class: emptyToUndefined(form.risk_class) as FormState["risk_class"],
 
     manufacturer: form.manufacturer,
     owner: form.owner,
     client_name: form.client_name,
   
-    purchase_date: form.purchase_date,
+    purchase_date: emptyToUndefined(form.purchase_date),
     supplier_acquisition: form.supplier_acquisition,
     equipment_cost:form.equipment_cost,
-    manufacture_date:form.manufacture_date || undefined,
-    start_use_date: form.start_use_date || undefined,
+    manufacture_date: emptyToUndefined(form.manufacture_date),
+    start_use_date: emptyToUndefined(form.start_use_date),
 
     warranty_start_date:form.warranty_start_date || undefined,
     warranty_end_date: form.warranty_end_date || undefined,
@@ -112,15 +122,15 @@ export function formToPayload(form: FormState): EquipmentInput {
     maintenance_frequency_months: form.maintenance_frequency_months
       ? Number(form.maintenance_frequency_months)
       : undefined,
-    last_preventive: form.last_preventive,
-    next_preventive: form.next_preventive,
+    last_preventive: emptyToUndefined(form.last_preventive),
+    next_preventive: emptyToUndefined(form.next_preventive),
 
     calibration_date: form.calibration_date,
     calibration_frequency_months: form.calibration_frequency_months
       ? Number(form.calibration_frequency_months)
       : undefined,
-    last_calibration: form.last_calibration,
-    next_calibration:form.next_calibration,
+    last_calibration: emptyToUndefined(form.last_calibration),
+    next_calibration: emptyToUndefined(form.next_calibration),
 
     electrical_safety_class: form.electrical_safety_class,
     electrical_safety_type: form.electrical_safety_type,

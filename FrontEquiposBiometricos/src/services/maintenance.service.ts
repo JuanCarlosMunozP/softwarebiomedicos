@@ -5,6 +5,7 @@ import type { MaintenanceInput, MaintenanceRecord } from "@/types/maintenance/ma
 export interface MaintenanceListParams {
   ordering?: string;
   equipment?: number;
+  equipment_name?: string;
   branch?: number;
   kind?: string;
   date_after?: string;
@@ -42,6 +43,20 @@ export const maintenanceService = {
       };
     }
     return res.data;
+  },
+  /** Trae todos los registros recorriendo la paginación, para el buscador. */
+  async listAll(params: Omit<MaintenanceListParams, "page" | "page_size"> = {}) {
+    const all: MaintenanceRecord[] = [];
+    for (let page = 1; page < 500; page += 1) {
+      const res = await api.get<Paginated<MaintenanceRecord> | MaintenanceRecord[]>(
+        "/maintenance/records/",
+        { params: { ...params, page } },
+      );
+      if (Array.isArray(res.data)) return res.data;
+      all.push(...res.data.results);
+      if (!res.data.next) break;
+    }
+    return all;
   },
   async retrieve(id: number) {
     const res = await api.get<MaintenanceRecord>(`/maintenance/records/${id}/`);

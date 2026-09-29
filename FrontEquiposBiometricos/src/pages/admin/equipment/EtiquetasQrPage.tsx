@@ -3,12 +3,11 @@ import { Link } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
-  FileText,
-  Printer,
   RefreshCw,
   RotateCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { IconHint } from "@/components/ui/IconHint";
 import { Card } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Select";
 import { useAuth } from "@/context/AuthContext";
@@ -19,8 +18,8 @@ import { getApiErrorMessage } from "@/lib/api";
 import { resolveMediaUrl } from "@/lib/media";
 import type { Equipment } from "@/types/equipment/equipment";
 import type { Branch } from "@/types/equipment/branch";
-import { downloadTextFile, uniqueNames } from '../../../utils/equipment.names.utils';
-import { Combobox, type ComboboxOption } from "@/components/ui/Combobox";
+import { startsWithLetter } from '../../../utils/equipment.names.utils';
+import { Combobox } from "@/components/ui/Combobox";
 
 const COLUMN_OPTIONS = [
   { value: "2", label: "2 por fila (grandes)" },
@@ -126,6 +125,15 @@ function buildPrintHtml(items: Equipment[], columns: number): string {
 </html>`;
 }
 
+export function printEquipmentLabels(items: Equipment[], columns: number): boolean {
+  if (items.length === 0) return false;
+  const win = window.open("", "_blank", "width=900,height=700");
+  if (!win) return false;
+  win.document.write(buildPrintHtml(items, columns));
+  win.document.close();
+  return true;
+}
+
 export function EtiquetasQrPage() {
   const { usuario } = useAuth();
   const canRegenerate = can(usuario?.role, "equipment", "edit");
@@ -135,7 +143,7 @@ export function EtiquetasQrPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [equipmentFilter, setEquipmentFilter] = useState<ComboboxOption | null>(null);
+  const [nameQuery, setNameQuery] = useState("");
   const [branchFilter, setBranchFilter] = useState("");
   const [columns, setColumns] = useState("3");
   const [page, setPage] = useState(1);
@@ -194,59 +202,57 @@ export function EtiquetasQrPage() {
     return () => window.removeEventListener("focus", onFocus);
   }, []);
 
-  // Opciones del desplegable: nombres de equipo sin repetir (de la sede elegida
-  // o de todas), con cuántos equipos tienen ese nombre.
+  // Cada equipo es una opción: al escribir se filtran las coincidencias
+  // (igual que marca y modelo), sin juntar los nombres repetidos.
   const nameOptions = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const eq of items) {
-      if (branchFilter && String(eq.branch) !== branchFilter) continue;
-      counts.set(eq.name, (counts.get(eq.name) ?? 0) + 1);
-    }
-    return [...counts].map(([name, n]) => ({
-      value: name,
-      label: name,
-      hint: `${n} ${n === 1 ? "equipo" : "equipos"}`,
-    }));
+    return items
+      .filter((eq) => !branchFilter || String(eq.branch) === branchFilter)
+      .map((eq) => ({
+        value: String(eq.id),
+        label: eq.name,
+        hint: eq.asset_tag,
+      }))
+      .sort(
+        (a, b) =>
+          a.label.localeCompare(b.label, "es") ||
+          a.hint.localeCompare(b.hint, "es"),
+      );
   }, [items, branchFilter]);
 
   const filtered = useMemo(() => {
+    const query = nameQuery.trim();
     const list = items.filter((eq) => {
       if (branchFilter && String(eq.branch) !== branchFilter) return false;
-      return !equipmentFilter || eq.name === equipmentFilter.value;
+      if (query && !startsWithLetter(eq.name, query)) return false;
+      return true;
     });
-    if (!equipmentFilter) return list;
-    // Con un nombre elegido, las etiquetas se ordenan y agrupan por sede.
+    if (!query) return list;
     return list.sort(
       (a, b) =>
         (a.branch_name ?? "").localeCompare(b.branch_name ?? "", "es") ||
         a.asset_tag.localeCompare(b.asset_tag, "es"),
     );
-  }, [items, equipmentFilter, branchFilter]);
+  }, [items, branchFilter, nameQuery]);
 
   // Cuántas etiquetas tiene cada sede (para el título de cada grupo).
   const sedeCounts = useMemo(() => {
     const counts = new Map<number, number>();
-    if (equipmentFilter) {
+    if (nameQuery.trim()) {
       for (const eq of filtered) counts.set(eq.branch, (counts.get(eq.branch) ?? 0) + 1);
     }
     return counts;
-  }, [filtered, equipmentFilter]);
+  }, [filtered, nameQuery]);
 
   // Volver a la página 1 cuando cambian los filtros.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
-  }, [equipmentFilter, branchFilter]);
+  }, [branchFilter, nameQuery]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const pageStart = (currentPage - 1) * PAGE_SIZE;
   const paged = filtered.slice(pageStart, pageStart + PAGE_SIZE);
-
-  const toPrint = useMemo(
-    () => filtered.filter((eq) => selected.has(eq.id)),
-    [filtered, selected],
-  );
 
   const allFilteredSelected =
     filtered.length > 0 && filtered.every((eq) => selected.has(eq.id));
@@ -269,17 +275,6 @@ export function EtiquetasQrPage() {
     });
   };
 
-  const print = () => {
-    if (toPrint.length === 0) return;
-    const win = window.open("", "_blank", "width=900,height=700");
-    if (!win) {
-      setNotice("El navegador bloqueó la ventana de impresión. Habilita los pop-ups.");
-      return;
-    }
-    win.document.write(buildPrintHtml(toPrint, Number(columns)));
-    win.document.close();
-  };
-
   const regenerateAll = async () => {
     setRegenerating(true);
     setNotice(null);
@@ -295,11 +290,6 @@ export function EtiquetasQrPage() {
     }
   };
 
-  const exportNames = () => {
-    const q = (equipmentFilter?.label ?? "").replace(/[^\w-]/g,"_");
-    downloadTextFile(q ? `equipos_${q}.txt` : "equipos.txt",uniqueNames(filtered));
-  }
-
   const gridCols =
     columns === "2"
       ? "sm:grid-cols-2"
@@ -308,7 +298,7 @@ export function EtiquetasQrPage() {
         : "sm:grid-cols-2 lg:grid-cols-3";
 
   return (
-    <div className="mx-auto flex max-w-screen-2xl flex-col gap-6">
+    <div className="mx-auto flex min-w-0 max-w-screen-2xl flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-app">Etiquetas QR</h1>
@@ -317,37 +307,30 @@ export function EtiquetasQrPage() {
             abre la hoja de vida del equipo (previo inicio de sesión).
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="secondary"
-            leftIcon={<RotateCw size={16} />}
-            onClick={() => void load({ silent: true })}
-          >
-            Actualizar
-          </Button>
-          {canRegenerate && (
+        <div className="flex flex-nowrap items-center gap-2">
+          <IconHint label="Actualizar">
             <Button
               variant="secondary"
-              leftIcon={<RefreshCw size={16} />}
-              loading={regenerating}
-              onClick={() => void regenerateAll()}
+              className="h-8! w-8! px-0!"
+              aria-label="Actualizar"
+              onClick={() => void load({ silent: true })}
             >
-              Regenerar QR de todos
+              <RotateCw size={14} />
             </Button>
+          </IconHint>
+          {canRegenerate && (
+            <IconHint label="Regenerar QR de todos">
+              <Button
+                variant="secondary"
+                className="h-8! w-8! px-0!"
+                aria-label="Regenerar QR de todos"
+                loading={regenerating}
+                onClick={() => void regenerateAll()}
+              >
+                <RefreshCw size={14} />
+              </Button>
+            </IconHint>
           )}
-          <Button
-            leftIcon={<Printer size={16} />}
-            disabled={toPrint.length === 0}
-            onClick={print}
-          >
-            Imprimir ({toPrint.length})
-          </Button>
-          <Button 
-          variant="secondary"
-          leftIcon={<FileText size={16} /> }
-          disabled={filtered.length === 0}
-          onClick={exportNames}
-          />
         </div>
       </div>
 
@@ -365,49 +348,55 @@ export function EtiquetasQrPage() {
         </div>
       )}
 
-      <Card>
-        <div className="grid gap-2 sm:grid-cols-4">
-          <Combobox
-            autoFocus
-            options={nameOptions}
-            onSelect={setEquipmentFilter}
-            placeholder="Escribe el nombre del equipo..."
-            ariaLabel="Buscar equipo por nombre"
-          />
-          <Select
-            placeholder="Todas las sedes"
-            value={branchFilter}
-            onChange={(e) => setBranchFilter(e.target.value)}
-            options={branches.map((b) => ({ value: String(b.id), label: b.name }))}
-          />
-          <Select
-            value={columns}
-            onChange={(e) => setColumns(e.target.value)}
-            options={COLUMN_OPTIONS}
-          />
-          <Button variant="secondary" onClick={toggleAllFiltered}>
+      <Card padding="none" className="min-w-0 overflow-x-clip">
+        <div className="flex w-full min-w-0 flex-nowrap items-center gap-3 border-b border-app px-4 py-4">
+          <div className="min-w-0 flex-1 basis-0">
+            <Combobox
+              options={nameOptions}
+              onQueryChange={setNameQuery}
+              onSelect={(opt) => setNameQuery(opt?.label ?? "")}
+              placeholder="Escribe el nombre del equipo..."
+              ariaLabel="Buscar equipo por nombre"
+            />
+          </div>
+          <div className="min-w-0 flex-1 basis-0 overflow-hidden">
+            <Select
+              className="px-4!"
+              placeholder="Todas las sedes"
+              value={branchFilter}
+              onChange={(e) => setBranchFilter(e.target.value)}
+              options={branches.map((b) => ({ value: String(b.id), label: b.name }))}
+            />
+          </div>
+          <div className="min-w-0 flex-1 basis-0 overflow-hidden">
+            <Select
+              className="px-4!"
+              value={columns}
+              onChange={(e) => setColumns(e.target.value)}
+              options={COLUMN_OPTIONS}
+            />
+          </div>
+          <Button
+            variant="secondary"
+            className="shrink-0 whitespace-nowrap px-4!"
+            onClick={toggleAllFiltered}
+          >
             {allFilteredSelected ? "Quitar selección" : "Seleccionar todos"}
           </Button>
         </div>
-      </Card>
 
       {loading ? (
-        <Card>
           <p className="py-10 text-center text-sm text-app-muted">Cargando...</p>
-        </Card>
       ) : filtered.length === 0 ? (
-        <Card>
           <p className="py-10 text-center text-sm text-app-muted">
             No hay equipos con los filtros actuales.
           </p>
-        </Card>
       ) : (
-        <>
-        <div className={`grid grid-cols-1 gap-3 ${gridCols}`}>
+        <div className={`grid grid-cols-1 gap-3 p-4 ${gridCols}`}>
           {paged.map((eq, idx) => {
             const isSelected = selected.has(eq.id);
             const startsSede =
-              !!equipmentFilter && (idx === 0 || paged[idx - 1].branch !== eq.branch);
+              !!nameQuery.trim() && (idx === 0 || paged[idx - 1].branch !== eq.branch);
             return (
               <Fragment key={eq.id}>
               {startsSede && (
@@ -422,7 +411,7 @@ export function EtiquetasQrPage() {
               <label
                 className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${
                   isSelected
-                    ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5"
+                    ? "border-primary bg-primary/5"
                     : "border-app bg-surface hover:bg-app-muted/50"
                 }`}
               >
@@ -448,19 +437,19 @@ export function EtiquetasQrPage() {
                     );
                   })()}
                 </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-app">
+                <div className="min-w-0 flex-1 pr-2">
+                  <p className="wrap-break-word text-sm font-semibold text-app">
                     {eq.name}
                   </p>
-                  <p className="font-mono text-sm font-bold text-app">
+                  <p className="wrap-break-word font-mono text-sm font-bold text-app">
                     {eq.asset_tag}
                   </p>
-                  <p className="truncate text-xs text-app-muted">
+                  <p className="wrap-break-word text-xs text-app-muted">
                     {[eq.branch_name, eq.location].filter(Boolean).join(" · ")}
                   </p>
                   <Link
                     to={`/admin/equipos/${eq.id}`}
-                    className="text-xs text-[var(--color-primary)] hover:underline"
+                    className="text-xs text-primary hover:underline"
                     onClick={(e) => e.stopPropagation()}
                   >
                     Ver hoja de vida
@@ -471,8 +460,9 @@ export function EtiquetasQrPage() {
             );
           })}
         </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-app-muted">
+      )}
+        {filtered.length > 0 && !loading && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-app px-4 py-3 text-xs text-app-muted">
           <p>
             Mostrando {pageStart + 1}–{pageStart + paged.length} de{" "}
             {filtered.length}
@@ -501,8 +491,8 @@ export function EtiquetasQrPage() {
             </Button>
           </div>
         </div>
-        </>
-      )}
+        )}
+      </Card>
     </div>
   );
 }

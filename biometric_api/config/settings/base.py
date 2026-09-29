@@ -6,8 +6,10 @@ Las settings específicas de cada entorno (dev/prod) heredan de este archivo.
 from datetime import timedelta
 from pathlib import Path
 
+import os
 import environ
 from celery.schedules import crontab
+
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -25,6 +27,7 @@ env = environ.Env(
     CELERY_TASK_ALWAYS_EAGER=(bool, False),
     EMAIL_USE_TLS=(bool, True),
     AWS_QUERYSTRING_AUTH=(bool, True),
+    MAINTENANCE_NOTIFICATION_EMAILS=(list, []),
 )
 
 # Carga .env si existe (en Docker se inyectan vía environment, en local desde archivo)
@@ -35,7 +38,7 @@ if env_file.exists():
 # ---------------------------------------------------------------------------
 # Core Django
 # ---------------------------------------------------------------------------
-SECRET_KEY = env("DJANGO_SECRET_KEY", default="insecure-default-change-me")
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", default="insecure-default-change-me")
 DEBUG = env("DJANGO_DEBUG")
 ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
 
@@ -134,11 +137,11 @@ ASGI_APPLICATION = "config.asgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("POSTGRES_DB", default="biometric_db"),
-        "USER": env("POSTGRES_USER", default="biometric_user"),
-        "PASSWORD": env("POSTGRES_PASSWORD", default="biometric_pass"),
-        "HOST": env("POSTGRES_HOST", default="localhost"),
-        "PORT": env("POSTGRES_PORT", default="5432"),
+        "NAME": os.getenv("POSTGRES_DB", default="biometric_db"),
+        "USER": os.getenv("POSTGRES_USER", default="biometric_user"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD", default="biometric_pass"),
+        "HOST": os.getenv("POSTGRES_HOST", default="localhost"),
+        "PORT": os.getenv("POSTGRES_PORT", default="5432"),
     }
 }
 
@@ -194,9 +197,9 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ),
     "DEFAULT_THROTTLE_RATES": {
-        "anon": env("THROTTLE_RATE_ANON", default="20/min"),
-        "user": env("THROTTLE_RATE_USER", default="120/min"),
-        "login": env("THROTTLE_RATE_LOGIN", default="5/min"),
+        "anon": os.getenv("THROTTLE_RATE_ANON", default="200/min"),
+        "user": os.getenv("THROTTLE_RATE_USER", default="1000/min"),
+        "login": os.getenv("THROTTLE_RATE_LOGIN", default="500/min"),
     },
 }
 
@@ -222,7 +225,7 @@ SIMPLE_JWT = {
 # solo cae a la cookie cuando no viene header.
 AUTH_COOKIE_ACCESS_NAME = "access_token"
 AUTH_COOKIE_REFRESH_NAME = "refresh_token"
-AUTH_COOKIE_SAMESITE = env("AUTH_COOKIE_SAMESITE", default="Lax")
+AUTH_COOKIE_SAMESITE = os.getenv("AUTH_COOKIE_SAMESITE", default="Lax")
 # En prod.py se fuerza a True (HTTPS). En dev queda en False por defecto para
 # no requerir HTTPS local; puede activarse por env si se prueba con HTTPS.
 AUTH_COOKIE_SECURE = env.bool("AUTH_COOKIE_SECURE", default=False)
@@ -281,7 +284,7 @@ CONTENT_SECURITY_POLICY = {
 # CORS / CSRF (frontend web en otro puerto en dev: Vite :5173 → API :8000)
 # ---------------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
-CSRF_TRUSTED_ORIGINS = env(
+CSRF_TRUSTED_ORIGINS = os.getenv(
     "CSRF_TRUSTED_ORIGINS",
     default=env("CORS_ALLOWED_ORIGINS"),
 )
@@ -293,11 +296,11 @@ CORS_ALLOW_CREDENTIALS = True
 # ---------------------------------------------------------------------------
 # AWS S3 (django-storages)
 # ---------------------------------------------------------------------------
-AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID", default="")
-AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY", default="")
-AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME", default="")
-AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="us-east-1")
-AWS_S3_CUSTOM_DOMAIN = env("AWS_S3_CUSTOM_DOMAIN", default="") or None
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", default="")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", default="")
+AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME", default="")
+AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", default="us-east-1")
+AWS_S3_CUSTOM_DOMAIN = os.getenv("AWS_S3_CUSTOM_DOMAIN", default="") or None
 AWS_QUERYSTRING_AUTH = env("AWS_QUERYSTRING_AUTH")
 AWS_DEFAULT_ACL = None  # Buckets modernos: ACLs deshabilitadas, se usan policies
 
@@ -320,21 +323,21 @@ else:
 # ---------------------------------------------------------------------------
 # Frontend (para los enlaces que apuntan los QR)
 # ---------------------------------------------------------------------------
-FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://127.0.0.1:5173")
+FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", default="http://127.0.0.1:5173")
 
 # ---------------------------------------------------------------------------
 # Email
 # ---------------------------------------------------------------------------
-EMAIL_BACKEND = env(
+EMAIL_BACKEND = os.getenv(
     "EMAIL_BACKEND",
     default="django.core.mail.backends.console.EmailBackend",
 )
-EMAIL_HOST = env("EMAIL_HOST", default="")
+EMAIL_HOST = os.getenv("EMAIL_HOST", default="")
 EMAIL_PORT = env.int("EMAIL_PORT", default=587)
 EMAIL_USE_TLS = env("EMAIL_USE_TLS")
-EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
-EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
-DEFAULT_FROM_EMAIL = env(
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = os.getenv(
     "DEFAULT_FROM_EMAIL",
     default="Biometric API <noreply@biometric.local>",
 )
@@ -342,8 +345,8 @@ DEFAULT_FROM_EMAIL = env(
 # ---------------------------------------------------------------------------
 # Celery
 # ---------------------------------------------------------------------------
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = env(
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = os.getenv(
     "CELERY_RESULT_BACKEND", default="redis://localhost:6379/1"
 )
 CELERY_TASK_ALWAYS_EAGER = env("CELERY_TASK_ALWAYS_EAGER")
@@ -353,7 +356,7 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULE = {
     "verify-equipment-expiry-daily": {
-        "task":"apps.equipment.tasks.verify_equipment_expiry",
+        "task":"equipment.tasks.verify_equipment_expiry",
         "schedule":crontab(hour=8,minute=0),
     }
 }
@@ -362,7 +365,7 @@ CELERY_BEAT_SCHEDULE = {
 # Channels (WebSockets) — canal `/ws/notifications/`
 # ---------------------------------------------------------------------------
 # Reusa el mismo Redis que Celery pero en otra DB para no mezclar keys.
-CHANNELS_REDIS_URL = env("CHANNELS_REDIS_URL", default="redis://localhost:6379/3")
+CHANNELS_REDIS_URL = os.getenv("CHANNELS_REDIS_URL", default="redis://localhost:6379/3")
 # redis-py 8 default `socket_timeout=5` aborta el BZPOPMIN bloqueante de
 # channels-redis (~5 s sin mensajes) y tumba `/ws/notifications/`.
 # `None` restaura la espera indefinida que Channels necesita.
@@ -383,16 +386,14 @@ CHANNEL_LAYERS = {
 # ----------------------------------------------------------------------------
 # Notificaciones de vencimiento de garantia
 # ----------------------------------------------------------------------------
-EXPIRED_NOTIFICATION_EMAILS = env.list(
+EXPIRED_NOTIFICATION_EMAILS = os.getenv(
     "EXPIRED_NOTIFICATION_EMAILS",default=[]
 )
 
 # ---------------------------------------------------------------------------
 # Notificaciones de mantenimiento
 # ---------------------------------------------------------------------------
-MAINTENANCE_NOTIFICATION_EMAILS = env.list(
-    "MAINTENANCE_NOTIFICATION_EMAILS", default=[]
-)
+MAINTENANCE_NOTIFICATION_EMAILS = env("MAINTENANCE_NOTIFICATION_EMAILS")
 
 # ---------------------------------------------------------------------------
 # Logging (a stdout, apto para contenedores/Docker)
@@ -414,7 +415,7 @@ LOGGING = {
     },
     "root": {
         "handlers": ["console"],
-        "level": env("DJANGO_LOG_LEVEL", default="INFO"),
+        "level": os.getenv("DJANGO_LOG_LEVEL", default="INFO"),
     },
     "loggers": {
         "django.request": {
@@ -433,18 +434,20 @@ LOGGING = {
 # ---------------------------------------------------------------------------
 # Sentry (captura de errores/monitoreo) — solo se activa si hay DSN
 # ---------------------------------------------------------------------------
-SENTRY_DSN = env("SENTRY_DSN", default="")
+SENTRY_DSN = os.getenv("SENTRY_DSN", default="")
 if SENTRY_DSN:
+    import logging
+
     import sentry_sdk
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.logging import LoggingIntegration
 
     sentry_sdk.init(
         dsn=SENTRY_DSN,
-        environment=env("SENTRY_ENVIRONMENT", default="production"),
+        environment=os.getenv("SENTRY_ENVIRONMENT", default="production"),
         integrations=[
             DjangoIntegration(),
-            LoggingIntegration(level=None, event_level="ERROR"),
+            LoggingIntegration(level=None, event_level=logging.ERROR),
         ],
         traces_sample_rate=env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.1),
         send_default_pii=False,

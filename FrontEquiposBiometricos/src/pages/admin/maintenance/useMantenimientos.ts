@@ -6,6 +6,7 @@ import { equipmentService } from "@/services/equipment.service";
 import { schedulingService } from "@/services/scheduling.service";
 import { usersService } from "@/services/users.service";
 import { can } from "@/lib/permissions";
+import { assignedUserName } from "@/lib/users";
 import { getApiErrorMessage } from "@/lib/api";
 import type { Equipment } from "@/types/equipment/equipment";
 import type { Usuario } from "@/types/authentication/auth";
@@ -30,6 +31,9 @@ export function useMantenimientos() {
   const [search, setSearch] = useState("");
   const [kindFilter, setKindFilter] = useState("");
   const [equipmentFilter, setEquipmentFilter] = useState("");
+  const [searchOptions, setSearchOptions] = useState<
+    { value: string; label: string; hint?: string }[]
+  >([]);
 
   const [editing, setEditing] = useState<MaintenanceRecord | null>(null);
   const [creating, setCreating] = useState(false);
@@ -55,7 +59,8 @@ export function useMantenimientos() {
     () =>
       equipment.map((e) => ({
         value: String(e.id),
-        label: `${e.name} (${e.asset_tag})`,
+        label: e.name,
+        hint: e.asset_tag,
       })),
     [equipment],
   );
@@ -92,7 +97,7 @@ export function useMantenimientos() {
         ordering: "-date",
         search: search || undefined,
         kind: kindFilter || undefined,
-        equipment: equipmentFilter ? Number(equipmentFilter) : undefined,
+        equipment_name: equipmentFilter || undefined,
         page: targetPage,
         page_size: PAGE_SIZE,
       });
@@ -108,8 +113,11 @@ export function useMantenimientos() {
 
   useEffect(() => {
     void Promise.all([
+      // listAll, no list: con más de una página de equipos, list() solo trae
+      // la primera y al editar un mantenimiento cuyo equipo cae en otra
+      // página, el <Select> no lo encuentra y queda sin mostrar el equipo.
       equipmentService
-        .list({ ordering: "name" })
+        .listAll({ ordering: "name" })
         .then((data) => {
           setEquipment(data);
           setEquipmentError(false);
@@ -120,7 +128,32 @@ export function useMantenimientos() {
         .then(setPendingSchedules)
         .catch(() => null),
     ]);
+    void loadSearchOptions();
   }, []);
+
+  const loadSearchOptions = async () => {
+    try {
+      const all = await maintenanceService.listAll({ ordering: "-date" });
+      const seen = new Set<string>();
+      const options: { value: string; label: string }[] = [];
+      for (const m of all) {
+        const label =
+          assignedUserName(m.assigned_technician_detail) ||
+          assignedUserName(m.assigned_engineer_detail) ||
+          m.technician?.trim() ||
+          "";
+        if (!label) continue;
+        const key = label.toLocaleLowerCase("es");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        options.push({ value: key, label });
+      }
+      options.sort((a, b) => a.label.localeCompare(b.label, "es"));
+      setSearchOptions(options);
+    } catch {
+      // El listado paginado sigue funcionando aunque falle el buscador.
+    }
+  };
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -272,6 +305,7 @@ export function useMantenimientos() {
           .then(setPendingSchedules)
           .catch(() => null),
       ]);
+      await loadSearchOptions();
     } catch (err) {
       alert(getApiErrorMessage(err, "Error al guardar"));
     } finally {
@@ -286,6 +320,7 @@ export function useMantenimientos() {
       await maintenanceService.remove(toDelete.id);
       setToDelete(null);
       await load();
+      await loadSearchOptions();
     } catch (err) {
       alert(getApiErrorMessage(err, "No se pudo eliminar"));
     } finally {
@@ -326,6 +361,7 @@ export function useMantenimientos() {
     canEdit,
     canDelete,
     equipmentOptions,
+    searchOptions,
     equipmentLabel,
     scheduleOptions,
     load,

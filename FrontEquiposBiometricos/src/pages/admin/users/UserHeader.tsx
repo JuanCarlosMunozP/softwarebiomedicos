@@ -1,12 +1,4 @@
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import type { UserHeaderProps } from "@/types/authentication/props";
-
-export function UserHeader({
-  canCreate,
-  assignableRoles,
-  openCreate,
-}: UserHeaderProps) {
+export function UserHeader() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -15,11 +7,6 @@ export function UserHeader({
           Administra los usuarios del sistema y sus roles.
         </p>
       </div>
-      {canCreate && assignableRoles.length > 0 && (
-        <Button leftIcon={<Plus size={16} />} onClick={openCreate}>
-          Nuevo usuario
-        </Button>
-      )}
     </div>
   );
 }

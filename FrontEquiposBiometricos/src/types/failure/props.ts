@@ -7,13 +7,11 @@ type SelectOption = {value:string; label:string};
 export interface FailureHeaderProps {
   role: Rol | undefined;
   usuario: Usuario | null;
-  canCreate: boolean;
-  openCreate: () => void;
 }
 
 export interface FailureFiltersProps {
-  search: string;
   setSearch: Dispatch<SetStateAction<string>>;
+  equipmentOptions: { value: string; label: string; hint?: string }[];
   severityFilter: string;
   setSeverityFilter: Dispatch<SetStateAction<string>>;
   resolvedFilter: string;
@@ -21,6 +19,9 @@ export interface FailureFiltersProps {
   branchFilter: string;
   setBranchFilter: Dispatch<SetStateAction<string>>;
   branchOptions: SelectOption[];
+  areaFilter: string;
+  setAreaFilter: Dispatch<SetStateAction<string>>;
+  areaOptions: SelectOption[];
 }
 
 export interface FailureRowProps {
@@ -32,6 +33,8 @@ export interface FailureRowProps {
   setResolveNotes: Dispatch<SetStateAction<string>>;
   openEdit: (f: FailureReport) => void;
   setToDelete: Dispatch<SetStateAction<FailureReport | null>>;
+  canCreate: boolean;
+  openCreate: () => void;
 }
 
 export interface FailureTableProps extends Omit<FailureRowProps, "f"> {

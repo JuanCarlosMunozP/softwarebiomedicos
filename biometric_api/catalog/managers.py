@@ -46,3 +46,6 @@ class EquipmentModelManager(models.Manager.from_queryset(EquipmentModelQuerySet)
 
     def for_brand(self, brand_id: int) -> EquipmentModelQuerySet:
         return self.get_queryset().for_brand(brand_id)
+
+    def with_active_brand(self) -> EquipmentModelQuerySet:
+        return self.get_queryset().with_active_brand()

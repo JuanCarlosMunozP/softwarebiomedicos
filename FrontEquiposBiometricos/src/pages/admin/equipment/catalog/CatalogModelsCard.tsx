@@ -1,7 +1,8 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { Layers, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { IconHint } from "@/components/ui/IconHint";
 import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
+import { Combobox } from "@/components/ui/Combobox";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import type { CatalogModelsCardProps } from "@/types/equipment/catalog-props";
@@ -25,38 +26,18 @@ export function CatalogModelsCard({
   canDelete,
   togglingModelId,
   changeModelStatus,
+  openCreateModel,
   openEditModel,
   setModelToDelete,
   modelCount,
   modelPage,
   loadModels,
+  modelOptions,
 }: CatalogModelsCardProps) {
   return (
     <Card padding="none">
       <div className="border-b border-app px-4 py-3">
         <p className="text-sm font-semibold text-app">Modelos</p>
-      </div>
-      <div className="grid gap-2 border-b border-app px-4 py-3 sm:grid-cols-3">
-        <Input
-          placeholder="Nombre del modelo"
-          value={modelNameFilter}
-          onChange={(e) => setModelNameFilter(e.target.value)}
-        />
-        <Select
-          placeholder="Todas las marcas"
-          value={modelBrandFilter}
-          onChange={(e) => setModelBrandFilter(e.target.value)}
-          options={brandOptions}
-        />
-        <Select
-          placeholder="Todos los estados"
-          value={modelStatusFilter}
-          onChange={(e) => setModelStatusFilter(e.target.value)}
-          options={[
-            { value: "true", label: "Activo" },
-            { value: "false", label: "Inactivo" },
-          ]}
-        />
       </div>
       {modelError && (
         <div
@@ -67,18 +48,48 @@ export function CatalogModelsCard({
         </div>
       )}
       <div className="overflow-x-auto">
+        <div className="flex w-full min-w-full flex-nowrap items-center gap-3 border-b border-app px-4 py-4">
+          <div className="min-w-52 flex-1">
+            <Combobox
+              options={modelOptions}
+              onQueryChange={setModelNameFilter}
+              onSelect={(opt) => setModelNameFilter(opt?.label ?? "")}
+              placeholder="Nombre del modelo"
+              ariaLabel="Buscar modelo"
+            />
+          </div>
+          <div className="min-w-52 flex-1">
+            <Select
+              placeholder="Todas las marcas"
+              value={modelBrandFilter}
+              onChange={(e) => setModelBrandFilter(e.target.value)}
+              options={brandOptions}
+            />
+          </div>
+          <div className="min-w-52 flex-1">
+            <Select
+              placeholder="Todos los estados"
+              value={modelStatusFilter}
+              onChange={(e) => setModelStatusFilter(e.target.value)}
+              options={[
+                { value: "true", label: "Activo" },
+                { value: "false", label: "Inactivo" },
+              ]}
+            />
+          </div>
+        </div>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-app text-left text-xs uppercase tracking-wider text-app-muted">
-              <th className="px-4 py-3 font-medium">Marca</th>
-              <th className="px-4 py-3 font-medium">Modelo</th>
-              <th className="px-4 py-3 font-medium">Estado</th>
+              <th className="whitespace-nowrap px-4 py-3 pr-20 font-medium">Marca</th>
+              <th className="min-w-48 whitespace-nowrap px-4 py-3 pl-10 pr-16 font-medium">Modelo</th>
+              <th className="w-px whitespace-nowrap py-3 pl-10 pr-12 text-center font-medium">Estado</th>
               {(canEdit || canDelete) && (
-                <th className="px-4 py-3 text-center font-medium">Acciones</th>
+                <th className="whitespace-nowrap px-6 py-3 pl-12 text-center font-medium">Acciones</th>
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--border)]">
+          <tbody className="divide-y divide-(--border)">
             {modelLoading ? (
               <tr>
                 <td colSpan={modelColSpan} className="py-10 text-center text-app-muted">
@@ -94,10 +105,10 @@ export function CatalogModelsCard({
             ) : (
               models.map((m) => (
                 <tr key={m.id} className="text-app">
-                  <td className="px-4 py-3 font-medium">
+                  <td className="whitespace-nowrap px-4 py-3 pr-20 font-medium">
                     {m.brand_name ?? `Marca #${m.brand}`}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="min-w-48 whitespace-nowrap px-4 py-3 pl-10 pr-16">
                     <p className="font-medium">{m.name}</p>
                     {m.equipment_count != null && (
                       <p className="text-xs text-app-muted">
@@ -105,7 +116,7 @@ export function CatalogModelsCard({
                       </p>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="w-px whitespace-nowrap py-3 pl-10 pr-12 text-center">
                     {canEdit ? (
                       <CatalogActiveSelect
                         value={m.is_active}
@@ -121,27 +132,45 @@ export function CatalogModelsCard({
                     )}
                   </td>
                   {(canEdit || canDelete) && (
-                    <td className="px-4 py-3">
-                      <div className="flex justify-center gap-2">
+                    <td className="whitespace-nowrap px-6 py-3 pl-12">
+                      <div className="flex flex-nowrap items-center justify-center gap-2">
                         {canEdit && (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            leftIcon={<Pencil size={14} />}
-                            onClick={() => openEditModel(m)}
-                          >
-                            Editar
-                          </Button>
+                          <IconHint label="Nuevo modelo">
+                            <Button
+                              size="sm"
+                              className="h-8! w-8! px-0!"
+                              aria-label="Nuevo modelo"
+                              onClick={openCreateModel}
+                            >
+                              <Layers size={14} />
+                            </Button>
+                          </IconHint>
+                        )}
+                        {canEdit && (
+                          <IconHint label="Editar">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="h-8! w-8! px-0!"
+                              aria-label="Editar"
+                              onClick={() => openEditModel(m)}
+                            >
+                              <Pencil size={14} />
+                            </Button>
+                          </IconHint>
                         )}
                         {canDelete && (
-                          <Button
-                            size="sm"
-                            variant="danger"
-                            leftIcon={<Trash2 size={14} />}
-                            onClick={() => setModelToDelete(m)}
-                          >
-                            Eliminar
-                          </Button>
+                          <IconHint label="Eliminar">
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              className="h-8! w-8! px-0!"
+                              aria-label="Eliminar"
+                              onClick={() => setModelToDelete(m)}
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </IconHint>
                         )}
                       </div>
                     </td>

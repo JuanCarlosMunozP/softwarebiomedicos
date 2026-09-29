@@ -98,7 +98,7 @@ export function RegistroPage() {
           <Button
             className="mt-6"
             fullWidth
-            onClick={() => navigate("/login")}
+            onClick={() => navigate("/")}
           >
             Ir a iniciar sesión
           </Button>
@@ -112,7 +112,7 @@ export function RegistroPage() {
       <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-8 sm:px-6">
         <div className="flex items-center justify-between">
           <Link
-            to="/login"
+            to="/"
             className="inline-flex items-center gap-2 text-sm font-medium text-app-muted hover:text-primary"
           >
             <ArrowLeft size={16} />
@@ -240,7 +240,7 @@ export function RegistroPage() {
               </Button>
               <p className="mt-3 text-center text-xs text-app-muted">
                 ¿Ya tienes cuenta?{" "}
-                <Link to="/login" className="font-medium text-primary hover:underline">
+                <Link to="/" className="font-medium text-primary hover:underline">
                   Inicia sesión
                 </Link>
               </p>

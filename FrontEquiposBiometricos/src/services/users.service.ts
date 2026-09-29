@@ -35,6 +35,19 @@ export const usersService = {
     }
     return res.data;
   },
+  /** Trae todos los usuarios recorriendo la paginación, para el buscador. */
+  async listAll(params: Omit<UsersListParams, "page" | "page_size"> = {}) {
+    const all: Usuario[] = [];
+    for (let page = 1; page < 500; page += 1) {
+      const res = await api.get<Paginated<Usuario> | Usuario[]>("/users/", {
+        params: { ...params, page },
+      });
+      if (Array.isArray(res.data)) return res.data;
+      all.push(...res.data.results);
+      if (!res.data.next) break;
+    }
+    return all;
+  },
   async retrieve(id: number) {
     const res = await api.get<Usuario>(`/users/${id}/`);
     return res.data;

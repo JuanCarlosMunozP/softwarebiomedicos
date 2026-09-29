@@ -21,19 +21,7 @@ class MaintenanceScheduleViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated, HasRolePermission)
     permission_resource = "scheduling"
     filterset_class = MaintenanceScheduleFilter
-    search_fields = (
-        "notes",
-        "equipment__asset_tag",
-        "equipment__name",
-        "assigned_engineer__username",
-        "assigned_engineer__first_name",
-        "assigned_engineer__last_name",
-        "assigned_technician__username",
-        "assigned_technician__first_name",
-        "assigned_technician__last_name",
-        "requested_by__area",
-        "equipment__area",
-    )
+    search_fields = ("equipment__name",)
     ordering_fields = ("scheduled_date", "requested_date", "created_at")
     ordering = ("scheduled_date",)
 
@@ -44,7 +32,7 @@ class MaintenanceScheduleViewSet(viewsets.ModelViewSet):
         # El ingeniero solo consulta las asignadas a él o las que él pidió
         # (sin crear/editar/borrar solicitudes).
         user = self.request.user
-        if not user.is_authenticated:
+        if not isinstance(user, User):
             return qs
         if user.role == User.Role.TECNICO:
             return qs.filter(Q(assigned_technician=user) | Q(requested_by=user))
@@ -64,7 +52,7 @@ class MaintenanceScheduleViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="notify")
     def notify(self, request, pk=None):
         schedule = self.get_object()
-        send_schedule_notification.delay(schedule.pk)
+        getattr(send_schedule_notification, "delay")(schedule.pk)
         return Response(
             {"detail": "notification_queued"}, status=status.HTTP_200_OK
         )

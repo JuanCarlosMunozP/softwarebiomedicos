@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -16,6 +18,13 @@ class FailureSeverity(models.TextChoices):
 
 
 class FailureRecord(models.Model):
+    if TYPE_CHECKING:
+        id: int
+        equipment_id: int
+        reported_by_id: int | None
+
+        def get_severity_display(self) -> str: ...
+
     equipment = models.ForeignKey(
         Equipment,
         on_delete=models.PROTECT,

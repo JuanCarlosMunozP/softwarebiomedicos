@@ -1,7 +1,11 @@
+from typing import Any
+
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+
+from common.typing_meta import ModelSerializerMeta
 
 from .models import User
 
@@ -18,11 +22,11 @@ def _normalize_username(value: str) -> str:
     return value.strip()
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer[User]):
     role_display = serializers.CharField(source="get_role_display", read_only=True)
 
-    class Meta:
-        model = User
+    class Meta(ModelSerializerMeta):
+        model: Any = User
         fields = (
             "id",
             "username",
@@ -40,12 +44,12 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "role_display", "date_joined", "last_login")
 
 
-class UserCreateSerializer(serializers.ModelSerializer):
+class UserCreateSerializer(serializers.ModelSerializer[User]):
     role_display = serializers.CharField(source="get_role_display", read_only=True)
     password = serializers.CharField(write_only=True, required=True, min_length=8)
 
-    class Meta:
-        model = User
+    class Meta(ModelSerializerMeta):
+        model: Any = User
         fields = (
             "id",
             "username",
@@ -120,11 +124,11 @@ class UserCreateSerializer(serializers.ModelSerializer):
         return user
 
 
-class UserUpdateSerializer(serializers.ModelSerializer):
+class UserUpdateSerializer(serializers.ModelSerializer[User]):
     role_display = serializers.CharField(source="get_role_display", read_only=True)
 
-    class Meta:
-        model = User
+    class Meta(ModelSerializerMeta):
+        model: Any = User
         fields = (
             "id",
             "username",
@@ -216,7 +220,7 @@ class PasswordChangeSerializer(serializers.Serializer):
 
         is_self = caller is not None and target is not None and caller.pk == target.pk
 
-        if is_self:
+        if is_self and target is not None:
             current = attrs.get("current_password")
             if not current:
                 raise serializers.ValidationError(

@@ -93,7 +93,7 @@ class EquipmentViewSet(AuditLogMixin, viewsets.ModelViewSet):
         return Response(list(names))
 
     @action(detail=True, methods=["post"], url_path="regenerate-qr")
-    def regenerate_qr(self, request, pk: int = None):
+    def regenerate_qr(self, request, pk: int | None = None):
         """Regenera el código QR del equipo."""
         equipment = self.get_object()
         if equipment.qr_code:
@@ -126,7 +126,7 @@ class EquipmentViewSet(AuditLogMixin, viewsets.ModelViewSet):
         return Response({"regenerated": count}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["get"], url_path="history")
-    def history(self, request, pk: int = None):
+    def history(self, request, pk: int | None = None):
         """Historial paginado de mantenimientos del equipo."""
         # Imports locales para evitar cualquier riesgo de import circular:
         # apps.maintenance ya importa apps.equipment.models en su FK.
@@ -272,6 +272,9 @@ class EquipmentWorkOrderViewSet(AuditLogMixin, viewsets.ModelViewSet):
         qs = super().get_queryset()
         if _only_own_work_orders(self.request.user):
             qs = qs.filter(technician=self.request.user)
+        equipment_name = (self.request.query_params.get("equipment_name") or "").strip()
+        if equipment_name:
+            qs = qs.filter(equipment__name__istartswith=equipment_name)
         return qs
 
     def perform_create(self, serializer):
@@ -287,21 +290,13 @@ class EquipmentWorkOrderViewSet(AuditLogMixin, viewsets.ModelViewSet):
             serializer.save()
 
     filterset_fields = ("equipment", "status", "service_type", "technician")
-    search_fields = (
-        "number",
-        "description",
-        "equipment__name",
-        "equipment__asset_tag",
-        "technician__username",
-        "technician__first_name",
-        "technician__last_name",
-    )
+    search_fields = ("number",)
 
     ordering_fields = ("number", "start_date", "end_date", "status", "created_at")
     ordering = ("-start_date",)
 
     @action(detail=True, methods=["get"], url_path="details")
-    def details(self, request, pk: int = None):
+    def details(self, request, pk: int | None = None):
         """Devuelve una orden de trabajo junto a sus elementos relacionados."""
         work_order = get_object_or_404(
             self.get_queryset()
@@ -315,7 +310,7 @@ class EquipmentWorkOrderViewSet(AuditLogMixin, viewsets.ModelViewSet):
         return Response(self.get_serializer(work_order).data)
 
     @action(detail=True, methods=["post"], url_path="complete")
-    def complete(self, request, pk: int = None):
+    def complete(self, request, pk: int | None = None):
         """El responsable marca su orden como realizada.
 
         Pasa a ``FINISHED`` con fecha de fin, y las señales de

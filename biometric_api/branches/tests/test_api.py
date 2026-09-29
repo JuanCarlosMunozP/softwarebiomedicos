@@ -68,11 +68,15 @@ class TestBranchList:
         assert response.json()["count"] == 2
 
     def test_list_search_by_address(self, auth_client):
+        # La búsqueda de sedes es solo por nombre, no por dirección.
         BranchFactory(name="One", address="Calle 100 #15-20")
         BranchFactory(name="Two", address="Avenida Siempre Viva 742")
 
-        response = auth_client.get(LIST_URL, {"search": "Siempre Viva"})
+        by_address = auth_client.get(LIST_URL, {"search": "Siempre Viva"})
+        assert by_address.status_code == status.HTTP_200_OK
+        assert by_address.json()["count"] == 0
 
+        response = auth_client.get(LIST_URL, {"search": "Two"})
         assert response.status_code == status.HTTP_200_OK
         body = response.json()
         assert body["count"] == 1
@@ -123,6 +127,7 @@ class TestBranchCreate:
         assert response.status_code == status.HTTP_201_CREATED
         assert Branch.objects.count() == 1
         created = Branch.objects.first()
+        assert created is not None
         assert created.name == "Sede Norte"
         assert created.city == "Bogota"
 

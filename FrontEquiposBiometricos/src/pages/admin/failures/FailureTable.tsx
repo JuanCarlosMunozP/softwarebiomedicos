@@ -12,23 +12,27 @@ export function FailureTable({
   setResolveNotes,
   openEdit,
   setToDelete,
+  canCreate,
+  openCreate,
 }: FailureTableProps) {
+  const showActions = canCreate || canEdit || canDelete;
   return (
-    <div className="overflow-x-auto">
+    <div className="w-full min-w-0">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-app text-left text-xs uppercase tracking-wider text-app-muted [&>th]:pb-2 [&>th]:pr-6 [&>th]:font-medium [&>th]:whitespace-nowrap">
-            <th className="px-4 py-3 font-medium">Equipo</th>
-            <th className="px-4 py-3 font-medium">Sede</th>
-            <th className="px-4 py-3 font-medium">Severidad</th>
-            <th className="px-4 py-3 font-medium">Reportada</th>
-            <th className="px-4 py-3 font-medium">Estado</th>
-            {(canEdit || canDelete) && (
-              <th className="pb-2 font-medium text-right">Acciones</th>
+          <tr className="border-b border-app text-left text-xs uppercase tracking-wider text-app-muted [&>th]:pb-2 [&>th]:align-bottom [&>th]:font-medium">
+            <th className="whitespace-nowrap py-3 pl-4 pr-8 text-center font-medium">Equipo</th>
+            <th className="whitespace-nowrap py-3 pl-8 pr-8 text-center font-medium">Sede</th>
+            <th className="whitespace-nowrap py-3 pl-8 pr-8 text-center font-medium">Servicio</th>
+            <th className="whitespace-nowrap py-3 pl-8 pr-8 text-center font-medium">Severidad</th>
+            <th className="whitespace-nowrap py-3 pl-8 pr-8 text-center font-medium">Reportada</th>
+            <th className="whitespace-nowrap py-3 pl-8 pr-12 text-center font-medium">Estado</th>
+            {showActions && (
+              <th className="whitespace-nowrap py-3 pl-12 pr-4 text-center font-medium">Acciones</th>
             )}
           </tr>
         </thead>
-        <tbody className="divide-y divide-[var(--border)]">
+        <tbody className="divide-y divide-(--border) [&>tr>td]:align-top [&>tr>td]:wrap-break-word">
           {loading ? (
             <tr>
               <td colSpan={tableCols} className="py-8 text-center text-app-muted">
@@ -53,6 +57,8 @@ export function FailureTable({
                 setResolveNotes={setResolveNotes}
                 openEdit={openEdit}
                 setToDelete={setToDelete}
+                canCreate={canCreate}
+                openCreate={openCreate}
               />
             ))
           )}

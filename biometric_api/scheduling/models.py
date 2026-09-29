@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -14,6 +16,16 @@ class ScheduledMaintenanceKind(models.TextChoices):
 
 
 class MaintenanceSchedule(models.Model):
+    if TYPE_CHECKING:
+        id: int
+        equipment_id: int
+        assigned_engineer_id: int | None
+        assigned_technician_id: int | None
+        _previous_engineer_id: int | None
+        _previous_technician_id: int | None
+
+        def get_kind_display(self) -> str: ...
+
     equipment = models.ForeignKey(
         Equipment,
         on_delete=models.PROTECT,

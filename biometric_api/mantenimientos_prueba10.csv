@@ -1,0 +1,11 @@
+﻿asset_tag,kind,date,description,observations,technician,assigned_engineer,assigned_technician,cost
+6592,PREVENTIVE,2026-09-24,Mantenimiento preventivo del equipo biomédico.,"Se realiza inspección visual, limpieza y pruebas generales.",,ingeniero01,tecnico01,150000
+5493,REPAIR,2026-09-24,Revisión correctiva por reporte de funcionamiento irregular.,Se requiere revisar componentes internos y realizar diagnóstico.,,ingeniero02,tecnico02,280000
+3237,PREVENTIVE,2026-09-24,Inspección preventiva y verificación de parámetros operativos.,"Se verifican controles, conexiones y funcionamiento general.",,ingeniero03,tecnico03,175000
+3239,REPAIR,2026-09-24,Diagnóstico y reparación de falla reportada.,Se recomienda evaluar el componente que presenta la falla.,,ingeniero04,tecnico04,320000
+5123,PREVENTIVE,2026-09-24,Limpieza técnica y pruebas funcionales preventivas.,Se ejecutan pruebas funcionales y revisión de accesorios.,,ingeniero05,tecnico05,140000
+6945,REPAIR,2026-09-24,Revisión correctiva de componentes y conexiones.,Se inspeccionan conexiones eléctricas y elementos de operación.,,ingeniero01,tecnico01,250000
+5913,PREVENTIVE,2026-09-24,Mantenimiento preventivo según programación institucional.,Se valida el estado general y los parámetros del equipo.,,ingeniero02,tecnico02,165000
+3150,REPAIR,2026-10-01,Evaluación técnica por comportamiento anormal del equipo.,Se efectúa diagnóstico técnico y revisión de componentes.,,ingeniero03,tecnico03,290000
+3151,PREVENTIVE,2026-10-02,Verificación preventiva de seguridad y funcionamiento.,Se comprueba el funcionamiento y las condiciones de seguridad.,,ingeniero04,tecnico04,130000
+3152,REPAIR,2026-10-03,Reparación y comprobación final de operación.,Se realiza reparación y prueba de funcionamiento posterior.,,ingeniero05,tecnico05,300000

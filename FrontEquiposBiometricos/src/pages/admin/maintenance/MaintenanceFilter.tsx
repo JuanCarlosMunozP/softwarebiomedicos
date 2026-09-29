@@ -1,29 +1,31 @@
-import { Input } from "@/components/ui/Input";
+import { Combobox } from "@/components/ui/Combobox";
 import { Select } from "@/components/ui/Select";
 import { KIND_LABEL } from "@/utils/maintenance.utils";
 import type { MaintenanceFilterProps } from "@/types/maintenance/props";
 
 export function MaintenanceFilter({
-  search,
   setSearch,
-  equipmentFilter,
   setEquipmentFilter,
   equipmentOptions,
+  searchOptions,
   kindFilter,
   setKindFilter,
 }: MaintenanceFilterProps) {
   return (
     <div className="mb-4 grid gap-2 sm:grid-cols-3">
-      <Input
-        placeholder="Buscar descripción, técnico..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
+      <Combobox
+        options={searchOptions}
+        onQueryChange={setSearch}
+        onSelect={(opt) => setSearch(opt?.label ?? "")}
+        placeholder="Buscar técnico..."
+        ariaLabel="Buscar por técnico"
       />
-      <Select
-        placeholder="Todos los equipos"
-        value={equipmentFilter}
-        onChange={(e) => setEquipmentFilter(e.target.value)}
+      <Combobox
+        placeholder="Buscar equipo..."
+        ariaLabel="Filtrar por equipo"
         options={equipmentOptions}
+        onQueryChange={setEquipmentFilter}
+        onSelect={(opt) => setEquipmentFilter(opt?.label ?? "")}
       />
       <Select
         placeholder="Todos los tipos"

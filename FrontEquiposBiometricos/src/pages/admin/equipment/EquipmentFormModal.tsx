@@ -30,6 +30,7 @@ export function EquipmentFormModal({
   modelsForForm,
   modelOptionsForm,
   openCatalogForm,
+  onBack,
 }: EquipmentFormModalProps) {
   return (
     <Modal
@@ -70,6 +71,11 @@ export function EquipmentFormModal({
         <EquipmentLifeSection form={form} setForm={setForm} />
         <EquipmentObservationsSection form={form} setForm={setForm} />
         <div className="flex justify-end gap-2 sm:col-span-2">
+          {onBack && (
+            <Button variant="secondary" onClick={onBack} type="button">
+              Regresar
+            </Button>
+          )}
           <Button variant="secondary" onClick={onClose} type="button">
             Cancelar
           </Button>

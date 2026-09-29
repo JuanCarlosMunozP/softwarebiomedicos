@@ -1,6 +1,7 @@
-import { ClipboardList, Wrench } from "lucide-react";
+import { ClipboardList, Eye, PackagePlus, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { IconHint } from "@/components/ui/IconHint";
 import { StatusSelect } from "@/pages/admin/equipment/StatusSelect";
 import { RISK_TONE, STATUS_LABEL, STATUS_TONE } from "@/utils/equipment.utils";
 import type { EquipmentRowProps } from "@/types/equipment/props";
@@ -11,6 +12,8 @@ export function EquipmentRow({
   models,
   branchName,
   canEdit,
+  canCreate,
+  onCreate,
   canCreateMaintenance,
   statusUpdatingId,
   onSelect,
@@ -31,13 +34,10 @@ export function EquipmentRow({
     models.find((m) => m.id === eq.equipment_model)?.name ??
     `#${eq.equipment_model}`;
   return (
-    <tr
-      onClick={() => onSelect(eq)}
-      className="cursor-pointer text-app transition hover:bg-app-muted/50"
-    >
-      <td className="px-4 py-3">
+    <tr className="text-app transition hover:bg-app-muted/50">
+      <td className="px-4 py-3 pr-16">
         <div className="flex items-center gap-2">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <ClipboardList size={16} />
           </span>
           <div className="min-w-0">
@@ -48,20 +48,22 @@ export function EquipmentRow({
           </div>
         </div>
       </td>
-      <td className="px-4 py-3 font-mono text-xs text-app-muted">
+      <td className="whitespace-nowrap px-4 py-3 pl-8 pr-16 text-center font-mono text-xs text-app-muted">
         {eq.asset_tag}
       </td>
-      <td className="px-4 py-3 text-app-muted">
+      <td className="whitespace-nowrap px-4 py-3 pl-8 pr-16 text-left text-app-muted">
         <p>{eq.branch_name ?? branchName(eq.branch)}</p>
         <p className="text-xs">{eq.location}</p>
       </td>
-      <td className="px-4 py-3">
-        <Badge tone={RISK_TONE[eq.risk_class]}>
-          {eq.risk_class}
-        </Badge>
+      <td className="whitespace-nowrap py-3 pl-12 pr-14">
+        {eq.risk_class && RISK_TONE[eq.risk_class] ? (
+          <Badge tone={RISK_TONE[eq.risk_class]}>{eq.risk_class}</Badge>
+        ) : (
+          <span className="text-sm text-app-muted">Sin clase</span>
+        )}
       </td>
       <td
-        className="px-4 py-3"
+        className="w-px whitespace-nowrap py-3 pl-10 pr-4 text-center"
         onClick={(ev) => ev.stopPropagation()}
       >
         {canEdit ? (
@@ -76,21 +78,46 @@ export function EquipmentRow({
           </Badge>
         )}
       </td>
-      {canCreateMaintenance && (
-        <td
-          className="px-4 py-3 text-right"
-          onClick={(ev) => ev.stopPropagation()}
-        >
-          <Button
-            size="sm"
-            variant="secondary"
-            leftIcon={<Wrench size={14} />}
-            onClick={() => onNewMaintenance(eq)}
-          >
-            Nuevo mantenimiento
-          </Button>
-        </td>
-      )}
+      <td
+        className="whitespace-nowrap px-4 py-3 pl-8"
+        onClick={(ev) => ev.stopPropagation()}
+      >
+        <div className="flex items-center justify-center gap-2">
+          {canCreate && (
+            <IconHint label="Registrar equipo">
+              <Button
+                size="sm"
+                className="h-8! w-8! px-0!"
+                aria-label="Registrar equipo"
+                onClick={onCreate}
+              >
+                <PackagePlus size={14} />
+              </Button>
+            </IconHint>
+          )}
+          <IconHint label="Detalle">
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-8! w-8! px-0!"
+              aria-label="Detalle"
+              onClick={() => onSelect(eq)}
+            >
+              <Eye size={14} />
+            </Button>
+          </IconHint>
+          {canCreateMaintenance && (
+            <Button
+              size="sm"
+              variant="secondary"
+              leftIcon={<Wrench size={14} />}
+              onClick={() => onNewMaintenance(eq)}
+            >
+              Nuevo mantenimiento
+            </Button>
+          )}
+        </div>
+      </td>
     </tr>
   );
 }

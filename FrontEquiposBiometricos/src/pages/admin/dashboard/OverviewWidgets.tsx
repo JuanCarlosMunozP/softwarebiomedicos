@@ -22,7 +22,7 @@ import type {
   MaintenanceMonthBucket,
 } from "@/types/dashboard/dashboard";
 import type { EquipmentStatus } from "@/types/equipment/equipment";
-import { KIND_COLOR, MonthLabel, SEVERITY_COLOR, SEVERITY_LABEL, STATUS_COLOR, STATUS_LABEL, formatCost } from "@/utils/dashboard.utils";
+import { KIND_COLOR, MonthLabel, SEVERITY_LABEL, STATUS_COLOR, STATUS_LABEL, formatCost } from "@/utils/dashboard.utils";
 
 export function KpiRow({
   data,
@@ -224,10 +224,10 @@ export function FailuresSeverityChart({ data }: { data: FailureSeverityBucket[] 
             <Legend />
             <Bar dataKey="Abiertas" stackId="a" fill="#ef4444">
               {chartData.map((d) => (
-                <Cell key={d.severityKey} fill={SEVERITY_COLOR[d.severityKey]} />
+                <Cell key={d.severityKey}  />
               ))}
             </Bar>
-            <Bar dataKey="Resueltas" stackId="a" fill="#10b981" />
+            <Bar dataKey="Resueltas" stackId="a" fill="#f97316" />
           </BarChart>
         </ResponsiveContainer>
       </div>

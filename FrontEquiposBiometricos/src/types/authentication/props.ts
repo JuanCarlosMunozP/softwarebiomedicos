@@ -2,17 +2,13 @@ import type { Rol, Usuario } from "@/types/authentication/auth";
 import type { Dispatch, SetStateAction, FormEvent } from "react";
 import type { FormState } from "@/types/authentication/form";
 
-export interface UserHeaderProps {
-  canCreate: boolean;
-  assignableRoles: Rol[];
-  openCreate: () => void;
-}
-
 export interface UserFiltersProps {
-  search: string;
   setSearch: Dispatch<SetStateAction<string>>;
+  userOptions: { value: string; label: string; hint?: string }[];
   roleFilter: string;
   setRoleFilter: Dispatch<SetStateAction<string>>;
+  activeFilter: string;
+  setActiveFilter: Dispatch<SetStateAction<string>>;
 }
 
 export interface UserRowProps {
@@ -27,6 +23,9 @@ export interface UserRowProps {
   setNewPassword: Dispatch<SetStateAction<string>>;
   openEdit: (u: Usuario) => void;
   setToDelete: Dispatch<SetStateAction<Usuario | null>>;
+  canCreate: boolean;
+  assignableRoles: Rol[];
+  openCreate: () => void;
 }
 
 export interface UserTableProps extends Omit<UserRowProps, "u"> {

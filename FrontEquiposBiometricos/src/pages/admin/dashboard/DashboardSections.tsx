@@ -17,7 +17,7 @@ export function MyTasksSection({
         title="Mis tareas próximas"
         subtitle="Solicitudes asignadas a ti en los próximos 7 días"
       />
-      <ul className="divide-y divide-[var(--border)]">
+      <ul className="divide-y divide-(--border)">
         {schedules.map((s) => (
           <li
             key={s.id}
@@ -38,7 +38,7 @@ export function MyTasksSection({
       </ul>
       <Link
         to="/admin/agendamientos"
-        className="mt-3 inline-block text-sm text-[var(--color-primary)] hover:underline"
+        className="mt-3 inline-block text-sm text-primary hover:underline"
       >
         Ver todos →
       </Link>
@@ -77,7 +77,7 @@ export function OperativoWeekSection({
               </Badge>
             ))}
           </div>
-          <ul className="divide-y divide-[var(--border)]">
+          <ul className="divide-y divide-(--border)">
             {week.records.map((r) => (
               <li
                 key={r.id}
@@ -116,7 +116,7 @@ export function OverdueSchedulesList({
           items.length > 0 ? (
             <Link
               to="/admin/agendamientos"
-              className="text-sm text-[var(--color-primary)] hover:underline"
+              className="text-sm text-primary hover:underline"
             >
               Ver todos →
             </Link>
@@ -132,7 +132,7 @@ export function OverdueSchedulesList({
           No hay solicitudes vencidas.
         </div>
       ) : (
-        <ul className="divide-y divide-[var(--border)]">
+        <ul className="divide-y divide-(--border)">
           {items.map((it) => (
             <li
               key={it.id}
@@ -170,7 +170,7 @@ export function WorstMtbfList({
           Aún no hay suficientes datos.
         </p>
       ) : (
-        <ul className="divide-y divide-[var(--border)]">
+        <ul className="divide-y divide-(--border)">
           {items.map((it) => (
             <li
               key={it.id}
