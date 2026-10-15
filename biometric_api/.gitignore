@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 *.so
 
+base_datos_usuarios.xlsx
 base_biomedicos*.csv
 base_datos_biomedicos_*.csv
 
@@ -31,7 +32,9 @@ media/
 staticfiles/
 .staticfiles_cache/
 base_datos_limpios.csv
+base_datos_usuarios.csv
 
+users/management/commands/clean_users.py
 
 # Environments
 .env
@@ -59,6 +62,11 @@ coverage.xml
 # Celery
 celerybeat-schedule
 celerybeat.pid
+
+base_datos_limpia.csv
+*_limpio.csv
+
+
 
 # Docker
 docker-compose.override.yml

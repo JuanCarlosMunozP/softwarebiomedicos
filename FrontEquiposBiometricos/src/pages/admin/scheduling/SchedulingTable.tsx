@@ -1,3 +1,6 @@
+import { ClipboardPlus } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { IconHint } from "@/components/ui/IconHint";
 import { SchedulingRow } from "@/pages/admin/scheduling/SchedulingRow";
 import type { SchedulingTableProps } from "@/types/scheduling/props";
 
@@ -51,11 +54,27 @@ export function SchedulingTable({
           ) : items.length === 0 ? (
             <tr>
               <td
-                colSpan={tableColSpan}
+                colSpan={canCreate ? tableColSpan - 1 : tableColSpan}
                 className="py-8 text-center text-app-muted"
               >
                 Sin solicitudes.
               </td>
+              {canCreate && (
+                <td className="py-3 pl-12 pr-4 text-center">
+                  <div className="flex items-center justify-center">
+                    <IconHint label="Crear">
+                      <Button
+                        size="sm"
+                        className="h-8! w-8! px-0!"
+                        aria-label="Crear solicitud"
+                        onClick={onCreate}
+                      >
+                        <ClipboardPlus size={14} />
+                      </Button>
+                    </IconHint>
+                  </div>
+                </td>
+              )}
             </tr>
           ) : (
             items.map((s) => (

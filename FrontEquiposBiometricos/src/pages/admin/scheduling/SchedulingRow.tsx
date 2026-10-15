@@ -1,6 +1,6 @@
 import {
   CalendarClock,
-  CalendarPlus,
+  ClipboardPlus,
   Check,
   Eye,
   Pencil,
@@ -103,14 +103,14 @@ export function SchedulingRow({
       <td className="py-3 pl-12 pr-4 text-center">
         <div className="flex flex-nowrap items-center justify-center gap-2">
           {canCreate && (
-            <IconHint label="Nueva solicitud">
+            <IconHint label="Crear">
               <Button
                 size="sm"
                 className="h-8! w-8! px-0!"
-                aria-label="Nueva solicitud"
+                aria-label="Crear solicitud"
                 onClick={onCreate}
               >
-                <CalendarPlus size={14} />
+                <ClipboardPlus size={14} />
               </Button>
             </IconHint>
           )}
